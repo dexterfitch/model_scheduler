@@ -1,0 +1,123 @@
+##############################
+# Global
+##############################
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment files
+.env
+*.env.local
+*.env.*.local
+.envrc
+
+# Logs
+*.log
+log/
+tmp/
+
+# Coverage / profiling
+coverage/
+*.prof
+
+# Dependency directories
+node_modules/
+vendor/bundle/
+vendor/cache/
+.bundle/
+
+# Postgres database files
+pgdata/
+
+##############################
+# Docker
+##############################
+
+# Ignore Docker build artifacts
+docker-compose.override.yml
+docker-compose.local.yml
+docker-compose.dev.yml
+docker-compose.yml
+Dockerfile.local
+Dockerfile.dev
+
+# Containers & volumes (if generated locally)
+**/.docker/
+docker-data/
+docker-volumes/
+docker_tmp/
+*.tar   # exported Docker images
+
+# Rails tmp+cache inside containers
+**/tmp/docker/
+**/tmp/pids/*
+**/tmp/cache/*
+!**/tmp/pids/.keep
+!**/tmp/cache/.keep
+
+# Misc docker logs
+docker-logs/
+*.pid
+
+##############################
+# Backend (Rails)
+##############################
+
+/backend/tmp/
+!/backend/tmp/.keep
+/backend/log/
+/backend/db/*.sqlite3
+/backend/db/*.sqlite3-journal
+/backend/db/*.sqlite3-*
+/backend/storage/
+/backend/public/assets/
+/backend/public/packs/
+/backend/public/packs-test/
+/backend/public/uploads/
+/backend/node_modules/
+/backend/.bundle/
+/backend/vendor/cache/
+/backend/vendor/bundle/
+/backend/.byebug_history
+
+# Rails master key — NEVER commit this
+/backend/config/master.key
+/backend/config/credentials.yml.enc
+
+# PID files
+/backend/tmp/pids/*
+!/backend/tmp/pids/.keep
+
+# Cache
+/backend/tmp/cache/*
+!/backend/tmp/cache/.keep
+
+##############################
+# Frontend (React)
+##############################
+
+/frontend/node_modules/
+/frontend/build/
+/frontend/dist/
+/frontend/.parcel-cache/
+/frontend/.cache/
+
+##############################
+# Additional Optional Ignores
+##############################
+
+# Yarn / pnpm / bun lock files (uncomment if not using)
+# yarn.lock
+# pnpm-lock.yaml
+# bun.lockb
+
+# Local SSL certs
+*.pem
+certs/
