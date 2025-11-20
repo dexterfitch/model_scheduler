@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getMySchedule, createAvailability } from '../services/api';
+import { getMySchedule, createAvailability, deleteAvailability } from '../services/api';
 
 // HELPER: Generate time slots (09:00 to 22:00 in 15 min increments)
 const generateTimeOptions = () => {
@@ -29,6 +29,16 @@ export default function ModelDashboard({ user }) {
     getMySchedule(user.email)
       .then(res => setSchedule(res.data))
       .catch(err => console.error(err));
+  };
+
+  const handleDelete = async (slotId) => {
+    try {
+      await deleteAvailability(user.email, slotId);
+      fetchSchedule();
+    } catch (error) {
+      console.error(error);
+      alert("Error deleting slot. Please try again.");
+    }
   };
 
   useEffect(() => {
@@ -170,9 +180,9 @@ export default function ModelDashboard({ user }) {
             if (slot.status === 'confirmed') { statusColor = '#28a745'; bgColor = '#d4edda'; }
             
             return (
-              <div key={slot.id} style={{ 
-                borderLeft: `5px solid ${statusColor}`, 
-                padding: '15px', 
+              <div key={slot.id} style={{
+                borderLeft: `5px solid ${statusColor}`,
+                padding: '15px',
                 borderRadius: '5px',
                 backgroundColor: bgColor,
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
@@ -181,16 +191,38 @@ export default function ModelDashboard({ user }) {
                   <span style={{ fontWeight: 'bold', fontSize: '1.1em' }}>
                     {new Date(slot.starts_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </span>
-                  <span style={{ 
-                    backgroundColor: statusColor, 
-                    color: 'white', 
-                    padding: '2px 8px', 
-                    borderRadius: '10px', 
-                    fontSize: '12px', 
-                    textTransform: 'uppercase' 
-                  }}>
-                    {slot.status}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      backgroundColor: statusColor,
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      textTransform: 'uppercase'
+                    }}>
+                      {slot.status}
+                    </span>
+                    {slot.status === 'pending' && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(slot.id)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#555',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          padding: '2px 6px',
+                          borderRadius: '50%',
+                          lineHeight: 1
+                        }}
+                        aria-label="Delete availability"
+                        title="Delete availability"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 <div style={{ color: '#555' }}>
