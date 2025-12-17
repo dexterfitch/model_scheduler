@@ -1,12 +1,11 @@
 class AvailabilitiesController < ApplicationController
   
   # POST /availabilities
-  # Params: email (auth), starts_at, ends_at, notes
+  # Params: email (auth), starts_at, ends_at
   def create
     user = User.find_by(email: params[:email])
     return render json: { error: "User not found" }, status: :not_found unless user
 
-    # Guard: Only models can create slots
     unless user.role_model?
       return render json: { error: "Only models can create availability slots" }, status: :forbidden
     end
@@ -14,8 +13,8 @@ class AvailabilitiesController < ApplicationController
     availability = user.availabilities.build(
       starts_at: params[:starts_at],
       ends_at: params[:ends_at],
-      notes: params[:notes],
-      status: :pending # Default
+      # Removed 'notes' - models don't need to annotate their own slots in this new workflow
+      status: :available 
     )
 
     if availability.save
@@ -30,17 +29,18 @@ class AvailabilitiesController < ApplicationController
     user = User.find_by(email: params[:email])
     return render json: { error: "User not found" }, status: :not_found unless user
 
-    unless user.role_faculty? || user.role_admin?
+    # CHANGED: Only ADMIN can see the raw list of open slots now.
+    # Faculty must post Open Calls instead.
+    unless user.role_admin?
       return render json: { error: "Unauthorized" }, status: :forbidden
     end
 
-    # --- NEW LOGIC ---
-    # 1. Find IDs of availabilities that have PENDING requests
+    # Find IDs of availabilities that have PENDING requests
     busy_availability_ids = BookingRequest.where(status: :pending).pluck(:availability_id)
 
-    # 2. Query: Not confirmed AND Not in the pending list
+    # Query: Not confirmed AND Not in the pending list
     availabilities = Availability.where.not(status: :confirmed)
-                                 .where.not(id: busy_availability_ids) # <--- Exclude pending slots
+                                 .where.not(id: busy_availability_ids)
                                  .where("starts_at > ?", Time.current)
                                  .includes(:user)
                                  .order(:starts_at)
@@ -63,7 +63,6 @@ class AvailabilitiesController < ApplicationController
     user = User.find_by(email: params[:email])
     return render json: { error: "User not found" }, status: :not_found unless user
 
-    # 1. Determine the Base Scope
     if user.role_admin?
       # Admin sees ALL records
       scope = Availability.includes(:user)
@@ -74,17 +73,12 @@ class AvailabilitiesController < ApplicationController
       return render json: { error: "Forbidden" }, status: :forbidden
     end
 
-    # 2. Apply Status Filter (if provided)
-    # Works for 'pending', 'confirmed', etc. because of the Enum
     if params[:status].present?
       scope = scope.where(status: params[:status])
     end
 
-    # 3. Apply Ordering & Render
     if user.role_admin?
-      # Admin: Recent to Oldest
       availabilities = scope.order(starts_at: :desc)
-      
       render json: availabilities.map { |a| 
         availability_json(a).merge({
           model_name: "#{a.user.first_name} #{a.user.last_name}",
@@ -92,7 +86,6 @@ class AvailabilitiesController < ApplicationController
         })
       }
     else
-      # Model: Soonest to Furthest (Standard calendar view)
       availabilities = scope.order(:starts_at)
       render json: availabilities.map { |a| availability_json(a) }
     end
@@ -103,11 +96,9 @@ class AvailabilitiesController < ApplicationController
     user = User.find_by(email: params[:email])
     return render json: { error: "User not found" }, status: :not_found unless user
 
-    # Security: Only look within THIS user's availabilities
     availability = user.availabilities.find_by(id: params[:id])
     return render json: { error: "Availability not found or access denied" }, status: :not_found unless availability
 
-    # Business Logic: Cannot delete if confirmed
     if availability.confirmed?
       return render json: { error: "Cannot delete a confirmed booking." }, status: :unprocessable_entity
     end

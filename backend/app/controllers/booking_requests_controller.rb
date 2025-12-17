@@ -8,26 +8,35 @@ class BookingRequestsController < ApplicationController
     user = User.find_by(email: params[:email])
     return render json: { error: "User not found" }, status: :not_found unless user
 
-    # 1. Define Scope based on Role
     if user.role_admin?
       # Admin sees EVERYTHING
-      scope = BookingRequest.all
+      scope = BookingRequest.all.includes(:availability, :faculty)
+      # Render full details
+      render json: scope.order(created_at: :desc).map { |br| booking_request_json(br) }
+
     elsif user.role_faculty?
       # Faculty sees requests THEY made
-      scope = user.faculty_booking_requests
+      scope = user.faculty_booking_requests.includes(:availability)
+      
+      # CHANGED: Anonymize Model Info
+      render json: scope.order(created_at: :desc).map { |br| 
+        {
+          id: br.id,
+          status: br.status,
+          created_at: br.created_at,
+          model_label: "Model ##{br.availability.user_id}", # Anonymized ID
+          availability: {
+            starts_at: br.availability.starts_at,
+            ends_at: br.availability.ends_at
+          }
+        }
+      }
+      
     elsif user.role_model?
       # Models see requests for THEIR slots
       scope = BookingRequest.joins(:availability).where(availabilities: { user_id: user.id })
+      render json: scope.order(created_at: :desc).map { |br| booking_request_json(br) }
     end
-
-    # 2. Apply Filter (Optional)
-    if params[:status].present?
-      scope = scope.where(status: params[:status])
-    end
-
-    # 3. Preload & Render
-    scope = scope.includes(:availability, :faculty)
-    render json: scope.order(created_at: :desc).map { |br| booking_request_json(br) }
   end
 
   # POST /booking_requests
@@ -41,7 +50,7 @@ class BookingRequestsController < ApplicationController
     br = BookingRequest.create(availability: availability, faculty: faculty, notes: params[:notes])
 
     if br.persisted?
-      render json: { id: br.id, status: br.status, availability_id: br.availability_id, faculty_id: br.faculty_id }, status: :created
+      render json: { id: br.id, status: br.status }, status: :created
     else
       render json: { errors: br.errors.full_messages }, status: :unprocessable_entity
     end
@@ -55,7 +64,6 @@ class BookingRequestsController < ApplicationController
     faculty = User.find_by(email: params[:email])
     return render json: { error: "Faculty not found" }, status: :not_found unless faculty
     
-    # Security Checks
     return render json: { error: "User is not a faculty member" }, status: :forbidden unless faculty.role == "faculty"
     return render json: { error: "You can only withdraw your own requests." }, status: :forbidden unless br.faculty_id == faculty.id
     return render json: { error: "Only pending requests can be withdrawn." }, status: :unprocessable_entity unless br.status == "pending"
@@ -64,13 +72,8 @@ class BookingRequestsController < ApplicationController
     render json: { ok: true, id: br.id, status: br.status }, status: :ok
   end
 
-  # ---------------------------------------------------------
-  # Admin Actions
-  # ---------------------------------------------------------
-
-  # POST /booking_requests/:id/approve
+  # --- Admin Actions ---
   def approve
-    # 1. Auth Check (Must be Admin)
     user = User.find_by(email: params[:email])
     return render json: { error: "Unauthorized" }, status: :forbidden unless user&.role_admin?
 
@@ -79,16 +82,13 @@ class BookingRequestsController < ApplicationController
 
     begin
       br.approve!
-      # Return the full object so the UI can update immediately
       render json: booking_request_json(br)
     rescue ActiveRecord::RecordInvalid => e
       render json: { ok: false, errors: br.errors.full_messages }, status: :unprocessable_entity
     end
   end
 
-  # POST /booking_requests/:id/deny
   def deny
-    # 1. Auth Check (Must be Admin)
     user = User.find_by(email: params[:email])
     return render json: { error: "Unauthorized" }, status: :forbidden unless user&.role_admin?
 

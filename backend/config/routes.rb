@@ -13,4 +13,11 @@ Rails.application.routes.draw do
   get "/availabilities", to: "availabilities#index"
   post "/availabilities", to: "availabilities#create"
   delete "/availabilities/:id", to: "availabilities#destroy"
+
+  # --- Open Calls & Bids ---
+  get  "/open_calls", to: "open_calls#index"
+  post "/open_calls", to: "open_calls#create"
+  
+  post "/open_calls/:open_call_id/bids", to: "bids#create"
+  post "/bids/:id/accept", to: "bids#accept"
 end

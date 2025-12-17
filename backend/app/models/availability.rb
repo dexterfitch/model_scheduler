@@ -1,9 +1,9 @@
 class Availability < ApplicationRecord
   belongs_to :user
-
   has_many :booking_requests, dependent: :destroy, inverse_of: :availability
 
-  enum :status, { pending: 0, requested: 1, confirmed: 2 }
+  # CHANGE: pending -> available
+  enum :status, { available: 0, requested: 1, confirmed: 2 }
 
   validates :starts_at, :ends_at, presence: true
   validate :end_after_start

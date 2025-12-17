@@ -36,6 +36,10 @@ vendor/cache/
 # Postgres database files
 pgdata/
 
+# Planning files
+userstories.md
+*.zip
+
 ##############################
 # Docker
 ##############################
