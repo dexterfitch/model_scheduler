@@ -7,6 +7,13 @@ class Gig < ApplicationRecord
   validate :request_must_fit_availability
   validate :no_overlap_for_model
 
+  def as_json(options = {})
+    super(options.merge(include: {
+      faculty_request: { include: :user },
+      art_model_availability: { include: :user }
+    }))
+  end
+
   private
 
   def request_must_fit_availability

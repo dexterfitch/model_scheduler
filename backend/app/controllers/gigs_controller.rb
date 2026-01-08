@@ -1,39 +1,49 @@
 class GigsController < ApplicationController
-  # GET /gigs
   def index
-    @gigs = Gig.includes(:faculty_request, :art_model_availability).all
-    
-    # We include nested data so the Admin can see WHO is in the gig
-    render json: @gigs, include: {
+    # Eager load the deep nested associations
+    gigs = Gig.includes(
+      faculty_request: :user,
+      art_model_availability: :user
+    ).all
+
+    # Explicitly tell Rails to include the users in the JSON output
+    render json: gigs, include: {
       faculty_request: { include: :user },
       art_model_availability: { include: :user }
     }
   end
 
-  # POST /gigs
   def create
-    @gig = Gig.new(gig_params)
-    @gig.status = :confirmed
-
-    if @gig.save
-      # Mark the Faculty Request as 'matched' so it stops showing up in the "Todo" list
-      @gig.faculty_request.update!(status: :matched)
+    gig = Gig.new(gig_params)
+    if gig.save
+      # When a gig is created, update the availability and request statuses
+      gig.art_model_availability.update(status: 'active') # Ensure it stays active (or change logic if needed)
+      gig.faculty_request.update(status: 'matched')
       
-      render json: @gig, status: :created
+      render json: gig, status: :created
     else
-      render json: @gig.errors, status: :unprocessable_entity
+      render json: { errors: gig.errors.full_messages }, status: :unprocessable_entity
     end
   end
 
-  # DELETE /gigs/:id
+  def update
+    gig = Gig.find(params[:id])
+    if gig.update(gig_params)
+      render json: gig
+    else
+      render json: { errors: gig.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
   def destroy
-    @gig = Gig.find(params[:id])
+    gig = Gig.find(params[:id])
     
-    # When a gig is cancelled, we should re-open the faculty request
-    request = @gig.faculty_request
-    request.update!(status: :pending) if request
+    # When cancelling a gig, revert statuses
+    gig.faculty_request.update(status: 'pending')
+    # availability usually stays 'active' so they can be booked again, 
+    # or you might want to set it to something else depending on logic.
     
-    @gig.destroy
+    gig.destroy
     head :no_content
   end
 

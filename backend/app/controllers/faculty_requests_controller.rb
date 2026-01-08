@@ -38,6 +38,7 @@ class FacultyRequestsController < ApplicationController
       :starts_at, 
       :ends_at, 
       :class_name, 
+      :department, 
       :pref_skin_tone, 
       :pref_gender, 
       :pref_disability,
