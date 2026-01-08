@@ -1,93 +1,83 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-// Import our three distinct dashboards
-import ModelDashboard from './components/ModelDashboard';
+// Layout & Auth
+import Layout from './components/Layout';
+import LoginSimulator from './components/LoginSimulator';
+
+// Admin Views
 import AdminDashboard from './components/AdminDashboard';
+import AdminCalendar from './components/AdminCalendar';
+import AllGigs from './components/AllGigs';
+import AllRequests from './components/AllRequests';
+import UserDirectory from './components/UserDirectory';
+import ModelDetail from './components/ModelDetail';
+import GigCreator from './components/GigCreator';
+
+// New Role Views
 import FacultyDashboard from './components/FacultyDashboard';
+import ModelDashboard from './components/ModelDashboard';
 
 function App() {
-  const [user, setUser] = useState(null);
+  // Store the logged-in user in state (null = not logged in)
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // --- SCREEN 1: LOGIN ---
-  if (!user) {
-    return (
-      <div style={{ padding: '50px', textAlign: 'center', fontFamily: 'sans-serif' }}>
-        <h1>M.C. Scheduler</h1>
-        <p>Select a role to simulate login:</p>
-        
-        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '30px' }}>
-          
-          <button 
-            onClick={() => setUser({ name: 'Alice', email: 'alice@example.com', role: 'model' })}
-            style={buttonStyle}
-          >
-            Login as Alice (Model)
-          </button>
+  // Handle Login
+  const handleLogin = (user) => {
+    setCurrentUser(user);
+    // In a real app, you'd save a token to localStorage here
+  };
 
-          <button 
-            onClick={() => setUser({ name: 'Frank', email: 'frank@example.com', role: 'faculty' })}
-            style={buttonStyle}
-          >
-            Login as Frank (Faculty)
-          </button>
-          
-          <button 
-            onClick={() => setUser({ name: 'Anita', email: 'anita@example.com', role: 'admin' })}
-            style={buttonStyle}
-          >
-            Login as Anita (Admin)
-          </button>
-          
-        </div>
-      </div>
-    )
+  // Handle Logout
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
+
+  // 1. If not logged in, show Login Screen
+  if (!currentUser) {
+    return <LoginSimulator onLogin={handleLogin} />;
   }
 
-  // --- SCREEN 2: THE DASHBOARD ---
+  // 2. If logged in, show the App with the correct routes
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      
-      {/* GLOBAL HEADER */}
-      <header style={{ 
-        borderBottom: '1px solid #ccc', 
-        marginBottom: '30px', 
-        paddingBottom: '15px',
-        display: 'flex', 
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <h3 style={{ margin: 0 }}>Art Scheduler</h3>
-          <span style={{ color: '#666', fontSize: '0.9em' }}>
-            Logged in as: <strong>{user.name}</strong> ({user.role})
-          </span>
-        </div>
-        <button onClick={() => setUser(null)} style={{ padding: '8px 16px', cursor: 'pointer' }}>
-          Logout
-        </button>
-      </header>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout currentUser={currentUser} onLogout={handleLogout} />}>
+          
+          {/* --- ADMIN ROUTES --- */}
+          {currentUser.role === 'admin' && (
+            <>
+              <Route index element={<AdminDashboard />} />
+              <Route path="calendar" element={<AdminCalendar />} />
+              <Route path="gigs" element={<AllGigs />} />
+              <Route path="requests" element={<AllRequests />} />
+              <Route path="directory" element={<UserDirectory />} />
+              <Route path="models/:id" element={<ModelDetail />} />
+              <Route path="gigs/new/:requestId" element={<GigCreator />} />
+            </>
+          )}
 
-      {/* ROLE-BASED ROUTING */}
-      <main>
-        {user.role === 'model' && <ModelDashboard user={user} />}
-        {user.role === 'admin' && <AdminDashboard user={user} />}
-        {user.role === 'faculty' && <FacultyDashboard user={user} />}
-      </main>
+          {/* --- FACULTY ROUTES --- */}
+          {currentUser.role === 'faculty' && (
+            <>
+              <Route index element={<FacultyDashboard user={currentUser} />} />
+            </>
+          )}
 
-    </div>
-  )
+          {/* --- MODEL ROUTES --- */}
+          {currentUser.role === 'model' && (
+            <>
+              <Route index element={<ModelDashboard user={currentUser} />} />
+            </>
+          )}
+
+          {/* Fallback for unknown routes */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
 }
-
-// Simple inline style for the login buttons
-const buttonStyle = {
-  padding: '15px 25px',
-  fontSize: '16px',
-  cursor: 'pointer',
-  backgroundColor: '#007bff',
-  color: 'white',
-  border: 'none',
-  borderRadius: '5px',
-  boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-};
 
 export default App;
