@@ -1,6 +1,6 @@
 class FacultyRequest < ApplicationRecord
   belongs_to :user
-  has_one :gig, dependent: :destroy
+  has_one :gig
 
   enum :model_mode, { clothed: 0, nude: 1 }
   enum :status, { pending: 0, matched: 1, archived: 2 }
@@ -20,8 +20,27 @@ class FacultyRequest < ApplicationRecord
   validate :must_be_within_business_hours
   validates :department, presence: true, inclusion: { in: DEPARTMENTS }
   validates :pref_disability, inclusion: { in: ["Any", "Yes", "No"] }
+  validate :must_be_future_date
+  validate :must_be_within_four_months
 
   private
+
+  def must_be_future_date
+    return unless starts_at
+
+    # Check if the date is today or in the past
+    if starts_at.to_date <= Date.current
+      errors.add(:starts_at, "must be at least one day in the future")
+    end
+  end
+
+  def must_be_within_four_months
+    return unless starts_at
+
+    if starts_at > 4.months.from_now
+      errors.add(:starts_at, "cannot be more than 4 months in the future")
+    end
+  end
 
   def must_be_faculty_role
     errors.add(:user, "must be a faculty member") unless user&.role == 'faculty'

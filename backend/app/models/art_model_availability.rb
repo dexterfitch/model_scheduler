@@ -7,8 +7,17 @@ class ArtModelAvailability < ApplicationRecord
   validates :starts_at, :ends_at, presence: true
   validate :end_after_start
   validate :must_be_within_business_hours
+  validate :must_be_future_time
 
   private
+
+  def must_be_future_time
+    return unless starts_at
+
+    if starts_at < Time.current
+      errors.add(:starts_at, "must be in the future")
+    end
+  end
 
   def end_after_start
     return if ends_at.blank? || starts_at.blank?

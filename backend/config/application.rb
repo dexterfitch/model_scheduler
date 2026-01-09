@@ -36,10 +36,13 @@ module Backend
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
 
+    # NOTE: Since you have CORS here, make sure you don't ALSO have it in 
+    # config/initializers/cors.rb to avoid conflicts.
     config.middleware.insert_before 0, Rack::Cors do
       allow do
         origins '*'
-        resource '*', headers: :any, methods: [:get, :post, :patch, :delete]
+        # Added :put and :options to be safe
+        resource '*', headers: :any, methods: [:get, :post, :put, :patch, :delete, :options, :head]
       end
     end
 
@@ -47,5 +50,14 @@ module Backend
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+
+    # -----------------------------------------------------------
+    # 🟢 REQUIRED FOR OMNIAUTH (GOOGLE LOGIN)
+    # -----------------------------------------------------------
+    # API-only apps disable sessions by default, but OmniAuth needs them
+    # to track the authentication state securely.
+    config.session_store :cookie_store, key: '_mica_scheduler_session'
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use ActionDispatch::Session::CookieStore, config.session_options
   end
 end

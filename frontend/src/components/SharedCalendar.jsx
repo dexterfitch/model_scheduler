@@ -26,11 +26,14 @@ const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }
         select={onDateSelect} // Callback for selecting a time slot
         eventClick={onEventClick} // Callback for clicking an event
         
+        // --- NEW: Force End Time Display ---
+        displayEventEnd={true} 
+        
         // Visual tweaks
         eventTimeFormat={{
           hour: 'numeric',
           minute: '2-digit',
-          meridiem: 'short'
+          meridiem: 'short' // Result: "9:00a - 5:00p"
         }}
         slotMinTime="08:00:00" // Start calendar at 8 AM
         slotMaxTime="22:00:00" // End at 10 PM

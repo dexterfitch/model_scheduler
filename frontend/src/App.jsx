@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
+
+// API Service
+import api from './services/api';
 
 // Layout & Auth
 import Layout from './components/Layout';
-import LoginSimulator from './components/LoginSimulator';
+import LoginPage from "./components/LoginPage";
+import SelectRole from "./components/SelectRole"; // <--- NEW IMPORT
 
 // Admin Views
 import AdminDashboard from './components/AdminDashboard';
@@ -22,60 +26,105 @@ function App() {
   // Store the logged-in user in state (null = not logged in)
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Handle Login
-  const handleLogin = (user) => {
-    setCurrentUser(user);
-    // In a real app, you'd save a token to localStorage here
-  };
-
   // Handle Logout
   const handleLogout = () => {
     setCurrentUser(null);
   };
 
-  // 1. If not logged in, show Login Screen
-  if (!currentUser) {
-    return <LoginSimulator onLogin={handleLogin} />;
-  }
+  // --- HELPER: HANDLE SUCCESSFUL GOOGLE LOGIN ---
+  const LoginSuccess = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
 
-  // 2. If logged in, show the App with the correct routes
+    useEffect(() => {
+      // 1. Fetch the full user object using the ID from the URL
+      api.get(`/users/${id}`)
+        .then(res => {
+          const user = res.data;
+
+          // 2. CHECK IF ROLE EXISTS
+          if (!user.role) {
+            // If no role, force them to selection page
+            // We pass the userId in 'state' so SelectRole knows who to update
+            navigate("/select-role", { state: { userId: user.id } });
+          } else {
+            // If role exists, log them in fully
+            setCurrentUser(user);
+            navigate("/");
+          }
+        })
+        .catch(err => {
+          console.error("Login Failed:", err);
+          navigate("/login?error=AuthFailed"); 
+        });
+    }, [id, navigate]);
+
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <div className="text-center">
+          <div className="spinner-border text-primary mb-3" role="status"></div>
+          <h4>Logging you in...</h4>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout currentUser={currentUser} onLogout={handleLogout} />}>
+      {!currentUser ? (
+        // --- SCENARIO 1: NOT LOGGED IN (or Onboarding) ---
+        <Routes>
+          {/* The Login Page */}
+          <Route path="/login" element={<LoginPage />} />
           
-          {/* --- ADMIN ROUTES --- */}
-          {currentUser.role === 'admin' && (
-            <>
-              <Route index element={<AdminDashboard />} />
-              <Route path="calendar" element={<AdminCalendar />} />
-              <Route path="gigs" element={<AllGigs />} />
-              <Route path="requests" element={<AllRequests />} />
-              <Route path="directory" element={<UserDirectory />} />
-              <Route path="models/:id" element={<ModelDetail />} />
-              <Route path="gigs/new/:requestId" element={<GigCreator />} />
-            </>
-          )}
+          {/* Rails redirects here after Google Auth */}
+          <Route path="/login_success/:id" element={<LoginSuccess />} />
 
-          {/* --- FACULTY ROUTES --- */}
-          {currentUser.role === 'faculty' && (
-            <>
-              <Route index element={<FacultyDashboard user={currentUser} />} />
-            </>
-          )}
+          {/* New: Role Selection Page */}
+          {/* We pass setCurrentUser so it can log us in after selection */}
+          <Route path="/select-role" element={<SelectRole onLogin={setCurrentUser} />} />
+          
+          {/* Default to Login */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      ) : (
+        // --- SCENARIO 2: LOGGED IN ---
+        <Routes>
+          <Route path="/" element={<Layout currentUser={currentUser} onLogout={handleLogout} />}>
+            
+            {/* --- ADMIN ROUTES --- */}
+            {currentUser.role === 'admin' && (
+              <>
+                <Route index element={<AdminDashboard />} />
+                <Route path="calendar" element={<AdminCalendar />} />
+                <Route path="gigs" element={<AllGigs />} />
+                <Route path="requests" element={<AllRequests />} />
+                <Route path="directory" element={<UserDirectory />} />
+                <Route path="models/:id" element={<ModelDetail />} />
+                <Route path="gigs/new/:requestId" element={<GigCreator />} />
+              </>
+            )}
 
-          {/* --- MODEL ROUTES --- */}
-          {currentUser.role === 'model' && (
-            <>
-              <Route index element={<ModelDashboard user={currentUser} />} />
-            </>
-          )}
+            {/* --- FACULTY ROUTES --- */}
+            {currentUser.role === 'faculty' && (
+              <>
+                <Route index element={<FacultyDashboard user={currentUser} />} />
+              </>
+            )}
 
-          {/* Fallback for unknown routes */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+            {/* --- MODEL ROUTES --- */}
+            {currentUser.role === 'model' && (
+              <>
+                <Route index element={<ModelDashboard user={currentUser} />} />
+              </>
+            )}
 
-        </Route>
-      </Routes>
+            {/* Fallback for unknown routes inside the app */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+
+          </Route>
+        </Routes>
+      )}
     </BrowserRouter>
   );
 }

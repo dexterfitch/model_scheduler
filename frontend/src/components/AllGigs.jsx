@@ -82,24 +82,26 @@ function AllGigs() {
               filteredGigs.map(gig => (
                 <tr key={gig.id}>
                   <td className="align-middle">
-                    <div className="fw-bold">{new Date(gig.faculty_request.starts_at).toLocaleDateString()}</div>
+                    {/* Safety Check: ensure faculty_request exists */}
+                    <div className="fw-bold">{new Date(gig.faculty_request?.starts_at).toLocaleDateString()}</div>
                     <div className="small text-muted">
-                      {new Date(gig.faculty_request.starts_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - 
-                      {new Date(gig.faculty_request.ends_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                      {new Date(gig.faculty_request?.starts_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - 
+                      {new Date(gig.faculty_request?.ends_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
                     </div>
                   </td>
                   <td className="align-middle">
-                    {gig.faculty_request.class_name}
-                    {gig.faculty_request.model_mode === 'nude' && (
+                    {gig.faculty_request?.class_name}
+                    {gig.faculty_request?.model_mode === 'nude' && (
                       <Badge bg="danger" className="ms-2" style={{fontSize: '0.6em'}}>NUDE</Badge>
                     )}
                   </td>
                   <td className="align-middle">
-                    {gig.faculty_request.user.first_name} {gig.faculty_request.user.last_name}
+                    {/* Safety Check: ensure user exists */}
+                    {gig.faculty_request?.user?.first_name} {gig.faculty_request?.user?.last_name}
                   </td>
                   <td className="align-middle">
                     <Badge bg="success" text="light" className="p-2">
-                      {gig.art_model_availability.user.first_name} {gig.art_model_availability.user.last_name}
+                      {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
                     </Badge>
                   </td>
                   <td className="align-middle">

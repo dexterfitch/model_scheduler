@@ -38,7 +38,10 @@ pgdata/
 
 # Planning files
 userstories.md
-*.zip
+
+# Secrets files
+oauth_secrets.json
+**/omniauth.rb
 
 ##############################
 # Docker

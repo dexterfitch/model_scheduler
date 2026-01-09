@@ -13,7 +13,8 @@ function AdminDashboard() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [recommendedModels, setRecommendedModels] = useState([]);
 
-  useEffect(() => {
+  // --- NEW: REUSABLE FETCH FUNCTION ---
+  const fetchDashboardData = () => {
     // 1. Fetch Requests (Filter for PENDING only)
     api.get("/faculty_requests").then((res) => {
       const pending = res.data.filter(r => r.status === 'pending');
@@ -23,7 +24,10 @@ function AdminDashboard() {
     // 2. Fetch All Gigs (Filter for TODAY)
     api.get("/gigs").then((res) => {
       const todayStr = new Date().toISOString().split('T')[0];
-      const today = res.data.filter(g => g.faculty_request.starts_at.startsWith(todayStr));
+      // Safety check: ensure starts_at exists before splitting
+      const today = res.data.filter(g => 
+        g.faculty_request?.starts_at && g.faculty_request.starts_at.startsWith(todayStr)
+      );
       setTodaysGigs(today);
     });
 
@@ -31,6 +35,10 @@ function AdminDashboard() {
     api.get("/art_model_availabilities").then((res) => {
       setAvailabilities(res.data);
     });
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
   }, []);
 
   // --- MATCHING LOGIC ---
@@ -52,20 +60,27 @@ function AdminDashboard() {
       // Nudity Check: If request is nude, model MUST be willing
       const nudityMatch = !isNudeReq || avail.user.willing_to_model_nude;
 
-      return timeMatch && nudityMatch;
+      // Status Check: Must be active
+      const statusMatch = avail.status === 'active';
+
+      return timeMatch && nudityMatch && statusMatch;
     });
 
     // 2. Score & Sort: Demographic Matches & Fairness
     const scoredCandidates = candidates.map(avail => {
       let score = 0;
-      if (avail.user.skin_tone === request.pref_skin_tone) score += 1;
-      if (avail.user.gender_identity === request.pref_gender) score += 1;
-      // Disability preference matching could go here too
+      
+      // SAFETY CHECK: Make sure avail.user exists first!
+      if (avail.user) {
+          if (avail.user.skin_tone === request.pref_skin_tone) score += 1;
+          if (avail.user.gender_identity === request.pref_gender) score += 1;
+          if (request.pref_disability === 'Yes' && avail.user.disability_status !== 'None') score += 2;
+      }
 
       return { ...avail, score };
     });
 
-    // Sort: High Score first. (Secondary sort by gig count would go here)
+    // Sort: High Score first.
     scoredCandidates.sort((a, b) => b.score - a.score);
 
     setRecommendedModels(scoredCandidates);
@@ -82,8 +97,9 @@ function AdminDashboard() {
     .then(() => {
       alert("Gig Created!");
       setShowSidebar(false);
-      // Refresh Data
-      window.location.reload(); 
+      
+      // --- FIXED: UPDATE DATA WITHOUT RELOADING PAGE ---
+      fetchDashboardData(); 
     })
     .catch(err => console.error(err));
   };
@@ -99,7 +115,7 @@ function AdminDashboard() {
         <Col md={7}>
           <Card className="shadow-sm">
             <Card.Header className="bg-primary text-white fw-bold">
-              ⚡ Pending Faculty Requests
+              ⏳ Pending Faculty Requests
             </Card.Header>
             <Card.Body>
               {requests.length === 0 ? <p className="text-muted">No pending requests.</p> : (
@@ -110,11 +126,17 @@ function AdminDashboard() {
                         <h5 className="mb-1">{req.class_name}</h5>
                         <div className="text-muted small mb-2">
                           👤 {req.user.first_name} {req.user.last_name} &nbsp;|&nbsp;
-                          🕒 {new Date(req.starts_at).toLocaleDateString()} {formatDate(req.starts_at)} - {formatDate(req.ends_at)}
+                          📅 {new Date(req.starts_at).toLocaleDateString()} {formatDate(req.starts_at)} - {formatDate(req.ends_at)}
                         </div>
                         <div>
                            {req.model_mode === "nude" ? <Badge bg="danger">Nude</Badge> : <Badge bg="success">Clothed</Badge>}
-                           <span className="ms-2 small text-secondary">Pref: {formatSkinTone(req.pref_skin_tone)}, {req.pref_gender}</span>
+                           <span className="ms-2 small text-secondary">
+                             Pref: {formatSkinTone(req.pref_skin_tone)}, {req.pref_gender}
+                             {req.pref_disability === 'Yes' 
+                               ? <span className="fw-bold text-dark">, Disability Requested</span> 
+                               : `, Disab: ${req.pref_disability}`
+                             }
+                           </span>
                         </div>
                       </div>
                       <Button variant="outline-primary" onClick={() => handleShowMatch(req)}>
@@ -161,6 +183,7 @@ function AdminDashboard() {
               <strong>Match for:</strong> {selectedRequest.class_name}<br/>
               <small>{formatDate(selectedRequest.starts_at)} - {formatDate(selectedRequest.ends_at)}</small><br/>
               <small>Needs: {formatSkinTone(selectedRequest.pref_skin_tone)}, {selectedRequest.pref_gender}</small>
+              {selectedRequest.pref_disability === 'Yes' && <div className="text-danger fw-bold small mt-1">♿ Disability Preferred</div>}
             </div>
           )}
 
@@ -177,6 +200,7 @@ function AdminDashboard() {
                   </div>
                   <div className="small text-muted">
                     {formatSkinTone(model.user.skin_tone)} / {model.user.gender_identity}
+                    {model.user.disability_status !== "None" && ` / ${model.user.disability_status}`}
                   </div>
                   <div className="small text-muted">
                     Avail: {formatDate(model.starts_at)} - {formatDate(model.ends_at)}
