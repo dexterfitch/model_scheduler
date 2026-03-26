@@ -24,7 +24,6 @@ class Gig < ApplicationRecord
     avail_start = art_model_availability.starts_at
     avail_end   = art_model_availability.ends_at
 
-    # Check if the class is outside the model's window
     if req_start < avail_start || req_end > avail_end
       errors.add(:base, "The class time is outside the model's availability window")
     end
@@ -33,9 +32,8 @@ class Gig < ApplicationRecord
   def no_overlap_for_model
     return unless faculty_request && art_model_availability
     
-    # Check against other CONFIRMED gigs for this same availability block
     overlapping_gigs = art_model_availability.gigs
-      .where.not(id: id) # exclude self
+      .where.not(id: id)
       .where(status: :confirmed)
       .joins(:faculty_request)
       .where("faculty_requests.starts_at < ? AND faculty_requests.ends_at > ?", 

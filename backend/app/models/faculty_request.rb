@@ -16,10 +16,9 @@ class FacultyRequest < ApplicationRecord
 
   validates :starts_at, :ends_at, :class_name, :model_mode, presence: true
   validate :end_after_start
-  validate :must_be_faculty_role
+  validate :must_be_faculty_role, on: :create
   validate :must_be_within_business_hours
   validates :department, presence: true, inclusion: { in: DEPARTMENTS }
-  validates :pref_disability, inclusion: { in: ["Any", "Yes", "No"] }
   validate :must_be_future_date
   validate :must_be_within_four_months
 
@@ -28,7 +27,6 @@ class FacultyRequest < ApplicationRecord
   def must_be_future_date
     return unless starts_at
 
-    # Check if the date is today or in the past
     if starts_at.to_date <= Date.current
       errors.add(:starts_at, "must be at least one day in the future")
     end
@@ -54,7 +52,6 @@ class FacultyRequest < ApplicationRecord
   def must_be_within_business_hours
     return unless starts_at && ends_at
 
-    # FIX: Convert to Eastern Time
     start_local = starts_at.in_time_zone("Eastern Time (US & Canada)")
     end_local   = ends_at.in_time_zone("Eastern Time (US & Canada)")
 

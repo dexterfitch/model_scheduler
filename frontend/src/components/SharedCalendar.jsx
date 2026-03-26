@@ -1,11 +1,11 @@
 import React from 'react';
 import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid'; // Month view
-import timeGridPlugin from '@fullcalendar/timegrid'; // Week/Day view
-import interactionPlugin from '@fullcalendar/interaction'; // Clicks & Dragging
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import bootstrap5Plugin from '@fullcalendar/bootstrap5';
 
-import 'bootstrap-icons/font/bootstrap-icons.css'; // Icons for buttons
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }) => {
   return (
@@ -20,23 +20,21 @@ const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }
           right: 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
         height="auto"
-        selectable={true} // Allows clicking/dragging to select time
-        editable={editable} // Allows dragging events (if enabled)
-        events={events} // The data to show
-        select={onDateSelect} // Callback for selecting a time slot
-        eventClick={onEventClick} // Callback for clicking an event
+        selectable={true}
+        editable={editable}
+        events={events}
+        select={onDateSelect}
+        eventClick={onEventClick}
         
-        // --- NEW: Force End Time Display ---
         displayEventEnd={true} 
         
-        // Visual tweaks
         eventTimeFormat={{
           hour: 'numeric',
           minute: '2-digit',
-          meridiem: 'short' // Result: "9:00a - 5:00p"
+          meridiem: 'short'
         }}
-        slotMinTime="08:00:00" // Start calendar at 8 AM
-        slotMaxTime="22:00:00" // End at 10 PM
+        slotMinTime="08:00:00"
+        slotMaxTime="22:00:00"
       />
     </div>
   );

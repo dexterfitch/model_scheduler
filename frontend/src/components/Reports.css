@@ -1,0 +1,12 @@
+@media print {
+  .navbar, 
+  .report-header-card {
+    display: none !important;
+  }
+
+  .container {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}

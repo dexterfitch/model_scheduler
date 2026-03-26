@@ -1,11 +1,12 @@
 class ArtModelAvailabilitiesController < ApplicationController
-def index
+  before_action -> { require_role(:admin, :model) }
+
+  def index
     query = if params[:user_id]
               ArtModelAvailability.where(user_id: params[:user_id])
             else
               ArtModelAvailability.all
             end
-
     render json: query.includes(:user), include: :user
   end
 
@@ -36,7 +37,6 @@ def index
   private
 
   def availability_params
-    # We must explicitly permit user_id, starts_at, ends_at, and status
     params.require(:art_model_availability).permit(:user_id, :starts_at, :ends_at, :status)
   end
 end

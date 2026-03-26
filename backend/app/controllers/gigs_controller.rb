@@ -1,12 +1,13 @@
 class GigsController < ApplicationController
+  before_action -> { require_role(:admin, :model) }, only: [:index]
+  before_action -> { require_role(:admin) }, only: [:create, :update, :destroy]
+
   def index
-    # Eager load the deep nested associations
     gigs = Gig.includes(
       faculty_request: :user,
       art_model_availability: :user
     ).all
 
-    # Explicitly tell Rails to include the users in the JSON output
     render json: gigs, include: {
       faculty_request: { include: :user },
       art_model_availability: { include: :user }
@@ -16,10 +17,8 @@ class GigsController < ApplicationController
   def create
     gig = Gig.new(gig_params)
     if gig.save
-      # When a gig is created, update the availability and request statuses
-      gig.art_model_availability.update(status: 'active') # Ensure it stays active (or change logic if needed)
+      gig.art_model_availability.update(status: 'active')
       gig.faculty_request.update(status: 'matched')
-      
       render json: gig, status: :created
     else
       render json: { errors: gig.errors.full_messages }, status: :unprocessable_entity
@@ -37,12 +36,7 @@ class GigsController < ApplicationController
 
   def destroy
     gig = Gig.find(params[:id])
-    
-    # When cancelling a gig, revert statuses
     gig.faculty_request.update(status: 'pending')
-    # availability usually stays 'active' so they can be booked again, 
-    # or you might want to set it to something else depending on logic.
-    
     gig.destroy
     head :no_content
   end

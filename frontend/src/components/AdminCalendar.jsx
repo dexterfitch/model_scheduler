@@ -15,19 +15,17 @@ function AdminCalendar() {
 
   const fetchData = async () => {
     try {
-      // 1. Fetch Confirmed Gigs
       const gigsRes = await api.get("/gigs");
       const gigs = gigsRes.data.map(gig => ({
         id: `gig-${gig.id}`,
         title: `✅ ${gig.faculty_request.class_name}`,
         start: gig.faculty_request.starts_at,
         end: gig.faculty_request.ends_at,
-        backgroundColor: '#198754', // Green
+        backgroundColor: '#198754',
         borderColor: '#198754',
         extendedProps: { type: 'gig', ...gig }
       }));
 
-      // 2. Fetch Pending Requests
       const reqRes = await api.get("/faculty_requests");
       const requests = reqRes.data
         .filter(r => r.status === 'pending')
@@ -36,16 +34,13 @@ function AdminCalendar() {
           title: `❓ ${req.class_name}`,
           start: req.starts_at,
           end: req.ends_at,
-          backgroundColor: '#fd7e14', // Orange
+          backgroundColor: '#fd7e14',
           borderColor: '#fd7e14',
           extendedProps: { type: 'request', ...req }
         }));
 
-      // 3. Fetch Model Availabilities (For the sidebar)
       const availRes = await api.get("/art_model_availabilities");
-      // Filter for future dates only
       const futureAvail = availRes.data.filter(a => new Date(a.starts_at) >= new Date());
-      // Sort by date
       futureAvail.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
 
       setCalendarEvents([...gigs, ...requests]);
@@ -59,13 +54,9 @@ function AdminCalendar() {
 const handleEventClick = (info) => {
     const props = info.event.extendedProps;
     
-    // Check if it's a Request or a Gig
     if (props.type === 'request') {
-      // Navigate to our new creator page
-      // Note: props.id is the raw ID from the DB, not the 'req-123' string
       navigate(`/gigs/new/${props.id}`);
     } else {
-      // It's a confirmed gig
       alert(`Gig: ${props.faculty_request.class_name}\nModel: ${props.art_model_availability.user.first_name}`);
     }
   };
@@ -75,7 +66,6 @@ const handleEventClick = (info) => {
   return (
     <Container fluid className="py-4">
       <Row>
-        {/* --- MAIN CALENDAR AREA --- */}
         <Col md={9}>
           <h2 className="mb-4">Master Schedule</h2>
           <SharedCalendar 
@@ -83,8 +73,6 @@ const handleEventClick = (info) => {
             onEventClick={handleEventClick}
           />
         </Col>
-
-        {/* --- SIDEBAR: AVAILABILITIES --- */}
         <Col md={3}>
           <h4 className="mb-3 text-secondary">Upcoming Model Availability</h4>
           <div style={{ maxHeight: '80vh', overflowY: 'auto' }}>

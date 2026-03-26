@@ -38,6 +38,7 @@ pgdata/
 
 # Planning files
 userstories.md
+brakeman_report.md
 
 # Secrets files
 oauth_secrets.json
@@ -83,6 +84,7 @@ docker-logs/
 /backend/db/*.sqlite3
 /backend/db/*.sqlite3-journal
 /backend/db/*.sqlite3-*
+/backend/db/seeds.rb
 /backend/storage/
 /backend/public/assets/
 /backend/public/packs/

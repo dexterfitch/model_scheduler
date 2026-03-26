@@ -3,7 +3,6 @@ import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from "re
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
 
-// 1. DEFINE DEPARTMENTS
 const DEPARTMENTS = [
   "Painting",
   "Drawing",
@@ -18,7 +17,6 @@ function FacultyDashboard({ user }) {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // 2. UPDATE FORM STATE
   const [formData, setFormData] = useState({
     class_name: "",
     department: "",
@@ -28,7 +26,7 @@ function FacultyDashboard({ user }) {
     model_mode: "clothed",
     pref_skin_tone: "Any",
     pref_gender: "Any",
-    pref_disability: "Any" // <--- ADDED
+    notes: ""
   });
 
   useEffect(() => {
@@ -45,7 +43,6 @@ function FacultyDashboard({ user }) {
       .catch((err) => console.error("Error fetching requests:", err));
   };
 
-  // HELPER: Generate options for the Datalist (8am - 10pm)
   const generateTimeOptions = () => {
     const options = [];
     let start = 8 * 60; 
@@ -60,7 +57,6 @@ function FacultyDashboard({ user }) {
     return options;
   };
 
-  // HELPER: Auto-round time to nearest 5 minutes
   const roundToNearest5 = (timeStr) => {
     if (!timeStr) return "";
     const [h, m] = timeStr.split(':').map(Number);
@@ -87,9 +83,9 @@ function FacultyDashboard({ user }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const inputDate = new Date(formData.date + "T00:00:00"); // Force local time
+    const inputDate = new Date(formData.date + "T00:00:00");
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Strip time from today for accurate comparison
+    today.setHours(0, 0, 0, 0);
 
     if (inputDate <= today) {
       alert("Requests must be made for a future date (tomorrow or later).");
@@ -97,7 +93,7 @@ function FacultyDashboard({ user }) {
     }
 
     const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() + 4); // Add 4 months to today
+    maxDate.setMonth(maxDate.getMonth() + 4);
 
     if (inputDate > maxDate) {
       alert("Requests cannot be made more than 4 months in advance.");
@@ -128,7 +124,7 @@ function FacultyDashboard({ user }) {
       model_mode: formData.model_mode,
       pref_skin_tone: formData.pref_skin_tone,
       pref_gender: formData.pref_gender,
-      pref_disability: formData.pref_disability, // <--- ADDED TO PAYLOAD
+      notes: formData.notes,
       status: "pending"
     };
 
@@ -139,7 +135,7 @@ function FacultyDashboard({ user }) {
         fetchMyRequests(); 
         setFormData({
             class_name: "", department: "", date: "", start_time: "", end_time: "", 
-            model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", pref_disability: "Any"
+            model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", notes: ""
         });
       })
       .catch((err) => {
@@ -152,10 +148,9 @@ function FacultyDashboard({ user }) {
     let message = "Are you sure you want to cancel this request?";
 
     if (status === 'matched') {
-      // Check 24h window client-side for better UX
       const gigDate = new Date(startsAt);
       const now = new Date();
-      const diffHours = (gigDate - now) / 36e5; // Convert ms to hours
+      const diffHours = (gigDate - now) / 36e5;
 
       if (diffHours < 24) {
         message = "⚠️ LATE CANCELLATION WARNING ⚠️\n\nThis class is less than 24 hours away.\nCancelling now may still incur model fees.\n\nAre you sure?";
@@ -198,7 +193,7 @@ function FacultyDashboard({ user }) {
           <Col md={6} lg={4} key={req.id} className="mb-4">
             <Card className="h-100 shadow-sm border-0">
               <Card.Header className={`text-white fw-bold ${req.status === 'matched' ? 'bg-success' : 'bg-warning'}`}>
-                {req.status === 'matched' ? '✅ Model Confirmed' : '⏳ Pending Match'}
+                {req.status === 'matched' ? 'Model Confirmed' : 'Pending Match'}
               </Card.Header>
               <Card.Body>
                 <div className="d-flex justify-content-between align-items-start">
@@ -216,11 +211,13 @@ function FacultyDashboard({ user }) {
                         ? <Badge bg="danger">Nude Required</Badge> 
                         : <Badge bg="success">Clothed</Badge>
                     }
-                    {/* Only show preferences if they are NOT 'Any' */}
                     {req.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">Skin: {formatSkinTone(req.pref_skin_tone)}</Badge>}
                     {req.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">Gender: {req.pref_gender}</Badge>}
-                    {req.pref_disability === 'Yes' && <Badge bg="info" text="dark" className="border">♿ Disability Pref.</Badge>}
                 </div>
+
+                {req.notes && (
+                  <div className="mt-1 text-muted small fst-italic">&gt; {req.notes}</div>
+                )}
                                 
                 {(req.status === 'pending' || req.status === 'matched') && (
                   <Button 
@@ -238,7 +235,6 @@ function FacultyDashboard({ user }) {
         ))}
       </Row>
 
-      {/* --- CREATE REQUEST MODAL --- */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Request a Model</Modal.Title>
@@ -280,8 +276,7 @@ function FacultyDashboard({ user }) {
             <h5>Model Preferences</h5>
 
             <Row>
-              {/* SPLIT INTO 4 COLUMNS TO FIT DISABILITY */}
-              <Col md={3} className="mb-3">
+              <Col md={4} className="mb-3">
                 <Form.Label>Nudity</Form.Label>
                 <Form.Select name="model_mode" value={formData.model_mode} onChange={handleInputChange}>
                   <option value="clothed">Clothed</option>
@@ -289,7 +284,7 @@ function FacultyDashboard({ user }) {
                 </Form.Select>
               </Col>
               
-              <Col md={3} className="mb-3">
+              <Col md={4} className="mb-3">
                 <Form.Label>Skin Tone</Form.Label>
                 <Form.Select name="pref_skin_tone" value={formData.pref_skin_tone} onChange={handleInputChange}>
                   <option value="Any">Any</option>
@@ -299,7 +294,7 @@ function FacultyDashboard({ user }) {
                 </Form.Select>
               </Col>
 
-              <Col md={3} className="mb-3">
+              <Col md={4} className="mb-3">
                 <Form.Label>Gender</Form.Label>
                 <Form.Select name="pref_gender" value={formData.pref_gender} onChange={handleInputChange}>
                   <option value="Any">Any</option>
@@ -308,17 +303,19 @@ function FacultyDashboard({ user }) {
                   <option value="Non-Binary">Non-Binary</option>
                 </Form.Select>
               </Col>
-
-               {/* NEW FIELD */}
-              <Col md={3} className="mb-3">
-                <Form.Label>Disability</Form.Label>
-                <Form.Select name="pref_disability" value={formData.pref_disability} onChange={handleInputChange}>
-                  <option value="Any">Any</option>
-                  <option value="Yes">Yes (Preferred)</option>
-                  <option value="No">No</option>
-                </Form.Select>
-              </Col>
             </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Notes for Admin</Form.Label>
+              <Form.Control 
+                as="textarea" 
+                rows={3} 
+                name="notes" 
+                value={formData.notes} 
+                onChange={handleInputChange} 
+                placeholder="e.g. Prefer a model with longer hair for this portrait session..."
+              />
+            </Form.Group>
 
             <div className="d-flex justify-content-end gap-2 mt-3">
               <Button variant="secondary" onClick={() => setShowModal(false)}>Close</Button>

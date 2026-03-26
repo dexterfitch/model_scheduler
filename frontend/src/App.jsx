@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
-
-// API Service
 import api from './services/api';
 
-// Layout & Auth
 import Layout from './components/Layout';
 import LoginPage from "./components/LoginPage";
-import SelectRole from "./components/SelectRole"; // <--- NEW IMPORT
+import SelectRole from "./components/SelectRole";
+import Profile from './components/Profile';
 
-// Admin Views
 import AdminDashboard from './components/AdminDashboard';
 import AdminCalendar from './components/AdminCalendar';
 import AllGigs from './components/AllGigs';
@@ -17,82 +14,69 @@ import AllRequests from './components/AllRequests';
 import UserDirectory from './components/UserDirectory';
 import ModelDetail from './components/ModelDetail';
 import GigCreator from './components/GigCreator';
-
-// New Role Views
+import SuperUserPanel from './components/SuperUserPanel';
 import FacultyDashboard from './components/FacultyDashboard';
 import ModelDashboard from './components/ModelDashboard';
+import Reports from './components/Reports';
 
 function App() {
-  // Store the logged-in user in state (null = not logged in)
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Handle Logout
   const handleLogout = () => {
     setCurrentUser(null);
   };
 
-  // --- HELPER: HANDLE SUCCESSFUL GOOGLE LOGIN ---
+  const refreshUser = async () => {
+    if (currentUser?.id) {
+      try {
+        const res = await api.get(`/users/${currentUser.id}`);
+        setCurrentUser(res.data);
+      } catch (err) {
+        console.error("Failed to refresh user", err);
+      }
+    }
+  };
+
   const LoginSuccess = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
     useEffect(() => {
-      // 1. Fetch the full user object using the ID from the URL
-      api.get(`/users/${id}`)
-        .then(res => {
+      api.get(`/users/${id}`).then(res => {
           const user = res.data;
-
-          // 2. CHECK IF ROLE EXISTS
           if (!user.role) {
-            // If no role, force them to selection page
-            // We pass the userId in 'state' so SelectRole knows who to update
             navigate("/select-role", { state: { userId: user.id } });
           } else {
-            // If role exists, log them in fully
             setCurrentUser(user);
             navigate("/");
           }
-        })
-        .catch(err => {
-          console.error("Login Failed:", err);
+        }).catch(err => {
           navigate("/login?error=AuthFailed"); 
         });
     }, [id, navigate]);
 
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="text-center">
-          <div className="spinner-border text-primary mb-3" role="status"></div>
-          <h4>Logging you in...</h4>
-        </div>
-      </div>
-    );
+    return <div>Logging in...</div>;
   };
 
   return (
     <BrowserRouter>
       {!currentUser ? (
-        // --- SCENARIO 1: NOT LOGGED IN (or Onboarding) ---
         <Routes>
-          {/* The Login Page */}
           <Route path="/login" element={<LoginPage />} />
-          
-          {/* Rails redirects here after Google Auth */}
           <Route path="/login_success/:id" element={<LoginSuccess />} />
-
-          {/* New: Role Selection Page */}
-          {/* We pass setCurrentUser so it can log us in after selection */}
           <Route path="/select-role" element={<SelectRole onLogin={setCurrentUser} />} />
-          
-          {/* Default to Login */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       ) : (
-        // --- SCENARIO 2: LOGGED IN ---
         <Routes>
-          <Route path="/" element={<Layout currentUser={currentUser} onLogout={handleLogout} />}>
+          <Route path="/" element={
+            <Layout 
+              currentUser={currentUser} 
+              onLogout={handleLogout}
+              refreshUser={refreshUser}
+            />
+          }>
             
-            {/* --- ADMIN ROUTES --- */}
             {currentUser.role === 'admin' && (
               <>
                 <Route index element={<AdminDashboard />} />
@@ -102,24 +86,32 @@ function App() {
                 <Route path="directory" element={<UserDirectory />} />
                 <Route path="models/:id" element={<ModelDetail />} />
                 <Route path="gigs/new/:requestId" element={<GigCreator />} />
+                <Route path="reports" element={<Reports />} />
+                
+                {currentUser.superuser && (
+                  <Route path="superuser" element={
+                    <SuperUserPanel 
+                      currentUser={currentUser} 
+                      refreshUser={refreshUser}
+                    />
+                  } />
+                )}
               </>
             )}
 
-            {/* --- FACULTY ROUTES --- */}
             {currentUser.role === 'faculty' && (
               <>
                 <Route index element={<FacultyDashboard user={currentUser} />} />
               </>
             )}
 
-            {/* --- MODEL ROUTES --- */}
             {currentUser.role === 'model' && (
               <>
                 <Route index element={<ModelDashboard user={currentUser} />} />
               </>
             )}
-
-            {/* Fallback for unknown routes inside the app */}
+            
+            <Route path="profile" element={<Profile currentUser={currentUser} setCurrentUser={setCurrentUser} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
 
           </Route>

@@ -5,7 +5,7 @@ import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
 
 function GigCreator() {
-  const { requestId } = useParams(); // Get ID from URL
+  const { requestId } = useParams();
   const navigate = useNavigate();
 
   const [request, setRequest] = useState(null);
@@ -13,18 +13,15 @@ function GigCreator() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // We need both the specific request and the pool of availabilities
     Promise.all([
-      api.get("/faculty_requests"), // In a real app, we'd fetch just /faculty_requests/:id
+      api.get("/faculty_requests"),
       api.get("/art_model_availabilities")
     ]).then(([reqRes, availRes]) => {
       
-      // 1. Find the specific request (Client-side filtering for now)
       const targetReq = reqRes.data.find(r => r.id === parseInt(requestId));
       setRequest(targetReq);
 
       if (targetReq) {
-        // 2. Run Matching Logic
         const reqStart = new Date(targetReq.starts_at);
         const reqEnd = new Date(targetReq.ends_at);
         const isNudeReq = targetReq.model_mode === "nude";
@@ -33,19 +30,15 @@ function GigCreator() {
           const availStart = new Date(avail.starts_at);
           const availEnd = new Date(avail.ends_at);
 
-          // Time: Must fully contain the class time
           const timeMatch = availStart <= reqStart && availEnd >= reqEnd;
           
-          // Nudity: Model must be willing if class is nude
           const nudityMatch = !isNudeReq || avail.user.willing_to_model_nude;
 
-          // Status: Must be active (not cancelled)
           const statusMatch = avail.status === 'active';
 
           return timeMatch && nudityMatch && statusMatch;
         });
 
-        // 3. Score Candidates (Demographics)
         const scored = candidates.map(c => {
           let score = 0;
           if (c.user.skin_tone === targetReq.pref_skin_tone) score++;
@@ -53,7 +46,6 @@ function GigCreator() {
           return { ...c, score };
         });
 
-        // Sort by score (descending)
         scored.sort((a, b) => b.score - a.score);
         setMatches(scored);
       }
@@ -69,7 +61,7 @@ function GigCreator() {
       art_model_availability_id: availabilityId
     }).then(() => {
       alert("Gig Confirmed!");
-      navigate("/calendar"); // Go back to calendar
+      navigate("/calendar");
     }).catch(err => {
       console.error(err);
       alert("Error creating gig.");
@@ -87,7 +79,6 @@ function GigCreator() {
       
       <h2 className="mb-4">Create Gig Match</h2>
 
-      {/* REQUEST CARD */}
       <Card className="mb-4 border-primary shadow-sm">
         <Card.Header className="bg-primary text-white">Target Class</Card.Header>
         <Card.Body>
@@ -105,7 +96,6 @@ function GigCreator() {
         </Card.Body>
       </Card>
 
-      {/* MATCH LIST */}
       <h4 className="text-secondary">Available Models ({matches.length})</h4>
       <ListGroup>
         {matches.length === 0 ? (

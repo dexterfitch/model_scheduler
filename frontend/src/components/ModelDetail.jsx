@@ -12,18 +12,15 @@ function ModelDetail() {
   const [availabilities, setAvailabilities] = useState([]);
 
   useEffect(() => {
-    // 1. Get User Details
     api.get(`/users/${id}`).then(res => setUser(res.data));
 
-    // 2. Get Availabilities for this user
     api.get(`/art_model_availabilities?user_id=${id}`).then(res => {
-      // Map to Calendar Event format
       const events = res.data.map(a => ({
         id: a.id,
         title: a.status === 'active' ? 'Available' : 'Cancelled',
         start: a.starts_at,
         end: a.ends_at,
-        backgroundColor: a.status === 'active' ? '#198754' : '#6c757d', // Green vs Grey
+        backgroundColor: a.status === 'active' ? '#198754' : '#6c757d', 
         display: 'block'
       }));
       setAvailabilities(events);

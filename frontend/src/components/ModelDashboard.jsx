@@ -8,13 +8,14 @@ function ModelDashboard({ user }) {
   const [myGigs, setMyGigs] = useState([]);
   const [myAvailability, setMyAvailability] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
+  const [openCallEvents, setOpenCallEvents] = useState([]);
+  const [openCallInfo, setOpenCallInfo] = useState(null);
+  const [showOpenCallModal, setShowOpenCallModal] = useState(false)
   
-  // Tab & Modal State
   const [activeTab, setActiveTab] = useState("schedule");
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null); // NULL = Create, ID = Update
+  const [editingId, setEditingId] = useState(null);
   
-  // Form State
   const [selectedDate, setSelectedDate] = useState("");
   const [times, setTimes] = useState({ start: "09:00", end: "17:00" });
 
@@ -45,13 +46,30 @@ function ModelDashboard({ user }) {
         end: a.ends_at,
         backgroundColor: a.status === 'active' ? '#198754' : '#6c757d',
         display: 'block',
-        extendedProps: { ...a } // Store full data for editing
+        extendedProps: { ...a }
       }));
       setCalendarEvents(events);
     });
+
+    api.get("/faculty_requests").then((res) => {
+      const openCalls = res.data
+        .filter(r => r.status === 'pending')
+        .filter(r => r.model_mode === 'clothed' || user.willing_to_model_nude)
+        .map(r => ({
+          id: `open-call-${r.id}`,
+          title: r.model_mode === 'nude' ? '🔴 Open Call (Nude)' : '🟠 Open Call',
+          start: r.starts_at,
+          end: r.ends_at,
+          backgroundColor: r.model_mode === 'nude' ? '#dc3545' : '#fd7e14',
+          borderColor: r.model_mode === 'nude' ? '#dc3545' : '#fd7e14',
+          display: 'block',
+          editable: false,
+          extendedProps: { isOpenCall: true, mode: r.model_mode }
+        }));
+      setOpenCallEvents(openCalls);
+    });    
   };
 
-  // --- HELPERS ---
   const generateTimeOptions = () => {
     const options = [];
     let start = 8 * 60; 
@@ -76,7 +94,6 @@ function ModelDashboard({ user }) {
     return `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}`;
   };
 
-  // --- NEW: FILTER UPCOMING GIGS (NEXT 2 WEEKS) ---
   const upcomingGigs = myGigs.filter(gig => {
     const gigDate = new Date(gig.faculty_request.starts_at);
     const now = new Date();
@@ -85,29 +102,33 @@ function ModelDashboard({ user }) {
     return gigDate >= now && gigDate <= twoWeeks;
   });
 
-  // --- HANDLERS ---
 
-  // 1. CLICK EMPTY DATE -> CREATE MODE
   const handleDateSelect = (selectInfo) => {
-    setEditingId(null); // Clear ID = Create Mode
+    setEditingId(null);
     setSelectedDate(selectInfo.startStr); 
-    setTimes({ start: "09:00", end: "17:00" }); // Default times
+    setTimes({ start: "09:00", end: "17:00" });
     setShowModal(true);
   };
 
-  // 2. CLICK EXISTING EVENT -> EDIT MODE
   const handleEventClick = (info) => {
+    if (info.event.extendedProps.isOpenCall) {
+      setOpenCallInfo({
+        start: info.event.start,
+        end: info.event.end,
+        mode: info.event.extendedProps.mode
+      });
+      setShowOpenCallModal(true);
+      return;
+    }
+
     const props = info.event.extendedProps;
-    setEditingId(info.event.id); // Set ID = Update Mode
+    setEditingId(info.event.id);
     
-    // Extract date and times from the ISO strings
     const startObj = new Date(props.starts_at);
     const endObj = new Date(props.ends_at);
     
-    // Format YYYY-MM-DD for date state
     setSelectedDate(props.starts_at.split('T')[0]);
 
-    // Format HH:MM for time inputs
     const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     
     setTimes({
@@ -135,7 +156,6 @@ function ModelDashboard({ user }) {
     const startsAt = new Date(`${selectedDate}T${times.start}`);
     const endsAt = new Date(`${selectedDate}T${times.end}`);
     
-    // --- PAST DATE CHECK ---
     const now = new Date();
     if (startsAt < now) {
         alert("You cannot set availability in the past.");
@@ -163,7 +183,6 @@ function ModelDashboard({ user }) {
     };
 
     if (editingId) {
-        // UPDATE EXISTING
         api.put(`/art_model_availabilities/${editingId}`, payload)
         .then(() => {
             alert("Availability Updated!");
@@ -175,7 +194,6 @@ function ModelDashboard({ user }) {
             alert("Error updating. Check console.");
         });
     } else {
-        // CREATE NEW
         api.post("/art_model_availabilities", payload)
         .then(() => {
             alert("Availability Added!");
@@ -201,13 +219,11 @@ function ModelDashboard({ user }) {
       .catch(err => console.error(err));
   };
 
-  // Formatters
   const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
     <Container className="py-4">
-      {/* --- HEADER --- */}
       <Card className="mb-4 bg-light border-0 shadow-sm">
         <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
           <div>
@@ -247,11 +263,10 @@ function ModelDashboard({ user }) {
         </Tab>
 
         <Tab eventKey="availability" title="Manage Availability">
-          {/* --- UPDATED LAYOUT WITH SIDEBAR --- */}
           <Row>
             <Col md={3}>
                 <div className="bg-light p-3 rounded border mb-3">
-                    <h5 className="mb-3">Gigs (Next 14 Days)</h5>
+                    <h5 className="mb-3">My Gigs (Next 14 Days)</h5>
                     {upcomingGigs.length === 0 ? (
                         <p className="text-muted small">No upcoming gigs in the next 2 weeks.</p>
                     ) : (
@@ -278,7 +293,7 @@ function ModelDashboard({ user }) {
                     Click a date to add time. Click a green block to edit/delete.
                 </Alert>
                 <SharedCalendar 
-                    events={calendarEvents} 
+                    events={[...calendarEvents, ...openCallEvents]} 
                     editable={true} 
                     onDateSelect={handleDateSelect}
                     onEventClick={handleEventClick} 
@@ -288,7 +303,6 @@ function ModelDashboard({ user }) {
         </Tab>
       </Tabs>
 
-      {/* --- MODAL (CREATE & EDIT) --- */}
       <Modal show={showModal} onHide={() => setShowModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>{editingId ? "Edit Availability" : "Set Availability"}</Modal.Title>
@@ -323,6 +337,35 @@ function ModelDashboard({ user }) {
             </div>
           </Form>
         </Modal.Body>
+      </Modal>
+      <Modal show={showOpenCallModal} onHide={() => setShowOpenCallModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {openCallInfo?.mode === 'nude' ? '🔴 Open Call (Nude)' : '🟠 Open Call (Clothed)'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {openCallInfo && (
+            <>
+              <p className="mb-2">
+                <strong>Date:</strong> {new Date(openCallInfo.start).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+              </p>
+              <p className="mb-2">
+                <strong>Time:</strong> {formatTime(openCallInfo.start)} - {formatTime(openCallInfo.end)}
+              </p>
+              <p className="mb-0">
+                <strong>Type:</strong> {openCallInfo.mode === 'nude' ? <span className="text-danger fw-bold">Nude</span> : <span className="text-success">Clothed</span>}
+              </p>
+              <hr />
+              <p className="text-muted small mb-0">
+                If you're available for this time slot, add your availability on the calendar and the admin will match you.
+              </p>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowOpenCallModal(false)}>Close</Button>
+        </Modal.Footer>
       </Modal>
     </Container>
   );

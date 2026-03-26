@@ -1,10 +1,15 @@
 Rails.application.routes.draw do
-  resources :users, only: [:index, :show, :update]
-  resources :art_model_availabilities, only: [:index, :create, :destroy, :update] 
+  resources :users, only: [:index, :show, :update, :create] do
+    member do
+      post "promote"
+      post "promote_to_superuser"
+    end
+  end
+
+  resources :art_model_availabilities, only: [:index, :create, :destroy, :update]
   resources :faculty_requests, only: [:index, :create, :destroy]
   resources :gigs, only: [:index, :create, :destroy, :update]
 
-  # Google Auth Routes
-  get '/auth/:provider/callback', to: 'sessions#omniauth'
-  get '/auth/failure', to: redirect('/') # Handle failures
+  get "/auth/:provider/callback", to: "sessions#omniauth"
+  get "/auth/failure", to: redirect("/")
 end

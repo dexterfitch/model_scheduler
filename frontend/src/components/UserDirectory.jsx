@@ -24,14 +24,14 @@ function UserDirectory() {
 
       <Tabs defaultActiveKey="models" className="mb-3">
         
-        {/* --- MODELS TAB --- */}
         <Tab eventKey="models" title={`Models (${models.length})`}>
           <Table hover responsive className="bg-white shadow-sm">
             <thead className="bg-light">
               <tr>
                 <th>Name</th>
+                <th>Contact</th>
                 <th>Demographics</th>
-                <th>Safety</th>
+                <th>Dress</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -40,14 +40,18 @@ function UserDirectory() {
                 <tr key={u.id}>
                   <td className="align-middle fw-bold">{u.first_name} {u.last_name}</td>
                   <td className="align-middle">
+                    <div className="small">{u.email}</div>
+                    {u.phone && <div className="small text-muted">{u.phone}</div>}
+                    {u.stage_name && <div className="small fst-italic text-muted">"{u.stage_name}"</div>}
+                  </td>
+                  <td className="align-middle">
                     <Badge bg="info" text="dark" className="me-1">{formatSkinTone(u.skin_tone)}</Badge>
-                    <Badge bg="info" text="dark" className="me-1">{u.gender_identity}</Badge>
-                    {u.disability_status !== "None" && <Badge bg="warning" text="dark">{u.disability_status}</Badge>}
+                    <Badge bg="info" text="dark" className="me-1">{u.gender_identity} Gender Presentation</Badge>
                   </td>
                   <td className="align-middle">
                     {u.willing_to_model_nude ? <Badge bg="danger">Nude OK</Badge> : <Badge bg="success">Clothed Only</Badge>}
                   </td>
-                  <td>
+                  <td className="align-middle">
                     <Link to={`/models/${u.id}`} className="btn btn-sm btn-outline-primary">
                       View Availability
                     </Link>
@@ -58,7 +62,6 @@ function UserDirectory() {
           </Table>
         </Tab>
 
-        {/* --- FACULTY TAB --- */}
         <Tab eventKey="faculty" title={`Faculty (${faculty.length})`}>
           <Table hover responsive className="bg-white shadow-sm">
             <thead className="bg-light">

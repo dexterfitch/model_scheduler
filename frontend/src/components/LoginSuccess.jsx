@@ -6,7 +6,6 @@ const LoginSuccess = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // 1. Fetch the user's details from the backend
     const fetchUser = async () => {
       try {
         const response = await fetch(`http://localhost:3000/users/${id}`);
@@ -18,14 +17,9 @@ const LoginSuccess = () => {
         const userData = await response.json();
         console.log("User fetched:", userData);
 
-        // 2. Decide where to go
         if (!userData.role) {
-          // If no role, force them to the selection page
-          // We pass the ID in the state so the next page knows who to update
           navigate('/select-role', { state: { userId: id } });
         } else {
-          // If role exists, go to dashboard
-          // (You might want to save userData to a global Context here later)
           navigate('/dashboard'); 
         }
 
