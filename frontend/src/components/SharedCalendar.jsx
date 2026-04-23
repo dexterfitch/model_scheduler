@@ -4,8 +4,8 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import bootstrap5Plugin from '@fullcalendar/bootstrap5';
-
 import 'bootstrap-icons/font/bootstrap-icons.css';
+import '../assets/styles/fullcalendar-overrides.css';
 
 const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }) => {
   return (
@@ -13,11 +13,11 @@ const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin]}
         themeSystem="bootstrap5"
-        initialView="dayGridMonth"
+        initialView={window.innerWidth < 992 ? 'timeGridDay' : 'timeGridWeek'}
         headerToolbar={{
-          left: 'prev,next today',
+          left: window.innerWidth < 992 ? 'prev,next' : 'prev,next today',
           center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          right: window.innerWidth < 992 ? 'timeGridDay,timeGridWeek' : 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
         height="auto"
         selectable={true}

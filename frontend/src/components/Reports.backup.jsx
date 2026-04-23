@@ -19,9 +19,9 @@ function Reports() {
   };
 
   const formatTime = (isoString) => {
-    return new Date(isoString).toLocaleTimeString([], {
-      hour: 'numeric',
-      minute: '2-digit'
+    return new Date(isoString).toLocaleTimeString([], { 
+      hour: 'numeric', 
+      minute: '2-digit' 
     });
   };
 
@@ -51,7 +51,7 @@ function Reports() {
       const modelName = `${model.first_name} ${model.last_name}`;
       const facultyName = `${gig.faculty_request.user.first_name} ${gig.faculty_request.user.last_name}`;
       const department = gig.faculty_request.department || "Unknown";
-      const mode = gig.faculty_request.model_mode;
+      const mode = gig.faculty_request.model_mode; 
       const hours = calculateHours(gig.faculty_request.starts_at, gig.faculty_request.ends_at);
       const isConfirmed = gig.status === "confirmed";
       const isLateCancelled = gig.status === "cancelled" && gig.billable === true;
@@ -64,9 +64,9 @@ function Reports() {
       if (!byModel[modelKey].departments[department]) {
         byModel[modelKey].departments[department] = {
           name: department,
-          confirmed: {
-            clothed: { total: 0, shifts: [] },
-            nude: { total: 0, shifts: [] }
+          confirmed: { 
+            clothed: { total: 0, shifts: [] }, 
+            nude: { total: 0, shifts: [] } 
           },
           cancelled: []
         };
@@ -98,21 +98,21 @@ function Reports() {
       <Card className="shadow-sm mb-4 report-header-card">
         <Card.Header className="bg-primary text-white fw-bold">Model Hours Report</Card.Header>
         <Card.Body>
-          <Row className="g-2 align-items-end">
-            <Col xs={12} sm={6} md={4}>
+          <Row className="align-items-end">
+            <Col md={4} className="mb-3">
               <Form.Label>Start Date</Form.Label>
               <Form.Control type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
             </Col>
-            <Col xs={12} sm={6} md={4}>
+            <Col md={4} className="mb-3">
               <Form.Label>End Date</Form.Label>
               <Form.Control type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
             </Col>
-            <Col xs={12} md={4}>
-              <Button variant="primary" className="w-100 mb-2" onClick={generateReport}>
+            <Col md={4} className="mb-3">
+              <Button variant="primary" className="w-100" onClick={generateReport}>
                 Generate Report
               </Button>
               {report && (
-                <Button variant="outline-dark" className="w-100" onClick={() => window.print()}>
+                <Button variant="outline-dark" className="w-100 mt-2" onClick={() => window.print()}>
                   Print
                 </Button>
               )}
@@ -134,29 +134,18 @@ function Reports() {
                     <div className="fw-bold text-primary border-bottom mb-2 pb-1">
                       {dept.name}
                     </div>
-
+                    
                     {dept.confirmed.clothed.total > 0 && (
                       <div className="mb-3">
                         <div className="d-flex justify-content-between align-items-center py-1">
                           <span><Badge bg="success" className="me-2">Clothed</Badge> Confirmed Work</span>
                           <span className="fw-bold">{dept.confirmed.clothed.total} hrs</span>
                         </div>
-                        <div className="ms-2 ms-md-4 small text-muted">
+                        <div className="ms-4 small text-muted">
                           {dept.confirmed.clothed.shifts.map((s, idx) => (
-                            <div key={idx} className="py-1 border-bottom border-light">
-                              {/* Desktop: single row */}
-                              <div className="d-none d-sm-flex justify-content-between">
-                                <span>{s.facultyName}, {s.date}, {s.timeRange}</span>
-                                <span className="ms-2 fw-bold">{s.hours} hrs</span>
-                              </div>
-                              {/* Mobile: stacked */}
-                              <div className="d-sm-none">
-                                <div>{s.facultyName}</div>
-                                <div className="d-flex justify-content-between">
-                                  <span>{s.date}, {s.timeRange}</span>
-                                  <span className="fw-bold">{s.hours} hrs</span>
-                                </div>
-                              </div>
+                            <div key={idx} className="d-flex justify-content-between py-1 border-bottom border-light">
+                              <span>{s.facultyName}, {s.date}, {s.timeRange}</span>
+                              <span>{s.hours} hrs</span>
                             </div>
                           ))}
                         </div>
@@ -169,22 +158,11 @@ function Reports() {
                           <span><Badge bg="danger" className="me-2">Nude</Badge> Confirmed Work</span>
                           <span className="fw-bold">{dept.confirmed.nude.total} hrs</span>
                         </div>
-                        <div className="ms-2 ms-md-4 small text-muted">
+                        <div className="ms-4 small text-muted">
                           {dept.confirmed.nude.shifts.map((s, idx) => (
-                            <div key={idx} className="py-1 border-bottom border-light">
-                              {/* Desktop: single row */}
-                              <div className="d-none d-sm-flex justify-content-between">
-                                <span>{s.facultyName}, {s.date}, {s.timeRange}</span>
-                                <span className="ms-2 fw-bold">{s.hours} hrs</span>
-                              </div>
-                              {/* Mobile: stacked */}
-                              <div className="d-sm-none">
-                                <div>{s.facultyName}</div>
-                                <div className="d-flex justify-content-between">
-                                  <span>{s.date}, {s.timeRange}</span>
-                                  <span className="fw-bold">{s.hours} hrs</span>
-                                </div>
-                              </div>
+                            <div key={idx} className="d-flex justify-content-between py-1 border-bottom border-light">
+                              <span>{s.facultyName}, {s.date}, {s.timeRange}</span>
+                              <span>{s.hours} hrs</span>
                             </div>
                           ))}
                         </div>
@@ -193,41 +171,18 @@ function Reports() {
 
                     {dept.cancelled.map((can, j) => (
                       <div key={j} className="mb-2">
-                        {/* Desktop: single row */}
-                        <div className="d-none d-sm-flex justify-content-between align-items-center py-1 text-muted fst-italic">
+                        <div className="d-flex justify-content-between align-items-center py-1 text-muted fst-italic">
                           <span>
                             <Badge bg="secondary" className="me-2">Cancelled</Badge>
                             {can.mode === 'nude' ? 'Nude' : 'Clothed'}
                             <Badge bg="warning" text="dark" className="ms-2">⚠️ Late Cancel — Billable</Badge>
                           </span>
-                          <span className="fw-bold ms-2">{can.hours} hrs</span>
+                          <span className="fw-bold">{can.hours} hrs</span>
                         </div>
-                        {/* Mobile: stacked */}
-                        <div className="d-sm-none py-1 text-muted fst-italic">
-                          <div className="d-flex justify-content-between align-items-center mb-1">
-                            <span>
-                              <Badge bg="secondary" className="me-1">Cancelled</Badge>
-                              {can.mode === 'nude' ? 'Nude' : 'Clothed'}
-                            </span>
-                            <span className="fw-bold">{can.hours} hrs</span>
-                          </div>
-                          <Badge bg="warning" text="dark">⚠️ Late Cancel — Billable</Badge>
-                        </div>
-                        <div className="ms-2 ms-md-4 small text-muted">
-                          <div className="py-1 border-bottom border-light">
-                            {/* Desktop */}
-                            <div className="d-none d-sm-flex justify-content-between">
-                              <span>{can.facultyName}, {can.date}, {can.timeRange}</span>
-                              <span>{can.hours} hrs</span>
-                            </div>
-                            {/* Mobile */}
-                            <div className="d-sm-none">
-                              <div>{can.facultyName}</div>
-                              <div className="d-flex justify-content-between">
-                                <span>{can.date}, {can.timeRange}</span>
-                                <span>{can.hours} hrs</span>
-                              </div>
-                            </div>
+                        <div className="ms-4 small text-muted">
+                          <div className="d-flex justify-content-between">
+                            <span>{can.facultyName}, {can.date}, {can.timeRange}</span>
+                            <span>{can.hours} hrs</span>
                           </div>
                         </div>
                       </div>

@@ -21,6 +21,11 @@ class ArtModelAvailabilitiesController < ApplicationController
 
   def update
     availability = ArtModelAvailability.find(params[:id])
+
+    unless current_user.role_admin? || availability.user_id == current_user.id
+      return render json: { error: "Not authorized" }, status: :forbidden
+    end
+
     if availability.update(availability_params)
       render json: availability
     else
@@ -30,6 +35,11 @@ class ArtModelAvailabilitiesController < ApplicationController
 
   def destroy
     availability = ArtModelAvailability.find(params[:id])
+
+    unless current_user.role_admin? || availability.user_id == current_user.id
+      return render json: { error: "Not authorized" }, status: :forbidden
+    end
+    
     availability.destroy
     head :no_content
   end

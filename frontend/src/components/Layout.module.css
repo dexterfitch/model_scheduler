@@ -1,0 +1,24 @@
+.userSection {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+@media (min-width: 992px) and (max-width: 1199px) {
+  .navLink {
+    font-size: 0.8rem;
+    margin-top: 5px;
+  }
+}
+
+@media (max-width: 991px) {
+  .userSection {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #6c757d;
+  }
+
+  .userNameDetails {
+    display: block;
+    line-height: 0;
+  }
+}

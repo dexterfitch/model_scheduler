@@ -8,6 +8,7 @@ const SKIN_TONE_OPTIONS = [
 ];
 
 const Profile = ({ currentUser, setCurrentUser }) => {
+
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -77,27 +78,6 @@ const Profile = ({ currentUser, setCurrentUser }) => {
           {message.text && (
             <div className={`alert alert-${message.type}`}>{message.text}</div>
           )}
-
-          <div className="text-center mb-4">
-            {currentUser.image_url ? (
-              <img 
-                src={currentUser.image_url} 
-                alt="Profile" 
-                className="rounded-circle shadow border border-3 border-white"
-                style={{ width: '100px', height: '100px', objectFit: 'cover' }}
-              />
-            ) : (
-              <div 
-                className="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto text-white shadow"
-                style={{ width: '100px', height: '100px', fontSize: '2.5rem' }}
-              >
-                {currentUser.first_name?.[0]}
-              </div>
-            )}
-            <div className="text-muted small mt-2">
-              Photo synced from Google
-            </div>
-          </div>
 
           <form onSubmit={handleSubmit}>
             <h5 className="mb-3 text-primary">Basic Information</h5>

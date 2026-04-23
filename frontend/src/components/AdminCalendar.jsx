@@ -66,14 +66,14 @@ const handleEventClick = (info) => {
   return (
     <Container fluid className="py-4">
       <Row>
-        <Col md={9}>
+        <Col md={9} className="order-2 order-md-1 my-4 my-md-0">
           <h2 className="mb-4">Master Schedule</h2>
           <SharedCalendar 
             events={calendarEvents} 
             onEventClick={handleEventClick}
           />
         </Col>
-        <Col md={3}>
+        <Col md={3} className="order-1 order-md-2">
           <h4 className="mb-3 text-secondary">Upcoming Model Availability</h4>
           <div style={{ maxHeight: '80vh', overflowY: 'auto' }}>
             {availabilities.length === 0 ? <p>No upcoming availability.</p> : (

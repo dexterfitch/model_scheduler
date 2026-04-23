@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Table, Container, Badge, Button, Form, InputGroup } from "react-bootstrap";
+import { Table, Container, Badge, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import api from "../services/api";
 
 function AllGigs() {
@@ -53,11 +53,24 @@ function AllGigs() {
 
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+  const renderStatusBadge = (gig) => {
+    if (gig.status === 'confirmed') return <Badge bg="primary">Confirmed</Badge>;
+    if (gig.status === 'cancelled') return (
+      <Badge bg={gig.billable ? "warning" : "secondary"} text={gig.billable ? "dark" : undefined}>
+        {gig.billable ? "⚠️ Cancelled (Billable)" : "Cancelled"}
+      </Badge>
+    );
+    if (gig.status === 'completed') return <Badge bg="success">Completed</Badge>;
+    return null;
+  };
+
   return (
     <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gig Registry</h2>
-        <InputGroup style={{ maxWidth: '300px' }}>
+
+      {/* Header — stacks on mobile */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <h2 className="mb-0">Gig Registry</h2>
+        <InputGroup style={{ maxWidth: '300px', width: '100%' }}>
           <InputGroup.Text>🔍</InputGroup.Text>
           <Form.Control
             placeholder="Search name or class..."
@@ -67,38 +80,45 @@ function AllGigs() {
         </InputGroup>
       </div>
 
-      <div className="d-flex align-items-end gap-3 mb-4 p-3 bg-light rounded">
-        <div>
-          <Form.Label className="small fw-bold mb-1">From</Form.Label>
-          <Form.Control
-            type="date"
-            value={filterStart}
-            onChange={e => { setFilterStart(e.target.value); setShowAll(false); }}
-            disabled={showAll}
-          />
-        </div>
-        <div>
-          <Form.Label className="small fw-bold mb-1">To</Form.Label>
-          <Form.Control
-            type="date"
-            value={filterEnd}
-            onChange={e => { setFilterEnd(e.target.value); setShowAll(false); }}
-            disabled={showAll}
-          />
-        </div>
-        <Button
-          variant={showAll ? "secondary" : "outline-secondary"}
-          onClick={() => setShowAll(!showAll)}
-        >
-          {showAll ? "Showing All" : "Show All"}
-        </Button>
+      {/* Filter bar — stacks cleanly on mobile */}
+      <div className="p-3 bg-light rounded mb-4">
+        <Row className="g-2 align-items-end">
+          <Col xs={6} md="auto">
+            <Form.Label className="small fw-bold mb-1">From</Form.Label>
+            <Form.Control
+              type="date"
+              value={filterStart}
+              onChange={e => { setFilterStart(e.target.value); setShowAll(false); }}
+              disabled={showAll}
+            />
+          </Col>
+          <Col xs={6} md="auto">
+            <Form.Label className="small fw-bold mb-1">To</Form.Label>
+            <Form.Control
+              type="date"
+              value={filterEnd}
+              onChange={e => { setFilterEnd(e.target.value); setShowAll(false); }}
+              disabled={showAll}
+            />
+          </Col>
+          <Col xs={12} md="auto">
+            <Button
+              className="w-100"
+              variant={showAll ? "secondary" : "outline-secondary"}
+              onClick={() => setShowAll(!showAll)}
+            >
+              {showAll ? "Showing All" : "Show All"}
+            </Button>
+          </Col>
+        </Row>
       </div>
 
-      <div className="bg-white shadow-sm rounded overflow-hidden">
+      {/* Desktop table — hidden on mobile */}
+      <div className="d-none d-md-block bg-white shadow-sm rounded overflow-hidden">
         <Table hover responsive className="mb-0">
           <thead className="bg-light">
             <tr>
-              <th>Date & Time</th>
+              <th>Date &amp; Time</th>
               <th>Class Name</th>
               <th>Faculty</th>
               <th>Model</th>
@@ -119,7 +139,7 @@ function AllGigs() {
                   <td className="align-middle">
                     <div className="fw-bold">{new Date(gig.faculty_request?.starts_at).toLocaleDateString()}</div>
                     <div className="small text-muted">
-                      {formatTime(gig.faculty_request?.starts_at)} - {formatTime(gig.faculty_request?.ends_at)}
+                      {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
                     </div>
                   </td>
                   <td className="align-middle">
@@ -139,11 +159,7 @@ function AllGigs() {
                       {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
                     </Badge>
                   </td>
-                  <td className="align-middle">
-                    {gig.status === 'confirmed' && <Badge bg="primary">Confirmed</Badge>}
-                    {gig.status === 'cancelled' && <Badge bg={gig.billable ? "warning" : "secondary"} text={gig.billable ? "dark" : undefined}>{gig.billable ? "⚠️ Cancelled (Billable)" : "Cancelled"}</Badge>}
-                    {gig.status === 'completed' && <Badge bg="success">Completed</Badge>}
-                  </td>
+                  <td className="align-middle">{renderStatusBadge(gig)}</td>
                   <td className="align-middle text-end">
                     {gig.status === 'confirmed' && (
                       <Button variant="outline-danger" size="sm" onClick={() => handleDelete(gig.id)}>
@@ -157,6 +173,59 @@ function AllGigs() {
           </tbody>
         </Table>
       </div>
+
+      {/* Mobile cards — hidden on desktop */}
+      <div className="d-md-none">
+        {filteredGigs.length === 0 ? (
+          <p className="text-center text-muted py-3">No gigs found matching your search.</p>
+        ) : (
+          filteredGigs.map(gig => (
+            <div key={gig.id} className="card mb-3 shadow-sm">
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <div className="fw-bold">{gig.faculty_request?.class_name}</div>
+                    {gig.faculty_request?.model_mode === 'nude' && (
+                      <Badge bg="danger" style={{ fontSize: '0.65em' }}>NUDE</Badge>
+                    )}
+                    {gig.faculty_request?.department && (
+                      <Badge bg="secondary" className="ms-1" style={{ fontSize: '0.65em' }}>
+                        {gig.faculty_request.department}
+                      </Badge>
+                    )}
+                  </div>
+                  {renderStatusBadge(gig)}
+                </div>
+                <div className="small text-muted mb-1">
+                  <i className="bi bi-calendar3 me-1"></i>
+                  {new Date(gig.faculty_request?.starts_at).toLocaleDateString()} &bull; {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
+                </div>
+                <div className="small text-muted mb-1">
+                  <i className="bi bi-person me-1"></i>
+                  Faculty: {gig.faculty_request?.user?.first_name} {gig.faculty_request?.user?.last_name}
+                </div>
+                <div className="small mb-2">
+                  <i className="bi bi-easel me-1"></i>
+                  Model: <Badge bg="success" text="light" className="p-1">
+                    {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
+                  </Badge>
+                </div>
+                {gig.status === 'confirmed' && (
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    className="w-100 mt-1"
+                    onClick={() => handleDelete(gig.id)}
+                  >
+                    Cancel Gig
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
     </Container>
   );
 }

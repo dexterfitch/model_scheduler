@@ -1,0 +1,24 @@
+@media (max-width: 991px) {
+  .fc-toolbar-title {
+    font-size: 1.2rem !important;
+  }
+
+  .fc-toolbar-chunk .btn {
+    font-size: 0.9rem !important;
+    padding: 0.25rem 0.5rem !important;
+  }
+
+  .fc-col-header-cell-cushion {
+    font-size: 0.7rem !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .fc-toolbar-title {
+    font-size: 0.9rem !important;
+  }
+
+  .fc-col-header-cell-cushion {
+    font-size: 0.75rem !important;
+  }
+}

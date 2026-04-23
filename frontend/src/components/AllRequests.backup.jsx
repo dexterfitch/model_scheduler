@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Container, Table, Badge, Form, InputGroup, Button, Offcanvas, ListGroup, Row, Col } from "react-bootstrap";
+import { Container, Table, Badge, Form, InputGroup, Button, Offcanvas, ListGroup } from "react-bootstrap";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
 
@@ -99,130 +99,60 @@ function AllRequests() {
 
   const formatDate = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  // Mobile card for a single request row
-  const renderMobileCard = (req, showAction) => (
-    <div key={req.id} className="card mb-3 shadow-sm">
-      <div className="card-body">
-        <div className="d-flex justify-content-between align-items-start mb-2">
-          <div>
-            <div className="fw-bold">{req.class_name}</div>
-            {req.department && (
-              <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{req.department}</Badge>
-            )}
-          </div>
-          {req.model_mode === 'nude'
-            ? <Badge bg="danger">Nude</Badge>
-            : <Badge bg="success">Clothed</Badge>}
-        </div>
-        <div className="small text-muted mb-1">
-          <i className="bi bi-calendar3 me-1"></i>
-          {new Date(req.starts_at).toLocaleDateString()} &bull; {formatDate(req.starts_at)} &ndash; {formatDate(req.ends_at)}
-        </div>
-        <div className="small text-muted mb-1">
-          <i className="bi bi-person me-1"></i>
-          {req.user?.first_name} {req.user?.last_name}
-        </div>
-        <div className="small text-muted mb-2">
-          <i className="bi bi-palette me-1"></i>
-          {formatSkinTone(req.pref_skin_tone)}, {req.pref_gender} Gender Presentation
-        </div>
-        {req.notes && (
-          <div className="small text-muted fst-italic mb-2 border rounded p-2">
-            <i className="bi bi-journal-text me-1"></i>{req.notes}
-          </div>
-        )}
-        {showAction && (
-          <Button
-            size="sm"
-            variant="outline-primary"
-            className="w-100 mt-1"
-            onClick={() => handleShowMatch(req)}
-          >
-            Find Match
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-
   const renderTable = (rows, showAction) => (
-    <>
-      {/* Desktop table — hidden on mobile */}
-      <div className="d-none d-md-block">
-        <Table hover responsive className="shadow-sm bg-white align-middle mb-0">
-          <thead className="bg-light">
-            <tr>
-              <th>Date Needed</th>
-              <th>Class / Dept</th>
-              <th>Faculty</th>
-              <th>Reqs</th>
-              {showAction && <th>Action</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={showAction ? 5 : 4} className="text-center py-3 text-muted">None.</td>
-              </tr>
-            ) : (
-              rows.map(req => (
-                <tr key={req.id}>
-                  <td>{new Date(req.starts_at).toLocaleDateString()}</td>
-                  <td>
-                    <div className="fw-bold">{req.class_name}</div>
-                    {req.department && (
-                      <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{req.department}</Badge>
-                    )}
-                    <div className="small text-muted mt-1">
-                      {formatDate(req.starts_at)} - {formatDate(req.ends_at)}
-                    </div>
-                  </td>
-                  <td>{req.user?.first_name} {req.user?.last_name}</td>
-                  <td>
-                    {req.model_mode === 'nude'
-                      ? <span className="text-danger fw-bold me-2">Nude</span>
-                      : <span className="text-success me-2">Clothed</span>}
-                    <small className="text-muted d-block">
-                      {formatSkinTone(req.pref_skin_tone)}, {req.pref_gender} Gender Presentation
-                    </small>
-                    {req.notes && (
-                      <small className="text-muted fst-italic d-block">
-                        <i className="bi bi-journal-text me-1"></i>{req.notes}
-                      </small>
-                    )}
-                  </td>
-                  {showAction && (
-                    <td>
-                      <Button size="sm" variant="outline-primary" onClick={() => handleShowMatch(req)}>
-                        Find Match
-                      </Button>
-                    </td>
-                  )}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </Table>
-      </div>
-
-      {/* Mobile cards — hidden on desktop */}
-      <div className="d-md-none">
+    <Table hover responsive className="shadow-sm bg-white align-middle mb-0">
+      <thead className="bg-light">
+        <tr>
+          <th>Date Needed</th>
+          <th>Class / Dept</th>
+          <th>Faculty</th>
+          <th>Reqs</th>
+          {showAction && <th>Action</th>}
+        </tr>
+      </thead>
+      <tbody>
         {rows.length === 0 ? (
-          <p className="text-center text-muted py-3">None.</p>
+          <tr><td colSpan={showAction ? 5 : 4} className="text-center py-3 text-muted">None.</td></tr>
         ) : (
-          rows.map(req => renderMobileCard(req, showAction))
+          rows.map(req => (
+            <tr key={req.id}>
+              <td>{new Date(req.starts_at).toLocaleDateString()}</td>
+              <td>
+                <div className="fw-bold">{req.class_name}</div>
+                {req.department && <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{req.department}</Badge>}
+                <div className="small text-muted mt-1">
+                  {formatDate(req.starts_at)} - {formatDate(req.ends_at)}
+                </div>
+              </td>
+              <td>{req.user?.first_name} {req.user?.last_name}</td>
+              <td>
+                {req.model_mode === 'nude'
+                  ? <span className="text-danger fw-bold me-2">Nude</span>
+                  : <span className="text-success me-2">Clothed</span>}
+                <small className="text-muted d-block">
+                  {formatSkinTone(req.pref_skin_tone)}, {req.pref_gender} Gender Presentation
+                </small>
+                {req.notes && <small className="text-muted fst-italic d-block">📝 {req.notes}</small>}
+              </td>
+              {showAction && (
+                <td>
+                  <Button size="sm" variant="outline-primary" onClick={() => handleShowMatch(req)}>
+                    Find Match
+                  </Button>
+                </td>
+              )}
+            </tr>
+          ))
         )}
-      </div>
-    </>
+      </tbody>
+    </Table>
   );
 
   return (
     <Container className="py-4">
-
-      {/* Header — stacks on mobile */}
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-        <h2 className="mb-0">Faculty Requests</h2>
-        <InputGroup style={{ maxWidth: '300px', width: '100%' }}>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>Faculty Requests</h2>
+        <InputGroup style={{ maxWidth: '300px' }}>
           <InputGroup.Text>🔍</InputGroup.Text>
           <Form.Control
             placeholder="Search class, faculty, dept..."
@@ -231,39 +161,33 @@ function AllRequests() {
         </InputGroup>
       </div>
 
-      {/* Filter bar — stacks cleanly on mobile */}
-      <div className="p-3 bg-light rounded mb-4">
-        <Row className="g-2 align-items-end">
-          <Col xs={6} md="auto">
-            <Form.Label className="small fw-bold mb-1">From</Form.Label>
-            <Form.Control
-              type="date"
-              value={filterStart}
-              onChange={e => { setFilterStart(e.target.value); setShowAll(false); }}
-              disabled={showAll}
-            />
-          </Col>
-          <Col xs={6} md="auto">
-            <Form.Label className="small fw-bold mb-1">To</Form.Label>
-            <Form.Control
-              type="date"
-              value={filterEnd}
-              onChange={e => { setFilterEnd(e.target.value); setShowAll(false); }}
-              disabled={showAll}
-            />
-          </Col>
-          <Col xs={12} md="auto">
-            <Button
-              className="w-100"
-              variant={showAll ? "secondary" : "outline-secondary"}
-              onClick={() => setShowAll(!showAll)}
-            >
-              {showAll ? "Use Date Filters" : "Show All"}
-            </Button>
-          </Col>
-        </Row>
+      <div className="d-flex align-items-end gap-3 mb-4 p-3 bg-light rounded">
+        <div>
+          <Form.Label className="small fw-bold mb-1">From</Form.Label>
+          <Form.Control 
+            type="date" 
+            value={filterStart} 
+            onChange={e => { setFilterStart(e.target.value); setShowAll(false); }}
+            disabled={showAll}
+          />
+        </div>
+        <div>
+          <Form.Label className="small fw-bold mb-1">To</Form.Label>
+          <Form.Control 
+            type="date" 
+            value={filterEnd} 
+            onChange={e => { setFilterEnd(e.target.value); setShowAll(false); }}
+            disabled={showAll}
+          />
+        </div>
+        <Button 
+          variant={showAll ? "secondary" : "outline-secondary"} 
+          onClick={() => setShowAll(!showAll)}
+        >
+          {showAll ? "Use Date Filters" : "Show All"}
+        </Button>
       </div>
-
+      
       <div className="mb-4">
         <h5 className="fw-bold text-warning mb-2">Pending ({pending.length})</h5>
         {renderTable(pending, true)}
@@ -287,7 +211,7 @@ function AllRequests() {
           {selectedRequest && (
             <div className="mb-4 p-3 bg-light rounded">
               <strong>Match for:</strong> {selectedRequest.class_name}<br />
-              <small>{new Date(selectedRequest.starts_at).toLocaleDateString()} &bull; {formatDate(selectedRequest.starts_at)} - {formatDate(selectedRequest.ends_at)}</small><br />
+              <small>{new Date(selectedRequest.starts_at).toLocaleDateString()} • {formatDate(selectedRequest.starts_at)} - {formatDate(selectedRequest.ends_at)}</small><br />
               <small className="text-muted">Needs: {formatSkinTone(selectedRequest.pref_skin_tone)}, {selectedRequest.pref_gender} Gender Presentation</small>
               {selectedRequest.notes && (
                 <div className="mt-2 text-muted small fst-italic">📝 {selectedRequest.notes}</div>
@@ -317,7 +241,6 @@ function AllRequests() {
           </ListGroup>
         </Offcanvas.Body>
       </Offcanvas>
-
     </Container>
   );
 }

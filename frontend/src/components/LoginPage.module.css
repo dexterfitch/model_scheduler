@@ -1,0 +1,33 @@
+.loginBg {
+  background-image: url('../assets/images/stripe_bg.png');
+  background-size: cover;
+}
+
+.card {
+  border: 5px solid var(--brand-black);
+  box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.5) !important;
+}
+
+.card h2 {
+  font-family: var(--font-black);
+  color: var(--brand-deepblue);
+}
+
+.card p {
+  font-family: var(--font-regular);
+}
+
+@media (max-width: 576px) {
+  .card {
+    border-width: 3px;
+    box-shadow: none !important;
+  }
+
+  .card h2 {
+    font-size: 1.5rem;
+  }
+
+  .card button span {
+    font-size: 0.95rem;
+  }
+}

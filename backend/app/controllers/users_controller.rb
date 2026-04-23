@@ -22,6 +22,11 @@ class UsersController < ApplicationController
 
   def update
     user = User.find(params[:id])
+
+    unless current_user.role_admin? || user.id == current_user.id
+      return render json: { error: "Not authorized" }, status: :forbidden
+    end
+
     safe_params = user_params
     
     if safe_params[:role] == 'admin'
@@ -56,7 +61,16 @@ class UsersController < ApplicationController
   end
 
   def promote_to_superuser
+    unless current_user.superuser?
+      return render json: { error: "Only superusers can grant superuser status" }, status: :forbidden
+    end
+
     user = User.find(params[:id])
+
+    unless user.role_admin?
+      return render json: { error: "User must be an admin before becoming a superuser" }, status: :unprocessable_entity
+    end
+    
     user.update(superuser: true)
     render json: user
   end

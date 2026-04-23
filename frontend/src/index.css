@@ -1,14 +1,80 @@
+/* Font Imports */
+@font-face {
+  font-family: 'Theinhardt-Regular';
+  src: url('./assets/fonts/Theinhardt-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Theinhardt-Thin';
+  src: url('./assets/fonts/Theinhardt-Thin.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Theinhardt-Bold';
+  src: url('./assets/fonts/Theinhardt-Bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Theinhardt-Black';
+  src: url('./assets/fonts/Theinhardt-Black.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+}
+
+/* Variable Declarations */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* Brand Colors */
+  --brand-blue: #0047bb;
+  --brand-deepblue: #10069f;
+  --brand-yellow: #fedb00;
+  --brand-pink: #e10098;
+  --brand-green: #2dc84d;
+  --brand-orange: #fe5000;
+  --brand-grey: #a7a8aa;
+  --brand-white: #ffffff;
+  --brand-black: #000000;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Font Weights */
+  --font-thin: 'Theinhardt-Thin', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-regular: 'Theinhardt-Regular', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-bold: 'Theinhardt-Bold', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-black: 'Theinhardt-Black', system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
 
+/* Global Font Variant Classes */
+.font-thin {
+  font-family: 'Theinhardt-Thin', system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+.font-regular {
+  font-family: 'Theinhardt-Regular', system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+.font-bold {
+  font-family: 'Theinhardt-Bold', system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+.font-black {
+  font-family: 'Theinhardt-Black', system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Sitewide Styles */
+body {
+  font-family: 'Theinhardt-Regular', system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Bootstrap Overrides */
+.navbar .nav-link {
+  --bs-nav-link-color: var(--brand-yellow);
+  --bs-nav-link-hover-color: var(--brand-green);
 }

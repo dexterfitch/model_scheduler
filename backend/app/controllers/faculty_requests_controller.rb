@@ -24,6 +24,10 @@ class FacultyRequestsController < ApplicationController
   def destroy
     @request = FacultyRequest.find(params[:id])
 
+    unless current_user.role_admin? || @request.user_id == current_user.id
+      return render json: { error: "Not authorized" }, status: :forbidden
+    end
+    
     if @request.status == 'pending'
       @request.destroy
       head :no_content

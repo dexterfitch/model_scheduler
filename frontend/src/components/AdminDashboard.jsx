@@ -91,7 +91,7 @@ function AdminDashboard() {
       <h2 className="mb-4">Admin Dashboard</h2>
       
       <Row>
-        <Col md={7}>
+        <Col md={7} className="order-2 order-md-1 my-4 my-md-0">
           <Card className="shadow-sm">
             <Card.Header className="bg-primary text-white fw-bold">
               Pending Faculty Requests
@@ -117,7 +117,9 @@ function AdminDashboard() {
                             </span>
                         </div>
                         {req.notes && (
-                          <div className="mt-1 text-muted small fst-italic">📝 {req.notes}</div>
+                          <div className="mt-1 text-muted small fst-italic border rounded p-2 mt-2">
+                            <i class="bi bi-journal-text"></i>: {req.notes}
+                          </div>
                         )}
                       </div>
                       <Button variant="outline-primary" onClick={() => handleShowMatch(req)}>
@@ -131,7 +133,7 @@ function AdminDashboard() {
           </Card>
         </Col>
 
-        <Col md={5}>
+        <Col md={5} className="order-1 order-md-2">
           <Card className="shadow-sm">
             <Card.Header className="bg-success text-white fw-bold">
               Today's Schedule
@@ -163,7 +165,7 @@ function AdminDashboard() {
                         Model: <strong>{gig.art_model_availability.user.first_name} {gig.art_model_availability.user.last_name}</strong>
                       </div>
                       {gig.faculty_request.notes && (
-                        <div className="small text-muted fst-italic mt-1">📝 {gig.faculty_request.notes}</div>
+                        <div className="small text-muted fst-italic mt-1">&gt; {gig.faculty_request.notes}</div>
                       )}
                     </Card.Body>
                   </Card>
