@@ -2,16 +2,18 @@ class ArtModelAvailabilitiesController < ApplicationController
   before_action -> { require_role(:admin, :model) }
 
   def index
-    query = if params[:user_id]
-              ArtModelAvailability.where(user_id: params[:user_id])
-            else
-              ArtModelAvailability.all
-            end
+    query = if current_user.role_admin?
+      params[:user_id] ? ArtModelAvailability.where(user_id: params[:user_id]) : ArtModelAvailability.all
+    else
+      ArtModelAvailability.where(user_id: current_user.id)
+    end
     render json: query.includes(:user), include: :user
   end
 
   def create
     availability = ArtModelAvailability.new(availability_params)
+    availability.user_id = current_user.id unless current_user.role_admin?
+
     if availability.save
       render json: availability, status: :created
     else
@@ -47,6 +49,8 @@ class ArtModelAvailabilitiesController < ApplicationController
   private
 
   def availability_params
-    params.require(:art_model_availability).permit(:user_id, :starts_at, :ends_at, :status)
+    permitted = [:user_id, :starts_at, :ends_at]
+    permitted << :status if current_user.role_admin?
+    params.require(:art_model_availability).permit(permitted)
   end
 end

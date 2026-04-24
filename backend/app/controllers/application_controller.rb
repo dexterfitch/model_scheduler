@@ -6,7 +6,7 @@ class ApplicationController < ActionController::API
   private
 
   def require_login
-    unless session[:user_id]
+    unless current_user
       render json: { error: "Not authenticated" }, status: :unauthorized
     end
   end
@@ -18,7 +18,7 @@ class ApplicationController < ActionController::API
   def require_role(*roles)
     return if current_user&.superuser?
     unless roles.map(&:to_s).include?(current_user&.role)
-      render json: { error: "Not authorized" }, status: :forbidden
+      render json: { error: "Not authorized" }, status: :forbidden and return
     end
   end
 end

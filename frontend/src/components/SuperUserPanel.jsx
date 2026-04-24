@@ -122,14 +122,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
 
   const handleSwitchRole = async (targetRole) => {
     try {
-      const payload = { role: targetRole };
-      if (targetRole === 'model') {
-        payload.skin_tone = 'Medium';
-        payload.gender_identity = 'SuperUser Test';
-        payload.pronouns = 'Any';
-        payload.willing_to_model_nude = true;
-      }
-      const res = await api.patch(`/users/${currentUser.id}`, { user: payload });
+      const res = await api.post(`/users/${currentUser.id}/promote`, { role: targetRole });
       refreshUser(res.data);
       alert(`Switched to ${targetRole} mode!`);
     } catch (err) {

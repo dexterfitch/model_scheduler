@@ -42,7 +42,6 @@ brakeman_report.md
 
 # Secrets files
 oauth_secrets.json
-**/omniauth.rb
 
 ##############################
 # Docker

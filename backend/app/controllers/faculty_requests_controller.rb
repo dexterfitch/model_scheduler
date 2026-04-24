@@ -2,10 +2,10 @@ class FacultyRequestsController < ApplicationController
   before_action -> { require_role(:admin, :faculty) }
 
   def index
-    if params[:user_id]
-      @requests = FacultyRequest.where(user_id: params[:user_id])
+    @requests = if current_user.role_admin?
+      params[:user_id] ? FacultyRequest.where(user_id: params[:user_id]) : FacultyRequest.all
     else
-      @requests = FacultyRequest.all
+      FacultyRequest.where(user_id: current_user.id)
     end
 
     render json: @requests, include: :user
@@ -13,6 +13,7 @@ class FacultyRequestsController < ApplicationController
 
   def create
     @request = FacultyRequest.new(request_params)
+    @request.user_id = current_user.id unless current_user.role_admin?
 
     if @request.save
       render json: @request, status: :created
@@ -37,6 +38,7 @@ class FacultyRequestsController < ApplicationController
     if @request.status == 'matched' && @request.gig
       gig = @request.gig
       
+      # Determine if this is a late cancellation (same-day)
       is_late_cancel = gig.faculty_request.starts_at.to_date == Date.current
 
       Gig.transaction do
@@ -69,7 +71,6 @@ class FacultyRequestsController < ApplicationController
       :pref_skin_tone, 
       :pref_gender, 
       :model_mode,
-      :status,
       :notes
     )
   end

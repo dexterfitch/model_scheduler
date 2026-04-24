@@ -41,7 +41,7 @@ class FacultyRequest < ApplicationRecord
   end
 
   def must_be_faculty_role
-    errors.add(:user, "must be a faculty member") unless user&.role == 'faculty'
+    errors.add(:user, "must be a faculty member") unless user&.role_faculty?
   end
 
   def end_after_start

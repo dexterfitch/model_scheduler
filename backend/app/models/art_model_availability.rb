@@ -15,8 +15,10 @@ class ArtModelAvailability < ApplicationRecord
   def release_future_gigs
     gigs.each do |gig|
       if gig.faculty_request.starts_at > Time.current
-        result = gig.faculty_request.update_column(:status, 0)
-        gig.destroy
+        ActiveRecord::Base.transaction do
+          gig.faculty_request.update!(status: :pending)
+          gig.destroy!
+        end
       end
     end
   end

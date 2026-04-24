@@ -4,12 +4,7 @@ require "rails"
 require "active_model/railtie"
 require "active_job/railtie"
 require "active_record/railtie"
-require "active_storage/engine"
 require "action_controller/railtie"
-require "action_mailer/railtie"
-require "action_mailbox/engine"
-require "action_text/engine"
-require "action_view/railtie"
 require "action_cable/engine"
 
 Bundler.require(*Rails.groups)
@@ -20,7 +15,11 @@ module Backend
     config.time_zone = "Eastern Time (US & Canada)"
     config.autoload_lib(ignore: %w[assets tasks])
     config.api_only = true
-    config.session_store :cookie_store, key: '_mica_scheduler_session'
+    config.session_store :cookie_store,
+      key: '_mica_scheduler_session',
+      secure: Rails.env.production?,
+      httponly: true,
+      same_site: :lax
     config.middleware.use ActionDispatch::Cookies
     config.middleware.use ActionDispatch::Session::CookieStore, config.session_options
   end

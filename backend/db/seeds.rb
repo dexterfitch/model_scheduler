@@ -356,5 +356,28 @@ ArtModelAvailability.create!(
   status: "active"
 )
 
+# --- RUTH: Future availability so she can be matched to pending requests ---
+ArtModelAvailability.create!(
+  user: ruth,
+  starts_at: DateTime.now.next_week(:monday).change(hour: 8, min: 0),
+  ends_at: DateTime.now.next_week(:monday).change(hour: 17, min: 0),
+  status: "active"
+)
+
+ArtModelAvailability.create!(
+  user: ruth,
+  starts_at: DateTime.now.next_week(:tuesday).change(hour: 13, min: 0),
+  ends_at: DateTime.now.next_week(:tuesday).change(hour: 18, min: 0),
+  status: "active"
+)
+
+# --- A pending request with NO available models (to test empty match state) ---
+FacultyRequest.create!(
+  user: bob, class_name: "No Models Available Test", department: "Sculpture",
+  starts_at: DateTime.now.next_week(:wednesday).change(hour: 9, min: 0),
+  ends_at: DateTime.now.next_week(:wednesday).change(hour: 12, min: 0),
+  model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "pending"
+)
+
 puts "📅 Free availability created."
 puts "🌿 Seeding Complete!"

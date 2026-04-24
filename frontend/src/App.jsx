@@ -6,7 +6,6 @@ import Layout from './components/Layout';
 import LoginPage from "./components/LoginPage";
 import SelectRole from "./components/SelectRole";
 import Profile from './components/Profile';
-
 import AdminDashboard from './components/AdminDashboard';
 import AdminCalendar from './components/AdminCalendar';
 import AllGigs from './components/AllGigs';
@@ -19,43 +18,42 @@ import FacultyDashboard from './components/FacultyDashboard';
 import ModelDashboard from './components/ModelDashboard';
 import Reports from './components/Reports';
 
+function LoginSuccess({ onLogin }) {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    api.get(`/users/${id}`).then(res => {
+      const user = res.data;
+      if (!user.role) {
+        navigate("/select-role", { state: { userId: user.id } });
+      } else {
+        onLogin(user);
+        navigate("/");
+      }
+    }).catch(() => {
+      navigate("/login?error=AuthFailed");
+    });
+  }, [id, navigate, onLogin]);
+
+  return <div>Logging in...</div>;
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-  };
-
-  const refreshUser = async () => {
-    if (currentUser?.id) {
-      try {
-        const res = await api.get(`/users/${currentUser.id}`);
-        setCurrentUser(res.data);
-      } catch (err) {
-        console.error("Failed to refresh user", err);
-      }
+  const handleLogout = async () => {
+    try {
+      await api.delete("/logout");
+    } catch (err) {
+      console.error("Logout error", err);
+    } finally {
+      setCurrentUser(null);
     }
   };
 
-  const LoginSuccess = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
-
-    useEffect(() => {
-      api.get(`/users/${id}`).then(res => {
-          const user = res.data;
-          if (!user.role) {
-            navigate("/select-role", { state: { userId: user.id } });
-          } else {
-            setCurrentUser(user);
-            navigate("/");
-          }
-        }).catch(err => {
-          navigate("/login?error=AuthFailed"); 
-        });
-    }, [id, navigate]);
-
-    return <div>Logging in...</div>;
+  const refreshUser = (userData) => {
+    if (userData) setCurrentUser(userData);
   };
 
   return (
@@ -63,7 +61,7 @@ function App() {
       {!currentUser ? (
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/login_success/:id" element={<LoginSuccess />} />
+          <Route path="/login_success/:id" element={<LoginSuccess onLogin={setCurrentUser} />} />
           <Route path="/select-role" element={<SelectRole onLogin={setCurrentUser} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

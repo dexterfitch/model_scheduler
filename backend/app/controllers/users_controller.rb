@@ -1,5 +1,7 @@
 class UsersController < ApplicationController
-  before_action -> { require_role(:admin) }, only: [:index, :promote]
+  ALLOWED_ROLES = %w[admin faculty model].freeze
+
+  before_action -> { require_role(:admin) }, only: [:index, :promote, :create, :promote_to_superuser]
 
   def index
     render json: User.all.order(:id)
@@ -7,6 +9,9 @@ class UsersController < ApplicationController
 
   def show
     user = User.find(params[:id])
+    unless current_user.role_admin? || user.id == current_user.id
+      return render json: { error: "Not authorized" }, status: :forbidden
+    end
     render json: user
   end
 
@@ -27,11 +32,7 @@ class UsersController < ApplicationController
       return render json: { error: "Not authorized" }, status: :forbidden
     end
 
-    safe_params = user_params
-    
-    if safe_params[:role] == 'admin'
-      return render json: { error: "Cannot set admin role via public API" }, status: :forbidden
-    end
+    safe_params = user_params.except(:role)
 
     if user.update(safe_params)
       render json: user
@@ -40,10 +41,15 @@ class UsersController < ApplicationController
     end
   end
   
+
   def promote
-    user = User.find(params[:id])
     target_role = params[:role]
 
+    unless ALLOWED_ROLES.include?(target_role)
+      return render json: { error: "Invalid role" }, status: :unprocessable_entity
+    end
+
+    user = User.find(params[:id])
     user.role = target_role
 
     if user.role_model?
@@ -55,7 +61,7 @@ class UsersController < ApplicationController
     if user.save
       render json: user
     else
-      puts "Promote Failed: #{user.errors.full_messages}"
+      Rails.logger.error("Promote Failed: #{user.errors.full_messages}")
       render json: { error: user.errors.full_messages }, status: :unprocessable_entity
     end
   end
@@ -79,7 +85,7 @@ class UsersController < ApplicationController
 
   def user_params
     params.require(:user).permit(
-      :first_name, :last_name, :role, :email, :phone, :bio,
+      :first_name, :last_name, :email, :phone, :bio,
       :stage_name, :pronouns, :gender_identity, :skin_tone, :willing_to_model_nude
     )
   end

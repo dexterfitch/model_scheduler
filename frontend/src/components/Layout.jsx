@@ -74,7 +74,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
               <Button as={Link} to="/profile" variant="outline-info" size="sm" onClick={() => setNavExpanded(false)}>
                 My Profile
               </Button>
-              <Button variant="outline-light" size="sm" onClick={() => setNavExpanded(false)} onClick={onLogout}>
+              <Button variant="outline-light" size="sm" onClick={() => { setNavExpanded(false); onLogout(); }}>
                 Logout
               </Button>
             </div>

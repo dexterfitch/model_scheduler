@@ -1,5 +1,5 @@
 class SessionsController < ApplicationController
-  skip_before_action :require_login
+  skip_before_action :require_login, only: [:omniauth, :destroy]
   
   def omniauth
     auth = request.env['omniauth.auth']
@@ -7,10 +7,15 @@ class SessionsController < ApplicationController
 
     if user.save
       session[:user_id] = user.id
-      redirect_to "http://localhost:5173/login_success/#{user.id}", allow_other_host: true
+      redirect_to "#{ENV['FRONTEND_URL']}/login_success/#{user.id}", allow_other_host: true
     else
       Rails.logger.error("Login Failed: #{user.errors.full_messages.join(', ')}")
-      redirect_to "http://localhost:5173?error=Login+Failed", allow_other_host: true
+      redirect_to "#{ENV['FRONTEND_URL']}?error=Login+Failed", allow_other_host: true
     end
+  end
+
+  def destroy
+    session.delete(:user_id)
+    render json: { ok: true }
   end
 end
