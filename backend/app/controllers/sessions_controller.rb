@@ -1,6 +1,6 @@
 class SessionsController < ApplicationController
-  skip_before_action :require_login, only: [:omniauth, :destroy]
-  
+  skip_before_action :require_login, only: [:omniauth, :destroy, :test_login]
+
   def omniauth
     auth = request.env['omniauth.auth']
     user = User.from_omniauth(auth)
@@ -17,5 +17,16 @@ class SessionsController < ApplicationController
   def destroy
     session.delete(:user_id)
     render json: { ok: true }
+  end
+
+  def test_login
+    raise ActionController::RoutingError, "Not Found" unless Rails.env.development?
+    user = User.find_by(email: params[:email])
+    if user
+      session[:user_id] = user.id
+      render json: user
+    else
+      render json: { error: "User not found" }, status: :not_found
+    end
   end
 end

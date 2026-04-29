@@ -17,6 +17,8 @@ function FacultyDashboard({ user }) {
   const [requests, setRequests] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
 
   const [formData, setFormData] = useState({
     class_name: "",
@@ -41,7 +43,10 @@ function FacultyDashboard({ user }) {
         setRequests(sorted);
         setLoading(false);
       })
-      .catch((err) => console.error("Error fetching requests:", err));
+      .catch((err) => {
+        console.error("Error fetching requests:", err);
+        setSubmitError("Error submitting request. Please try again.");
+      });
   };
 
   const generateTimeOptions = () => {
@@ -89,7 +94,7 @@ function FacultyDashboard({ user }) {
     today.setHours(0, 0, 0, 0);
 
     if (inputDate <= today) {
-      alert("Requests must be made for a future date (tomorrow or later).");
+      setSubmitError("Requests must be made for a future date (tomorrow or later).");
       return;
     }
 
@@ -97,7 +102,7 @@ function FacultyDashboard({ user }) {
     maxDate.setMonth(maxDate.getMonth() + 4);
 
     if (inputDate > maxDate) {
-      alert("Requests cannot be made more than 4 months in advance.");
+      setSubmitError("Requests cannot be made more than 4 months in advance.");
       return;
     }
 
@@ -107,17 +112,19 @@ function FacultyDashboard({ user }) {
     const endHour = parseInt(formData.end_time.split(':')[0]);
 
     if (startHour < 8 || startHour >= 22) {
-      alert("Classes must start between 8:00 AM and 10:00 PM."); return;
+      setSubmitError("Classes must start between 8:00 AM and 10:00 PM.");
+      return;
     }
     if (endHour > 22 || (endHour === 22 && formData.end_time.split(':')[1] !== "00")) {
-       alert("Classes must end by 10:00 PM."); return;
+      setSubmitError("Classes must end by 10:00 PM.");
+      return;
     }
     if (endDateTime <= startDateTime) {
-      alert("End time must be after start time."); return;
+      setSubmitError("End time must be after start time.");
+      return;
     }
 
     const payload = {
-      user_id: user.id,
       class_name: formData.class_name,
       department: formData.department,
       starts_at: startDateTime,
@@ -125,13 +132,12 @@ function FacultyDashboard({ user }) {
       model_mode: formData.model_mode,
       pref_skin_tone: formData.pref_skin_tone,
       pref_gender: formData.pref_gender,
-      notes: formData.notes,
-      status: "pending"
+      notes: formData.notes
     };
 
-    api.post("/faculty_requests", payload)
+    api.post("/faculty_requests", { faculty_request: payload })
       .then(() => {
-        alert("Request submitted!");
+        setSubmitSuccess('Request submitted successfully!');
         setShowModal(false);
         fetchMyRequests(); 
         setFormData({
@@ -141,7 +147,7 @@ function FacultyDashboard({ user }) {
       })
       .catch((err) => {
         console.error(err);
-        alert("Error submitting request. Check console.");
+        setSubmitError("Error submitting request. Check console.");
       });
   };
 
@@ -164,7 +170,7 @@ function FacultyDashboard({ user }) {
 
     api.delete(`/faculty_requests/${id}`)
       .then(() => {
-        alert("Cancelled.");
+        setSubmitSuccess("Request cancelled.");
         fetchMyRequests();
       })
       .catch(err => console.error(err));
@@ -174,160 +180,167 @@ function FacultyDashboard({ user }) {
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className={styles.container}>
-      <Container className="py-4">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h2>My Classes</h2>
-            <p className="text-muted">Manage your model needs</p>
-          </div>
-          <Button className={styles.requestButton} variant="primary" size="lg" onClick={() => setShowModal(true)}>
-            + New Request
-          </Button>
+    <Container className={`py-4 ${styles.container}`}>
+      {submitError && <Alert variant="danger">{submitError}</Alert>}
+      {submitSuccess && <Alert variant="success">{submitSuccess}</Alert>}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2>My Classes</h2>
+          <p className="text-muted">Manage your model needs</p>
         </div>
+        <Button 
+          className={styles.requestButton} 
+          variant="primary" size="lg" 
+          onClick={() => {
+            setShowModal(true);
+            setSubmitError(''); 
+            setSubmitSuccess('');
+          }}>
+          + New Request
+        </Button>
+      </div>
 
-        {requests.length === 0 && !loading && (
-          <Alert variant="info">You haven't requested any models yet. Click "New Request" to start.</Alert>
-        )}
+      {requests.length === 0 && !loading && (
+        <Alert variant="info">You haven't requested any models yet. Click "New Request" to start.</Alert>
+      )}
 
-        <Row>
-          {requests.map((req) => (
-            <Col md={6} lg={4} key={req.id} className="mb-4">
-              <Card className={`h-100 shadow-sm border-0 ${styles.card}`}>
-                <Card.Header className={`text-white fw-bold ${req.status === 'matched' ? 'bg-success' : 'bg-warning'}`}>
-                  {req.status === 'matched' ? 'Model Confirmed' : 'Pending Match'}
-                </Card.Header>
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-start">
-                    <Card.Title>{req.class_name}</Card.Title>
-                    {req.department && <Badge bg="secondary" className="small">{req.department}</Badge>}
-                  </div>
-                  
-                  <div className="mb-3">
-                    <div className="fs-5">{formatDate(req.starts_at)}</div>
-                    <div className="text-muted">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
-                  </div>
-
-                  <div className="d-flex flex-wrap gap-2 mb-3">
-                      {req.model_mode === 'nude' 
-                          ? <Badge bg="danger">Nude Required</Badge> 
-                          : <Badge bg="success">Clothed</Badge>
-                      }
-                      {req.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(req.pref_skin_tone)}</Badge>}
-                      {req.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{req.pref_gender} Presentation</Badge>}
-                  </div>
-
-                  {req.notes && (
-                    <div className="mt-1 text-muted small fst-italic"><i class="bi bi-journal-text"></i>:&nbsp;&nbsp;{req.notes}</div>
-                  )}
-                                  
-                  {(req.status === 'pending' || req.status === 'matched') && (
-                    <Button 
-                      variant={req.status === 'matched' ? "danger" : "outline-danger"} 
-                      size="sm" 
-                      className="w-100 mt-2" 
-                      onClick={() => handleCancel(req.id, req.status, req.starts_at)}
-                    >
-                      {req.status === 'matched' ? "Cancel Confirmed Class" : "Cancel Request"}
-                    </Button>
-                  )}
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-
-        <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-          <Modal.Header closeButton>
-            <Modal.Title>Request a Model</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form onSubmit={handleSubmit}>
-              <Row>
-                <Col md={8} className="mb-3">
-                  <Form.Label>Class Name</Form.Label>
-                  <Form.Control required name="class_name" value={formData.class_name} onChange={handleInputChange} placeholder="e.g. Figure Drawing 101" />
-                </Col>
-                <Col md={4} className="mb-3">
-                  <Form.Label>Department</Form.Label>
-                  <Form.Select required name="department" value={formData.department} onChange={handleInputChange}>
-                    <option value="">-- Select --</option>
-                    {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
-                  </Form.Select>
-                </Col>
-              </Row>
-
-              <Row>
-                <Col md={4} className="mb-3">
-                  <Form.Label>Date</Form.Label>
-                  <Form.Control required type="date" name="date" value={formData.date} onChange={handleInputChange} />
-                </Col>
-                <Col md={4} className="mb-3">
-                  <Form.Label>Start Time</Form.Label>
-                  <Form.Control required type="time" name="start_time" list="time-options" value={formData.start_time} onChange={handleInputChange} onBlur={handleBlur} min="08:00" max="22:00" />
-                </Col>
-                <Col md={4} className="mb-3">
-                  <Form.Label>End Time</Form.Label>
-                  <Form.Control required type="time" name="end_time" list="time-options" value={formData.end_time} onChange={handleInputChange} onBlur={handleBlur} min="08:00" max="22:00" />
-                </Col>
-              </Row>
-
-              <datalist id="time-options">{generateTimeOptions()}</datalist>
-
-              <hr />
-              <h5>Model Preferences</h5>
-
-              <Row>
-                <Col md={4} className="mb-3">
-                  <Form.Label>Nudity</Form.Label>
-                  <Form.Select name="model_mode" value={formData.model_mode} onChange={handleInputChange}>
-                    <option value="clothed">Clothed</option>
-                    <option value="nude">Nude</option>
-                  </Form.Select>
-                </Col>
+      <Row>
+        {requests.map((req) => (
+          <Col md={6} lg={4} key={req.id} className="mb-4">
+            <Card className={`h-100 shadow-sm border-0 ${styles.card}`}>
+              <Card.Header className={`text-white fw-bold ${req.status === 'matched' ? 'bg-success' : 'bg-warning'}`}>
+                {req.status === 'matched' ? 'Model Confirmed' : 'Pending Match'}
+              </Card.Header>
+              <Card.Body>
+                <div className="d-flex justify-content-between align-items-start">
+                  <Card.Title>{req.class_name}</Card.Title>
+                  {req.department && <Badge bg="secondary" className="small">{req.department}</Badge>}
+                </div>
                 
-                <Col md={4} className="mb-3">
-                  <Form.Label>Skin Tone</Form.Label>
-                  <Form.Select name="pref_skin_tone" value={formData.pref_skin_tone} onChange={handleInputChange}>
-                    <option value="Any">Any</option>
-                    <option value="Light">Light</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Dark">Dark</option>
-                  </Form.Select>
-                </Col>
+                <div className="mb-3">
+                  <div className="fs-5">{formatDate(req.starts_at)}</div>
+                  <div className="text-muted">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
+                </div>
 
-                <Col md={4} className="mb-3">
-                  <Form.Label>Gender</Form.Label>
-                  <Form.Select name="pref_gender" value={formData.pref_gender} onChange={handleInputChange}>
-                    <option value="Any">Any</option>
-                    <option value="Female">Female</option>
-                    <option value="Male">Male</option>
-                    <option value="Non-Binary">Non-Binary</option>
-                  </Form.Select>
-                </Col>
-              </Row>
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                    {req.model_mode === 'nude' 
+                        ? <Badge bg="danger">Nude Required</Badge> 
+                        : <Badge bg="success">Clothed</Badge>
+                    }
+                    {req.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(req.pref_skin_tone)}</Badge>}
+                    {req.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{req.pref_gender} Presentation</Badge>}
+                </div>
 
-              <Form.Group className="mb-3">
-                <Form.Label>Notes for Admin</Form.Label>
-                <Form.Control 
-                  as="textarea" 
-                  rows={3} 
-                  name="notes" 
-                  value={formData.notes} 
-                  onChange={handleInputChange} 
-                  placeholder="e.g. Prefer a model with longer hair for this portrait session..."
-                />
-              </Form.Group>
+                {req.notes && (
+                  <div className="mt-1 text-muted small fst-italic"><i className="bi bi-journal-text"></i>:&nbsp;&nbsp;{req.notes}</div>
+                )}
+                                
+                {(req.status === 'pending' || req.status === 'matched') && (
+                  <Button 
+                    variant={req.status === 'matched' ? "danger" : "outline-danger"} 
+                    size="sm" 
+                    className="w-100 mt-2" 
+                    onClick={() => handleCancel(req.id, req.status, req.starts_at)}
+                  >
+                    {req.status === 'matched' ? "Cancel Confirmed Class" : "Cancel Request"}
+                  </Button>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
-              <div className="d-flex justify-content-end gap-2 mt-3">
-                <Button variant="secondary" onClick={() => setShowModal(false)}>Close</Button>
-                <Button variant="primary" type="submit">Submit Request</Button>
-              </div>
-            </Form>
-          </Modal.Body>
-        </Modal>
-      </Container>
-    </div>
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Request a Model</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleSubmit}>
+            <Row>
+              <Col md={8} className="mb-3">
+                <Form.Label>Class Name</Form.Label>
+                <Form.Control required name="class_name" value={formData.class_name} onChange={handleInputChange} placeholder="e.g. Figure Drawing 101" />
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label>Department</Form.Label>
+                <Form.Select required name="department" value={formData.department} onChange={handleInputChange}>
+                  <option value="">-- Select --</option>
+                  {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
+                </Form.Select>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={4} className="mb-3">
+                <Form.Label>Date</Form.Label>
+                <Form.Control required type="date" name="date" value={formData.date} onChange={handleInputChange} />
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label>Start Time</Form.Label>
+                <Form.Control required type="time" name="start_time" list="time-options" value={formData.start_time} onChange={handleInputChange} onBlur={handleBlur} min="08:00" max="22:00" />
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label>End Time</Form.Label>
+                <Form.Control required type="time" name="end_time" list="time-options" value={formData.end_time} onChange={handleInputChange} onBlur={handleBlur} min="08:00" max="22:00" />
+              </Col>
+            </Row>
+
+            <datalist id="time-options">{generateTimeOptions()}</datalist>
+
+            <hr />
+            <h5>Model Preferences</h5>
+
+            <Row>
+              <Col md={4} className="mb-3">
+                <Form.Label>Nudity</Form.Label>
+                <Form.Select name="model_mode" value={formData.model_mode} onChange={handleInputChange}>
+                  <option value="clothed">Clothed</option>
+                  <option value="nude">Nude</option>
+                </Form.Select>
+              </Col>
+              
+              <Col md={4} className="mb-3">
+                <Form.Label>Skin Tone</Form.Label>
+                <Form.Select name="pref_skin_tone" value={formData.pref_skin_tone} onChange={handleInputChange}>
+                  <option value="Any">Any</option>
+                  <option value="Light">Light</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Dark">Dark</option>
+                </Form.Select>
+              </Col>
+
+              <Col md={4} className="mb-3">
+                <Form.Label>Gender</Form.Label>
+                <Form.Select name="pref_gender" value={formData.pref_gender} onChange={handleInputChange}>
+                  <option value="Any">Any</option>
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                  <option value="Non-Binary">Non-Binary</option>
+                </Form.Select>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Notes for Admin</Form.Label>
+              <Form.Control 
+                as="textarea" 
+                rows={3} 
+                name="notes" 
+                value={formData.notes} 
+                onChange={handleInputChange} 
+                placeholder="e.g. Prefer a model with longer hair for this portrait session..."
+              />
+            </Form.Group>
+
+            <div className="d-flex justify-content-end gap-2 mt-3">
+              <Button variant="secondary" onClick={() => setShowModal(false)}>Close</Button>
+              <Button variant="primary" type="submit">Submit Request</Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+    </Container>
   );
 }
 

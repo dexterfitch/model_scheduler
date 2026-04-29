@@ -6,18 +6,17 @@ import { formatSkinTone } from "../utils/formatters";
 
 function ModelDashboard({ user }) {
   const [myGigs, setMyGigs] = useState([]);
-  const [myAvailability, setMyAvailability] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [openCallEvents, setOpenCallEvents] = useState([]);
   const [openCallInfo, setOpenCallInfo] = useState(null);
   const [showOpenCallModal, setShowOpenCallModal] = useState(false)
-  
   const [activeTab, setActiveTab] = useState("schedule");
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  
   const [selectedDate, setSelectedDate] = useState("");
   const [times, setTimes] = useState({ start: "09:00", end: "17:00" });
+  const [modalError, setModalError] = useState('');
+  const [pageSuccess, setPageSuccess] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -31,14 +30,13 @@ function ModelDashboard({ user }) {
 
   const fetchData = () => {
     api.get("/gigs").then((res) => {
-      const my_gigs = res.data
-        .filter(g => g.art_model_availability.user.id === user.id)
-        .sort((a, b) => new Date(a.faculty_request.starts_at) - new Date(b.faculty_request.starts_at));
+      const my_gigs = res.data.sort((a, b) => {
+        return new Date(a.faculty_request.starts_at) - new Date(b.faculty_request.starts_at);
+      });
       setMyGigs(my_gigs);
-    });
+    }).catch(err => console.error("Error fetching gigs:", err));
 
     api.get(`/art_model_availabilities?user_id=${user.id}`).then((res) => {
-      setMyAvailability(res.data);
       const events = res.data.map(a => ({
         id: a.id,
         title: a.status === 'active' ? 'Free' : 'Cancelled',
@@ -49,7 +47,7 @@ function ModelDashboard({ user }) {
         extendedProps: { ...a }
       }));
       setCalendarEvents(events);
-    });
+    }).catch(err => console.error("Error fetching availabilities:", err));
 
     api.get("/faculty_requests").then((res) => {
       const openCalls = res.data
@@ -67,7 +65,7 @@ function ModelDashboard({ user }) {
           extendedProps: { isOpenCall: true, mode: r.model_mode }
         }));
       setOpenCallEvents(openCalls);
-    });    
+    }).catch(err => console.error("Error fetching requests:", err));    
   };
 
   const generateTimeOptions = () => {
@@ -107,6 +105,7 @@ function ModelDashboard({ user }) {
     setEditingId(null);
     setSelectedDate(selectInfo.startStr); 
     setTimes({ start: "09:00", end: "17:00" });
+    setModalError('');
     setShowModal(true);
   };
 
@@ -135,7 +134,8 @@ function ModelDashboard({ user }) {
         start: formatTime(startObj),
         end: formatTime(endObj)
     });
-    
+
+    setModalError('');
     setShowModal(true);
   };
 
@@ -158,51 +158,52 @@ function ModelDashboard({ user }) {
     
     const now = new Date();
     if (startsAt < now) {
-        alert("You cannot set availability in the past.");
-        return;
+      setModalError("You cannot set availability in the past.");
+      return;
     }
 
     const startHour = parseInt(times.start.split(':')[0]);
     const endHour = parseInt(times.end.split(':')[0]);
 
     if (startHour < 8 || startHour >= 22) {
-      alert("Availability must start between 8:00 AM and 10:00 PM."); return;
+      setModalError("Availability must start between 8:00 AM and 10:00 PM.");
+      return;
     }
     if (endHour > 22 || (endHour === 22 && times.end.split(':')[1] !== "00")) {
-       alert("Availability must end by 10:00 PM."); return;
+      setModalError("Availability must end by 10:00 PM.");
+      return;
     }
     if (endsAt <= startsAt) {
-      alert("End time must be after start time"); return;
+      setModalError("End time must be after start time");
+      return;
     }
 
     const payload = {
-      user_id: user.id,
       starts_at: startsAt,
-      ends_at: endsAt,
-      status: "active"
+      ends_at: endsAt
     };
 
     if (editingId) {
-        api.put(`/art_model_availabilities/${editingId}`, payload)
+        api.patch(`/art_model_availabilities/${editingId}`, { art_model_availability: payload })
         .then(() => {
-            alert("Availability Updated!");
+            setPageSuccess(editingId ? "Availability updated!" : "Availability added!");
             setShowModal(false);
             fetchData();
         })
         .catch(err => {
             console.error(err);
-            alert("Error updating. Check console.");
+            setModalError("Error saving availability. Please try again.");
         });
     } else {
-        api.post("/art_model_availabilities", payload)
+        api.post("/art_model_availabilities", { art_model_availability: payload })
         .then(() => {
-            alert("Availability Added!");
+            setPageSuccess(editingId ? "Availability updated!" : "Availability added!");
             setShowModal(false);
             fetchData();
         })
         .catch(err => {
             console.error(err);
-            alert("Error adding. Check console.");
+            setModalError("Error saving availability. Please try again.");
         });
     }
   };
@@ -212,11 +213,14 @@ function ModelDashboard({ user }) {
     
     api.delete(`/art_model_availabilities/${editingId}`)
       .then(() => {
-        alert("Deleted.");
+        setPageSuccess("Availability deleted!");
         setShowModal(false);
         fetchData();
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+        setModalError("Error deleting. Please try again.");
+      }
+      );
   };
 
   const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
@@ -224,6 +228,7 @@ function ModelDashboard({ user }) {
 
   return (
     <Container className="py-4">
+      {pageSuccess && <Alert variant="success" dismissible onClose={() => setPageSuccess('')}>{pageSuccess}</Alert>}
       <Card className="mb-4 bg-light border-0 shadow-sm">
         <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
           <div>
@@ -308,6 +313,7 @@ function ModelDashboard({ user }) {
           <Modal.Title>{editingId ? "Edit Availability" : "Set Availability"}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {modalError && <Alert variant="danger">{modalError}</Alert>}
           <p>Date: <strong>{new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</strong></p>
           <Form onSubmit={handleSubmitAvailability}>
             <Row>

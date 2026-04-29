@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Row, Col, ListGroup, Badge, Card } from "react-bootstrap";
+import { Container, Row, Col, ListGroup, Badge, Alert } from "react-bootstrap";
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 
@@ -8,6 +8,7 @@ function AdminCalendar() {
   const navigate = useNavigate();
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [availabilities, setAvailabilities] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -27,6 +28,7 @@ function AdminCalendar() {
       }));
 
       const reqRes = await api.get("/faculty_requests");
+
       const requests = reqRes.data
         .filter(r => r.status === 'pending')
         .map(req => ({
@@ -36,7 +38,7 @@ function AdminCalendar() {
           end: req.ends_at,
           backgroundColor: '#fd7e14',
           borderColor: '#fd7e14',
-          extendedProps: { type: 'request', ...req }
+          extendedProps: { type: 'request', requestId: req.id, ...req }  // ← add requestId
         }));
 
       const availRes = await api.get("/art_model_availabilities");
@@ -48,6 +50,7 @@ function AdminCalendar() {
 
     } catch (err) {
       console.error("Error loading calendar data", err);
+      setError("Failed to load calendar data. Please try again later.");
     }
   };
 
@@ -55,16 +58,15 @@ const handleEventClick = (info) => {
     const props = info.event.extendedProps;
     
     if (props.type === 'request') {
-      navigate(`/gigs/new/${props.id}`);
+      navigate(`/gigs/new/${props.requestId}`);
     } else {
       alert(`Gig: ${props.faculty_request.class_name}\nModel: ${props.art_model_availability.user.first_name}`);
     }
   };
 
-  const formatDate = (d) => new Date(d).toLocaleDateString() + " " + new Date(d).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-
   return (
     <Container fluid className="py-4">
+      {error && <Alert variant="danger">{error}</Alert>}
       <Row>
         <Col md={9} className="order-2 order-md-1 my-4 my-md-0">
           <h2 className="mb-4">Master Schedule</h2>

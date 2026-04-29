@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Container, Row, Col, Card, Badge, Button } from "react-bootstrap";
+import { Container, Row, Col, Card, Badge, Button, Alert, Spinner } from "react-bootstrap";
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { formatSkinTone } from "../utils/formatters";
@@ -10,33 +10,50 @@ function ModelDetail() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [availabilities, setAvailabilities] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get(`/users/${id}`).then(res => setUser(res.data));
+    api.get(`/users/${id}`)
+      .then(res => setUser(res.data))
+      .catch(err => {
+        setError("Failed to load model profile. Please try again.");
+      });
 
-    api.get(`/art_model_availabilities?user_id=${id}`).then(res => {
-      const events = res.data.map(a => ({
-        id: a.id,
-        title: a.status === 'active' ? 'Available' : 'Cancelled',
-        start: a.starts_at,
-        end: a.ends_at,
-        backgroundColor: a.status === 'active' ? '#198754' : '#6c757d', 
-        display: 'block'
-      }));
-      setAvailabilities(events);
-    });
+    api.get(`/art_model_availabilities?user_id=${id}`)
+      .then(res => {
+        const events = res.data.map(a => ({
+          id: a.id,
+          title: a.status === 'active' ? 'Available' : 'Cancelled',
+          start: a.starts_at,
+          end: a.ends_at,
+          backgroundColor: a.status === 'active' ? '#198754' : '#6c757d',
+          display: 'block'
+        }));
+        setAvailabilities(events);
+      })
+      .catch(err => {
+        setError("Failed to load availability. Please try again.");
+      });
   }, [id]);
 
-  if (!user) return <div className="p-5">Loading...</div>;
+  if (!user && !error) return (
+    <Container className="py-5 text-center">
+      <Spinner animation="border" variant="secondary" />
+    </Container>
+  );
 
   return (
     <Container className="py-4">
-      <Button variant="outline-secondary" className="mb-3" onClick={() => navigate(-1)}>← Back</Button>
-      
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      <Button variant="outline-secondary" className="mb-3" onClick={() => navigate(-1)}>
+        <i className="bi bi-arrow-left me-1"></i> Back
+      </Button>
+
       <Row className="mb-4">
-        <Col md={12}>
+        <Col>
           <Card className="shadow-sm border-0 bg-light">
-            <Card.Body className="d-flex justify-content-between align-items-center">
+            <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
               <div>
                 <h2 className="mb-1">{user.first_name} {user.last_name}</h2>
                 <div className="text-muted">{user.email}</div>
@@ -45,10 +62,11 @@ function ModelDetail() {
                 <div className="mb-2">
                   <Badge bg="info" text="dark" className="me-1">{formatSkinTone(user.skin_tone)}</Badge>
                   <Badge bg="info" text="dark" className="me-1">{user.gender_identity}</Badge>
-                  {user.disability_status !== "None" && <Badge bg="warning" text="dark">{user.disability_status}</Badge>}
                 </div>
                 <div>
-                  {user.willing_to_model_nude ? <Badge bg="danger">Nude OK</Badge> : <Badge bg="success">Clothed Only</Badge>}
+                  {user.willing_to_model_nude
+                    ? <Badge bg="danger">Nude OK</Badge>
+                    : <Badge bg="success">Clothed Only</Badge>}
                 </div>
               </div>
             </Card.Body>

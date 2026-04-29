@@ -13,4 +13,8 @@ Rails.application.routes.draw do
   get "/auth/:provider/callback", to: "sessions#omniauth"
   get "/auth/failure", to: redirect("/")
   delete "/logout", to: "sessions#destroy"
+
+  if Rails.env.development?
+    post "/test_login", to: "sessions#test_login"
+  end
 end
