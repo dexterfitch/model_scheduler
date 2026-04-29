@@ -103,7 +103,7 @@ function ModelDashboard({ user }) {
 
   const handleDateSelect = (selectInfo) => {
     setEditingId(null);
-    setSelectedDate(selectInfo.startStr); 
+    setSelectedDate(selectInfo.startStr.split('T')[0]); 
     setTimes({ start: "09:00", end: "17:00" });
     setModalError('');
     setShowModal(true);
@@ -233,7 +233,7 @@ function ModelDashboard({ user }) {
         <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
           <div>
             <h2 className="mb-1">Hello, {user.first_name}</h2>
-            <div className="text-muted">{formatSkinTone(user.skin_tone)} • {user.gender_identity}</div>
+            <div className="text-muted">{formatSkinTone(user.skin_tone)} • {user.gender_identity} Presentation</div>
           </div>
           <div className="text-end">
              {user.willing_to_model_nude ? <Badge bg="danger" className="p-2">⚠️ Willing to Model Nude</Badge> : <Badge bg="success" className="p-2">Clothed Only</Badge>}

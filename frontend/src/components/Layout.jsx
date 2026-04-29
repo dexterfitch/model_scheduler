@@ -10,8 +10,8 @@ function Layout({ currentUser, onLogout, refreshUser }) {
 
   const handleRestoreAdmin = async () => {
     try {
-      await api.post(`/users/${currentUser.id}/promote`, { role: 'admin' });
-      refreshUser();
+      const res =await api.post(`/users/${currentUser.id}/promote`, { role: 'admin' });
+      refreshUser(res.data);
     } catch (err) {
       alert("Failed to restore admin role. Check console.");
       console.error(err);

@@ -53,8 +53,8 @@ class UsersController < ApplicationController
     user.role = target_role
 
     if user.role_model?
-      user.skin_tone ||= "Test Skin Tone"
-      user.gender_identity ||= "Test Identity"
+      user.skin_tone ||= "Test"
+      user.gender_identity ||= "Test"
       user.willing_to_model_nude = false if user.willing_to_model_nude.nil?
     end
     

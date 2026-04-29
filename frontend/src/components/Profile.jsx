@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const SKIN_TONE_OPTIONS = [
@@ -8,6 +9,8 @@ const SKIN_TONE_OPTIONS = [
 ];
 
 const Profile = ({ currentUser, setCurrentUser }) => {
+
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -58,7 +61,10 @@ const Profile = ({ currentUser, setCurrentUser }) => {
     try {
       const res = await api.patch(`/users/${currentUser.id}`, { user: formData });
       setCurrentUser(res.data);
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      setMessage({ type: 'success', text: 'Profile updated successfully! Redirecting...' });
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
     } catch (err) {
       console.error(err);
       setMessage({ type: 'danger', text: 'Failed to update profile.' });

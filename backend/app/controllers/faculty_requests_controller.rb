@@ -14,6 +14,7 @@ class FacultyRequestsController < ApplicationController
   def create
     @request = FacultyRequest.new(request_params)
     @request.user_id = current_user.id unless current_user.role_admin?
+    @request.status = :pending
 
     if @request.save
       render json: @request, status: :created
