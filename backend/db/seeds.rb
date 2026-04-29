@@ -37,6 +37,7 @@ bob = User.create!(
 ruth = User.create!(
   first_name: "Ruth", last_name: "Model",
   email: "ruth@mica.edu", role: "model",
+  pronouns: "she/her",
   skin_tone: "Dark", gender_identity: "Female", willing_to_model_nude: true,
   phone: "555-123-4567", stage_name: "Ruthie"
 )
@@ -44,6 +45,7 @@ ruth = User.create!(
 mike = User.create!(
   first_name: "Mike", last_name: "Muscle",
   email: "mike@mica.edu", role: "model",
+  pronouns: "he/him",
   skin_tone: "Light", gender_identity: "Male", willing_to_model_nude: false,
   phone: "555-987-6543"
 )
@@ -51,6 +53,7 @@ mike = User.create!(
 alex = User.create!(
   first_name: "Alex", last_name: "Andro",
   email: "alex@mica.edu", role: "model",
+  pronouns: "they/them",
   skin_tone: "Medium", gender_identity: "Non-Binary", willing_to_model_nude: true,
   phone: "555-555-5555", stage_name: "Alexis"
 )

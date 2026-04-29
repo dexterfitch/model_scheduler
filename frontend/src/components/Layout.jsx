@@ -71,9 +71,13 @@ function Layout({ currentUser, onLogout, refreshUser }) {
                 {currentUser.first_name}
                 {currentUser.superuser ? " (SuperUser)" : ` (${currentUser.role})`}
               </div>
-              <Button as={Link} to="/profile" variant="outline-info" size="sm" onClick={() => setNavExpanded(false)}>
-                My Profile
-              </Button>
+              {currentUser.role === 'model' && (
+                <>
+                  <Button as={Link} to="/profile" variant="outline-success" size="sm" onClick={() => setNavExpanded(false)}>
+                    My Profile
+                  </Button>
+                </>
+              )}
               <Button variant="outline-light" size="sm" onClick={() => { setNavExpanded(false); onLogout(); }}>
                 Logout
               </Button>

@@ -48,6 +48,7 @@ function UserDirectory() {
                       {u.stage_name && <div className="small fst-italic text-muted">"{u.stage_name}"</div>}
                     </td>
                     <td className="align-middle">
+                      <Badge bg="dark" text="light" className="me-1">Pronouns: {u.pronouns}</Badge>
                       <Badge bg="dark" text="light" className="me-1">{formatSkinTone(u.skin_tone)}</Badge>
                       <Badge bg="dark" text="light">{u.gender_identity} Gender Presentation</Badge>
                     </td>
@@ -95,6 +96,7 @@ function UserDirectory() {
                       </div>
                     )}
                     <div className="mb-2">
+                      <Badge bg="dark" text="light" className="me-1">Pronouns: {u.pronouns}</Badge>
                       <Badge bg="dark" text="light" className="me-1">{formatSkinTone(u.skin_tone)}</Badge>
                       <Badge bg="dark" text="light">{u.gender_identity} Gender Presentation</Badge>
                     </div>

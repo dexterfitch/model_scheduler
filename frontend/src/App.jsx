@@ -106,10 +106,10 @@ function App() {
             {currentUser.role === 'model' && (
               <>
                 <Route index element={<ModelDashboard user={currentUser} />} />
+                <Route path="profile" element={<Profile currentUser={currentUser} setCurrentUser={setCurrentUser} />} />
               </>
             )}
             
-            <Route path="profile" element={<Profile currentUser={currentUser} setCurrentUser={setCurrentUser} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
 
           </Route>

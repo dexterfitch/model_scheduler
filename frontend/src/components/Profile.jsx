@@ -121,13 +121,12 @@ const Profile = ({ currentUser, setCurrentUser }) => {
 
                 <div className="row mb-3">
                   <div className="col-md-6">
-                    <label className="form-label">Gender Identity *</label>
+                    <label className="form-label">Gender Presentation *</label>
                     <select className="form-select" name="gender_identity" value={formData.gender_identity} onChange={handleChange} required>
                       <option value="">Select...</option>
-                      <option value="Woman">Woman</option>
-                      <option value="Man">Man</option>
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
                       <option value="Non-Binary">Non-Binary</option>
-                      <option value="Transgender">Transgender</option>
                       <option value="Prefer not to say">Prefer not to say</option>
                     </select>
                   </div>
