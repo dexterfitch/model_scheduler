@@ -95,7 +95,11 @@ const SelectRole = ({ onLogin }) => {
           <div className="text-center">
             <h2 className="mb-4">Welcome to MICA Pose Pool</h2>
             <p className="lead mb-4">To finish setting up your account, please tell us who you are.</p>
-            {error && <Alert variant="danger">{error}</Alert>}
+            {error && (
+              <Alert variant="danger" dismissible onClose={() => setError('')}>
+                {error}
+              </Alert>
+            )}
             <div className="d-grid gap-3">
               <Button
                 variant="outline-primary"
@@ -126,7 +130,11 @@ const SelectRole = ({ onLogin }) => {
             <h3 className="mb-3 text-success">Model Profile Setup</h3>
             <p className="text-muted small mb-4">We need a few details to match you with the right art classes.</p>
 
-            {error && <Alert variant="danger">{error}</Alert>}
+            {error && (
+              <Alert variant="danger" dismissible onClose={() => setError('')}>
+                {error}
+              </Alert>
+            )}
 
             <Form onSubmit={handleModelSubmit}>
               <Row className="mb-3">

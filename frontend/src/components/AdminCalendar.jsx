@@ -66,7 +66,11 @@ const handleEventClick = (info) => {
 
   return (
     <Container fluid className="py-4">
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
       <Row>
         <Col md={9} className="order-2 order-md-1 my-4 my-md-0">
           <h2 className="mb-4">Master Schedule</h2>

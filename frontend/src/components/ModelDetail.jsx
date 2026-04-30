@@ -44,7 +44,11 @@ function ModelDetail() {
 
   return (
     <Container className="py-4">
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
 
       <Button variant="outline-secondary" className="mb-3" onClick={() => navigate(-1)}>
         <i className="bi bi-arrow-left me-1"></i> Back

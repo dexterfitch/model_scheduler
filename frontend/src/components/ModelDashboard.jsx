@@ -187,6 +187,7 @@ function ModelDashboard({ user }) {
         api.patch(`/art_model_availabilities/${editingId}`, { art_model_availability: payload })
         .then(() => {
             setPageSuccess(editingId ? "Availability updated!" : "Availability added!");
+            setTimeout(() => setPageSuccess(''), 3000);
             setShowModal(false);
             fetchData();
         })
@@ -198,6 +199,7 @@ function ModelDashboard({ user }) {
         api.post("/art_model_availabilities", { art_model_availability: payload })
         .then(() => {
             setPageSuccess(editingId ? "Availability updated!" : "Availability added!");
+            setTimeout(() => setPageSuccess(''), 3000);
             setShowModal(false);
             fetchData();
         })
@@ -214,6 +216,7 @@ function ModelDashboard({ user }) {
     api.delete(`/art_model_availabilities/${editingId}`)
       .then(() => {
         setPageSuccess("Availability deleted!");
+        setTimeout(() => setPageSuccess(''), 3000);
         setShowModal(false);
         fetchData();
       })
@@ -313,7 +316,11 @@ function ModelDashboard({ user }) {
           <Modal.Title>{editingId ? "Edit Availability" : "Set Availability"}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {modalError && <Alert variant="danger">{modalError}</Alert>}
+          {modalError && (
+            <Alert variant="danger" dismissible onClose={() => setModalError('')}>
+              {modalError}
+            </Alert>
+          )}
           <p>Date: <strong>{new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</strong></p>
           <Form onSubmit={handleSubmitAvailability}>
             <Row>

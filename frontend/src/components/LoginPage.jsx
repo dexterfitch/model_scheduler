@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
 import { Container, Card, Alert, Button } from "react-bootstrap";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import styles from "./LoginPage.module.css";
 
 function LoginPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const error = searchParams.get("error");
 
   useEffect(() => {
@@ -18,7 +19,11 @@ function LoginPage() {
         <Card className={`shadow p-4 text-center ${styles.card}`} style={{ maxWidth: "400px", width: "100%" }}>
           <h2 className="mb-2">MICA Pose Pool</h2>
           
-          {error && <Alert variant="danger">{error}</Alert>}
+          {error && (
+            <Alert variant="danger" dismissible onClose={() => navigate('/login', { replace: true })}>
+              {error}
+            </Alert>
+          )}
 
           <p className="mb-3">
             Please sign in with your MICA email address.

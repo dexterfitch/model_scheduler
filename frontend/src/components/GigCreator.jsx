@@ -90,8 +90,16 @@ function GigCreator() {
 
   return (
     <Container className="py-4" style={{ maxWidth: '800px' }}>
-      {error && <Alert variant="danger">{error}</Alert>}
-      {bookingSuccess && <Alert variant="success">Gig confirmed! Redirecting...</Alert>}
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+      {bookingSuccess && (
+        <Alert variant="success" dismissible onClose={() => setBookingSuccess(false)}>
+          Gig confirmed! Redirecting...
+        </Alert>
+      )}
 
       <Button variant="outline-secondary" className="mb-3" onClick={() => navigate(-1)}>
         <i className="bi bi-arrow-left me-1"></i> Back

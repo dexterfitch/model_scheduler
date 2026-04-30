@@ -45,14 +45,14 @@ function FacultyDashboard({ user }) {
       })
       .catch((err) => {
         console.error("Error fetching requests:", err);
-        setSubmitError("Error submitting request. Please try again.");
+        setSubmitError("Error fetching requests. Please try again.");
       });
   };
 
   const generateTimeOptions = () => {
     const options = [];
-    let start = 8 * 60; 
-    const end = 22 * 60; 
+    let start = 8 * 60;
+    const end = 22 * 60;
     while (start <= end) {
       const hours = Math.floor(start / 60);
       const mins = start % 60;
@@ -81,8 +81,8 @@ function FacultyDashboard({ user }) {
   const handleBlur = (e) => {
     const { name, value } = e.target;
     if (name === 'start_time' || name === 'end_time') {
-        const cleanedTime = roundToNearest5(value);
-        setFormData(prev => ({ ...prev, [name]: cleanedTime }));
+      const cleanedTime = roundToNearest5(value);
+      setFormData(prev => ({ ...prev, [name]: cleanedTime }));
     }
   };
 
@@ -138,16 +138,17 @@ function FacultyDashboard({ user }) {
     api.post("/faculty_requests", { faculty_request: payload })
       .then(() => {
         setSubmitSuccess('Request submitted successfully!');
+        setTimeout(() => setSubmitSuccess(''), 3000);
         setShowModal(false);
-        fetchMyRequests(); 
+        fetchMyRequests();
         setFormData({
-            class_name: "", department: "", date: "", start_time: "", end_time: "", 
-            model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", notes: ""
+          class_name: "", department: "", date: "", start_time: "", end_time: "",
+          model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", notes: ""
         });
       })
       .catch((err) => {
         console.error(err);
-        setSubmitError("Error submitting request. Check console.");
+        setSubmitError("Error submitting request. Please try again.");
       });
   };
 
@@ -171,6 +172,7 @@ function FacultyDashboard({ user }) {
     api.delete(`/faculty_requests/${id}`)
       .then(() => {
         setSubmitSuccess("Request cancelled.");
+        setTimeout(() => setSubmitSuccess(''), 3000);
         fetchMyRequests();
       })
       .catch(err => console.error(err));
@@ -181,19 +183,23 @@ function FacultyDashboard({ user }) {
 
   return (
     <Container className={`py-4 ${styles.container}`}>
-      {submitError && <Alert variant="danger">{submitError}</Alert>}
-      {submitSuccess && <Alert variant="success">{submitSuccess}</Alert>}
+      {submitSuccess && (
+        <Alert variant="success" dismissible onClose={() => setSubmitSuccess('')}>
+          {submitSuccess}
+        </Alert>
+      )}
+
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2>My Classes</h2>
           <p className="text-muted">Manage your model needs</p>
         </div>
-        <Button 
-          className={styles.requestButton} 
-          variant="primary" size="lg" 
+        <Button
+          className={styles.requestButton}
+          variant="primary" size="lg"
           onClick={() => {
             setShowModal(true);
-            setSubmitError(''); 
+            setSubmitError('');
             setSubmitSuccess('');
           }}>
           + New Request
@@ -216,30 +222,30 @@ function FacultyDashboard({ user }) {
                   <Card.Title>{req.class_name}</Card.Title>
                   {req.department && <Badge bg="secondary" className="small">{req.department}</Badge>}
                 </div>
-                
+
                 <div className="mb-3">
                   <div className="fs-5">{formatDate(req.starts_at)}</div>
                   <div className="text-muted">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
                 </div>
 
                 <div className="d-flex flex-wrap gap-2 mb-3">
-                    {req.model_mode === 'nude' 
-                        ? <Badge bg="danger">Nude Required</Badge> 
-                        : <Badge bg="success">Clothed</Badge>
-                    }
-                    {req.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(req.pref_skin_tone)}</Badge>}
-                    {req.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{req.pref_gender} Presentation</Badge>}
+                  {req.model_mode === 'nude'
+                    ? <Badge bg="danger">Nude Required</Badge>
+                    : <Badge bg="success">Clothed</Badge>
+                  }
+                  {req.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(req.pref_skin_tone)}</Badge>}
+                  {req.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{req.pref_gender} Presentation</Badge>}
                 </div>
 
                 {req.notes && (
                   <div className="mt-1 text-muted small fst-italic"><i className="bi bi-journal-text"></i>:&nbsp;&nbsp;{req.notes}</div>
                 )}
-                                
+
                 {(req.status === 'pending' || req.status === 'matched') && (
-                  <Button 
-                    variant={req.status === 'matched' ? "danger" : "outline-danger"} 
-                    size="sm" 
-                    className="w-100 mt-2" 
+                  <Button
+                    variant={req.status === 'matched' ? "danger" : "outline-danger"}
+                    size="sm"
+                    className="w-100 mt-2"
                     onClick={() => handleCancel(req.id, req.status, req.starts_at)}
                   >
                     {req.status === 'matched' ? "Cancel Confirmed Class" : "Cancel Request"}
@@ -256,6 +262,11 @@ function FacultyDashboard({ user }) {
           <Modal.Title>Request a Model</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {submitError && (
+            <Alert variant="danger" dismissible onClose={() => setSubmitError('')}>
+              {submitError}
+            </Alert>
+          )}
           <Form onSubmit={handleSubmit}>
             <Row>
               <Col md={8} className="mb-3">
@@ -299,7 +310,7 @@ function FacultyDashboard({ user }) {
                   <option value="nude">Nude</option>
                 </Form.Select>
               </Col>
-              
+
               <Col md={4} className="mb-3">
                 <Form.Label>Skin Tone</Form.Label>
                 <Form.Select name="pref_skin_tone" value={formData.pref_skin_tone} onChange={handleInputChange}>
@@ -323,12 +334,12 @@ function FacultyDashboard({ user }) {
 
             <Form.Group className="mb-3">
               <Form.Label>Notes for Admin</Form.Label>
-              <Form.Control 
-                as="textarea" 
-                rows={3} 
-                name="notes" 
-                value={formData.notes} 
-                onChange={handleInputChange} 
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="notes"
+                value={formData.notes}
+                onChange={handleInputChange}
                 placeholder="e.g. Prefer a model with longer hair for this portrait session..."
               />
             </Form.Group>
