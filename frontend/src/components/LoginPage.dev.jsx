@@ -24,17 +24,21 @@ function LoginPage() {
             Please sign in with your MICA email address.
           </p>
 
-          <a 
-            href={`${import.meta.env.VITE_API_URL}/auth/google_oauth2`}
-            className="btn btn-outline-dark btn-lg d-flex align-items-center justify-content-center gap-2 w-100"
-          >
-            <img 
-              src="https://www.svgrepo.com/show/475656/google-color.svg" 
-              alt="Google" 
-              style={{ width: "20px" }} 
-            />
-            <span className="small">Sign in with MICA Google Account</span>
-          </a>
+          <form action="http://localhost:3000/auth/google_oauth2" method="post">
+            <Button 
+              variant="outline-dark" 
+              size="lg" 
+              type="submit"
+              className="d-flex align-items-center justify-content-center gap-2 w-100"
+            >
+              <img 
+                src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                alt="Google" 
+                style={{ width: "20px" }} 
+              />
+              <span className="small">Sign in with MICA Google Account</span>
+            </Button>
+          </form>
 
         </Card>
       </Container>
