@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 25 25">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #e10098;
+      }
+
+      .cls-2 {
+        fill: #e8f4ea;
+        stroke: #e8f4ea;
+        stroke-width: 1px;
+        fill-rule: evenodd;
+      }
+    </style>
+  </defs>
+  <g id="Artboard_1" data-name="Artboard 1">
+    <rect class="cls-1" x="-1" y="-1" width="27" height="27"/>
+    <path id="Line_1" data-name="Line 1" class="cls-2" d="M14.945,3.714l0.736,0.212L10.659,21.367l-0.736-.212Z"/>
+  </g>
+</svg>
