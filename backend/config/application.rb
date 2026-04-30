@@ -19,7 +19,7 @@ module Backend
       key: '_mica_scheduler_session',
       secure: Rails.env.production?,
       httponly: true,
-      same_site: :lax
+      same_site: :none
     config.middleware.use ActionDispatch::Cookies
     config.middleware.use ActionDispatch::Session::CookieStore, config.session_options
   end
