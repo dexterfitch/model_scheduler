@@ -65,7 +65,7 @@ const SelectRole = ({ onLogin }) => {
     setError('');
 
     try {
-      await api.post(`/users/${userId}/promote`, { role: payload.role });
+      await api.post(`/select_role`, { role: payload.role });
       
       const profileData = { ...payload };
       delete profileData.role;

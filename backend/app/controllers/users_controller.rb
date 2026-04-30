@@ -3,6 +3,7 @@ class UsersController < ApplicationController
 
   before_action -> { require_role(:admin) }, only: [:index, :promote, :create, :promote_to_superuser]
 
+
   def index
     render json: User.all.order(:id)
   end
@@ -79,6 +80,32 @@ class UsersController < ApplicationController
     
     user.update(superuser: true)
     render json: user
+  end
+
+  def select_role
+    target_role = params[:role]
+
+    unless ALLOWED_ROLES.include?(target_role)
+      return render json: { error: "Invalid role" }, status: :unprocessable_entity
+    end
+
+    if current_user.role.present?
+      return render json: { error: "Role already set" }, status: :forbidden
+    end
+
+    current_user.role = target_role
+
+    if current_user.role_model?
+      current_user.skin_tone ||= "Test"
+      current_user.gender_identity ||= "Test"
+      current_user.willing_to_model_nude = false if current_user.willing_to_model_nude.nil?
+    end
+
+    if current_user.save
+      render json: current_user
+    else
+      render json: { error: current_user.errors.full_messages }, status: :unprocessable_entity
+    end
   end
 
   private
