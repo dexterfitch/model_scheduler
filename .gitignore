@@ -39,6 +39,7 @@ pgdata/
 # Planning files
 userstories.md
 brakeman_report.md
+urls.txt
 
 # Secrets files
 oauth_secrets.json
