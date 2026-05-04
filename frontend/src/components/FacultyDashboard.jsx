@@ -339,7 +339,7 @@ function FacultyDashboard({ user }) {
               </Col>
 
               <Col md={4} className="mb-3">
-                <Form.Label>Gender</Form.Label>
+                <Form.Label>Gender Presentation</Form.Label>
                 <Form.Select name="pref_gender" value={formData.pref_gender} onChange={handleInputChange}>
                   <option value="Any">Any</option>
                   <option value="Female">Female</option>
