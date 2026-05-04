@@ -72,7 +72,7 @@ class FacultyRequestsController < ApplicationController
       :pref_skin_tone, 
       :pref_gender, 
       :model_mode,
-      :notes
+      :notes,
       :room_number
     )
   end
