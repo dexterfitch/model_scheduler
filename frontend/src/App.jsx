@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
+import { Spinner } from "react-bootstrap";
 import api from './services/api';
 
 import Layout from './components/Layout';
@@ -55,6 +56,25 @@ function App() {
   const refreshUser = (userData) => {
     if (userData) setCurrentUser(userData);
   };
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/me')
+      .then(res => {
+        setCurrentUser(res.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return (
+    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+      <Spinner animation="border" variant="secondary" />
+    </div>
+  );
 
   return (
     <BrowserRouter>

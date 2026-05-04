@@ -29,4 +29,12 @@ class SessionsController < ApplicationController
       render json: { error: "User not found" }, status: :not_found
     end
   end
+
+  def me
+    if current_user
+      render json: current_user
+    else
+      render json: { error: "Not authenticated" }, status: :unauthorized
+    end
+  end
 end

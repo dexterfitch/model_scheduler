@@ -12,6 +12,7 @@ Rails.application.routes.draw do
 
   get "/auth/:provider/callback", to: "sessions#omniauth"
   get "/auth/failure", to: redirect("/")
+  get "/me", to: "sessions#me"
   delete "/logout", to: "sessions#destroy"
   post "/select_role", to: "users#select_role"
 
