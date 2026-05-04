@@ -83,8 +83,10 @@ function AllRequests() {
   const handleCreateGig = (availabilityId) => {
     if (!confirm("Confirm booking?")) return;
     api.post("/gigs", {
-      faculty_request_id: selectedRequest.id,
-      art_model_availability_id: availabilityId
+      gig: {
+        faculty_request_id: selectedRequest.id,
+        art_model_availability_id: availabilityId
+      }
     })
     .then(() => {
       setShowSidebar(false);
@@ -108,6 +110,11 @@ function AllRequests() {
             <div className="fw-bold">{req.class_name}</div>
             {req.department && (
               <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{req.department}</Badge>
+            )}
+            {req.room_number && ( // ← add this
+              <div className="small text-muted">
+                <i className="bi bi-door-open me-1"></i>{req.room_number}
+              </div>
             )}
           </div>
           {req.model_mode === 'nude'
@@ -172,6 +179,11 @@ function AllRequests() {
                     <div className="fw-bold">{req.class_name}</div>
                     {req.department && (
                       <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{req.department}</Badge>
+                    )}
+                    {req.room_number && ( // ← add this
+                      <div className="small text-muted">
+                        <i className="bi bi-door-open me-1"></i>{req.room_number}
+                      </div>
                     )}
                     <div className="small text-muted mt-1">
                       {formatDate(req.starts_at)} - {formatDate(req.ends_at)}
@@ -288,6 +300,11 @@ function AllRequests() {
             <div className="mb-4 p-3 bg-light rounded">
               <strong>Match for:</strong> {selectedRequest.class_name}<br />
               <small>{new Date(selectedRequest.starts_at).toLocaleDateString()} &bull; {formatDate(selectedRequest.starts_at)} - {formatDate(selectedRequest.ends_at)}</small><br />
+              {selectedRequest.room_number && ( // ← add this
+                <small className="text-muted d-block">
+                  <i className="bi bi-door-open me-1"></i>{selectedRequest.room_number}
+                </small>
+              )}
               <small className="text-muted">Needs: {formatSkinTone(selectedRequest.pref_skin_tone)}, {selectedRequest.pref_gender} Gender Presentation</small>
               {selectedRequest.notes && (
                 <div className="mt-2 text-muted small fst-italic">📝 {selectedRequest.notes}</div>

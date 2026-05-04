@@ -73,6 +73,7 @@ class FacultyRequestsController < ApplicationController
       :pref_gender, 
       :model_mode,
       :notes
+      :room_number
     )
   end
 end

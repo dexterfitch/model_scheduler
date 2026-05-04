@@ -29,7 +29,8 @@ function FacultyDashboard({ user }) {
     model_mode: "clothed",
     pref_skin_tone: "Any",
     pref_gender: "Any",
-    notes: ""
+    notes: "",
+    room_number: ""
   });
 
   useEffect(() => {
@@ -132,7 +133,8 @@ function FacultyDashboard({ user }) {
       model_mode: formData.model_mode,
       pref_skin_tone: formData.pref_skin_tone,
       pref_gender: formData.pref_gender,
-      notes: formData.notes
+      notes: formData.notes,
+      room_number: formData.room_number
     };
 
     api.post("/faculty_requests", { faculty_request: payload })
@@ -143,7 +145,8 @@ function FacultyDashboard({ user }) {
         fetchMyRequests();
         setFormData({
           class_name: "", department: "", date: "", start_time: "", end_time: "",
-          model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", notes: ""
+          model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", notes: "", 
+          room_number: ""
         });
       })
       .catch((err) => {
@@ -226,6 +229,11 @@ function FacultyDashboard({ user }) {
                 <div className="mb-3">
                   <div className="fs-5">{formatDate(req.starts_at)}</div>
                   <div className="text-muted">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
+                  {req.room_number && ( // ← add this
+                    <div className="text-muted small">
+                      <i className="bi bi-door-open me-1"></i>{req.room_number}
+                    </div>
+                  )}
                 </div>
 
                 <div className="d-flex flex-wrap gap-2 mb-3">
@@ -269,16 +277,25 @@ function FacultyDashboard({ user }) {
           )}
           <Form onSubmit={handleSubmit}>
             <Row>
-              <Col md={8} className="mb-3">
+              <Col md={6} className="mb-3">
                 <Form.Label>Class Name</Form.Label>
                 <Form.Control required name="class_name" value={formData.class_name} onChange={handleInputChange} placeholder="e.g. Figure Drawing 101" />
               </Col>
-              <Col md={4} className="mb-3">
+              <Col md={3} className="mb-3">
                 <Form.Label>Department</Form.Label>
                 <Form.Select required name="department" value={formData.department} onChange={handleInputChange}>
                   <option value="">-- Select --</option>
                   {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
                 </Form.Select>
+              </Col>
+              <Col md={3} className="mb-3">
+                <Form.Label>Room Number</Form.Label>
+                <Form.Control 
+                  name="room_number" 
+                  value={formData.room_number} 
+                  onChange={handleInputChange} 
+                  placeholder="e.g. Fox 413" 
+                />
               </Col>
             </Row>
 
