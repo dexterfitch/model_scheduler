@@ -1,5 +1,6 @@
 class FacultyRequest < ApplicationRecord
   belongs_to :user
+  belongs_to :request_series, optional: true
   has_one :gig
 
   enum :model_mode, { clothed: 0, nude: 1 }

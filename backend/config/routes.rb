@@ -9,6 +9,7 @@ Rails.application.routes.draw do
   resources :art_model_availabilities, only: [:index, :create, :destroy, :update]
   resources :faculty_requests, only: [:index, :create, :destroy]
   resources :gigs, only: [:index, :create, :destroy, :update]
+  resources :request_series, only: [:index, :create, :destroy]
 
   get "/auth/:provider/callback", to: "sessions#omniauth"
   get "/auth/failure", to: redirect("/")
