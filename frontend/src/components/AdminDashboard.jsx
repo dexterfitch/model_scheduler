@@ -66,7 +66,6 @@ function AdminDashboard() {
                             {series.room_number && <span> &nbsp;|&nbsp; <i className="bi bi-door-open me-1"></i>{series.room_number}</span>}
                           </div>
 
-                          {/* CHANGED: show all pending dates */}
                           <div className="mb-2">
                             {pendingRequests.map((req, idx) => (
                               <div key={req.id} className="small">
@@ -94,7 +93,6 @@ function AdminDashboard() {
                           )}
                         </div>
 
-                        {/* CHANGED: navigate to GigCreator with series id */}
                         <Button
                           variant="outline-primary"
                           onClick={() => navigate(`/gigs/new/${series.id}?type=series`)}

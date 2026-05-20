@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Container, Card, Button, ListGroup, Badge, Spinner, Alert } from "react-bootstrap";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
 
 function GigCreator() {
   const { requestId } = useParams();
+  const [searchParams] = useSearchParams();
+  const isSeries = searchParams.get('type') === 'series';
   const navigate = useNavigate();
 
+  const [series, setSeries] = useState(null);
   const [request, setRequest] = useState(null);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +18,58 @@ function GigCreator() {
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
   useEffect(() => {
+    if (isSeries) {
+      loadSeriesData();
+    } else {
+      loadSingleRequestData();
+    }
+  }, [requestId]);
+
+  const loadSeriesData = () => {
+    Promise.all([
+      api.get("/request_series"),
+      api.get("/art_model_availabilities")
+    ]).then(([seriesRes, availRes]) => {
+      const targetSeries = seriesRes.data.find(s => s.id === parseInt(requestId));
+      setSeries(targetSeries);
+
+      if (targetSeries) {
+        const pendingRequests = targetSeries.faculty_requests?.filter(r => r.status === 'pending') || [];
+        const isNudeReq = targetSeries.model_mode === "nude";
+
+        // CHANGED: model must be available for ALL pending dates
+        const candidates = availRes.data.filter(avail => {
+          if (avail.status !== 'active') return false;
+          if (isNudeReq && !avail.user.willing_to_model_nude) return false;
+
+          return pendingRequests.every(req => {
+            const reqStart = new Date(req.starts_at);
+            const reqEnd = new Date(req.ends_at);
+            const availStart = new Date(avail.starts_at);
+            const availEnd = new Date(avail.ends_at);
+            return availStart <= reqStart && availEnd >= reqEnd;
+          });
+        });
+
+        const scored = candidates.map(c => {
+          let score = 0;
+          if (c.user.skin_tone === targetSeries.pref_skin_tone) score++;
+          if (c.user.gender_identity === targetSeries.pref_gender) score++;
+          return { ...c, score };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        setMatches(scored);
+      }
+      setLoading(false);
+    }).catch(err => {
+      console.error("Error loading series data:", err);
+      setError("Failed to load request data. Please try again.");
+      setLoading(false);
+    });
+  };
+
+  const loadSingleRequestData = () => {
     Promise.all([
       api.get("/faculty_requests"),
       api.get("/art_model_availabilities")
@@ -52,23 +107,45 @@ function GigCreator() {
       setError("Failed to load request data. Please try again.");
       setLoading(false);
     });
-  }, [requestId]);
+  };
 
   const handleBook = (availabilityId) => {
-    if (!confirm("Confirm booking this model?")) return;
+    if (!confirm("Confirm booking this model for all dates in this series?")) return;
 
-    api.post("/gigs", {
-      gig: {
-        faculty_request_id: requestId,
-        art_model_availability_id: availabilityId
-      }
-    }).then(() => {
-      setBookingSuccess(true);
-      setTimeout(() => navigate("/calendar"), 1500);
-    }).catch(err => {
-      console.error(err);
-      setError("Error creating gig. Please try again.");
-    });
+    if (isSeries) {
+      // CHANGED: create a gig for each pending request in the series
+      const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
+
+      Promise.all(
+        pendingRequests.map(req =>
+          api.post("/gigs", {
+            gig: {
+              faculty_request_id: req.id,
+              art_model_availability_id: availabilityId
+            }
+          })
+        )
+      ).then(() => {
+        setBookingSuccess(true);
+        setTimeout(() => navigate("/calendar"), 1500);
+      }).catch(err => {
+        console.error(err);
+        setError("Error creating gigs. Please try again.");
+      });
+    } else {
+      api.post("/gigs", {
+        gig: {
+          faculty_request_id: requestId,
+          art_model_availability_id: availabilityId
+        }
+      }).then(() => {
+        setBookingSuccess(true);
+        setTimeout(() => navigate("/calendar"), 1500);
+      }).catch(err => {
+        console.error(err);
+        setError("Error creating gig. Please try again.");
+      });
+    }
   };
 
   if (loading) return (
@@ -77,7 +154,7 @@ function GigCreator() {
     </Container>
   );
 
-  if (!request) return (
+  if (!series && !request) return (
     <Container className="p-5">
       <Alert variant="danger">Request not found.</Alert>
     </Container>
@@ -88,6 +165,20 @@ function GigCreator() {
     hour: '2-digit', minute: '2-digit'
   });
 
+  const formatDateOnly = (d) => new Date(d).toLocaleDateString(undefined, {
+    weekday: 'short', month: 'short', day: 'numeric'
+  });
+
+  const formatTime = (d) => new Date(d).toLocaleTimeString([], {
+    hour: '2-digit', minute: '2-digit'
+  });
+
+  // Use series or single request data for display
+  const displayData = isSeries ? series : request;
+  const pendingRequests = isSeries
+    ? series.faculty_requests?.filter(r => r.status === 'pending') || []
+    : [request];
+
   return (
     <Container className="py-4" style={{ maxWidth: '800px' }}>
       {error && (
@@ -97,7 +188,7 @@ function GigCreator() {
       )}
       {bookingSuccess && (
         <Alert variant="success" dismissible onClose={() => setBookingSuccess(false)}>
-          Gig confirmed! Redirecting...
+          {isSeries ? `${pendingRequests.length} gigs confirmed! Redirecting...` : 'Gig confirmed! Redirecting...'}
         </Alert>
       )}
 
@@ -108,31 +199,54 @@ function GigCreator() {
       <h2 className="mb-4">Create Gig Match</h2>
 
       <Card className="mb-4 border-primary shadow-sm">
-        <Card.Header className="bg-primary text-white">Target Class</Card.Header>
+        <Card.Header className="bg-primary text-white">
+          Target Class
+          {isSeries && pendingRequests.length > 1 && (
+            <Badge bg="light" text="dark" className="ms-2">{pendingRequests.length} dates</Badge>
+          )}
+        </Card.Header>
         <Card.Body>
-          <h3>{request.class_name}</h3>
+          <h3>{displayData.class_name}</h3>
           <div className="text-muted mb-2">
             <i className="bi bi-person me-1"></i>
-            {request.user.first_name} {request.user.last_name}
+            {isSeries
+              ? `${pendingRequests[0]?.user?.first_name} ${pendingRequests[0]?.user?.last_name}`
+              : `${request.user.first_name} ${request.user.last_name}`}
           </div>
+
           <div className="mb-2">
-            <strong>Time:</strong> {formatDate(request.starts_at)} — {formatDate(request.ends_at)}
+            {pendingRequests.map((req, idx) => (
+              <div key={req.id} className="small">
+                <i className="bi bi-calendar3 me-1"></i>
+                {formatDateOnly(req.starts_at)} &nbsp; {formatTime(req.starts_at)} - {formatTime(req.ends_at)}
+              </div>
+            ))}
           </div>
+
           <div>
-            {request.model_mode === 'nude'
+            {displayData.model_mode === 'nude'
               ? <Badge bg="danger" className="me-2">Nude Required</Badge>
               : <Badge bg="success" className="me-2">Clothed</Badge>}
             <Badge bg="info" text="dark">
-              Pref: {formatSkinTone(request.pref_skin_tone)}, {request.pref_gender}
+              Pref: {formatSkinTone(displayData.pref_skin_tone)}, {displayData.pref_gender}
             </Badge>
           </div>
         </Card.Body>
       </Card>
 
+      {isSeries && (
+        <Alert variant="info" className="mb-3">
+          <i className="bi bi-info-circle-fill me-2"></i>
+          Only models available for <strong>all {pendingRequests.length} dates</strong> are shown below.
+        </Alert>
+      )}
+
       <h4 className="text-secondary mb-3">Available Models ({matches.length})</h4>
       <ListGroup>
         {matches.length === 0 ? (
-          <Alert variant="warning">No models found who match this time & nudity requirement.</Alert>
+          <Alert variant="warning">
+            No models found who are available for all dates and meet the nudity requirement.
+          </Alert>
         ) : (
           matches.map(model => (
             <ListGroup.Item
@@ -152,7 +266,7 @@ function GigCreator() {
                 </div>
               </div>
               <Button variant="success" onClick={() => handleBook(model.id)}>
-                Book Model
+                {isSeries ? `Book for All ${pendingRequests.length} Dates` : 'Book Model'}
               </Button>
             </ListGroup.Item>
           ))

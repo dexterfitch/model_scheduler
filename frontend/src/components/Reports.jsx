@@ -144,12 +144,10 @@ function Reports() {
                         <div className="ms-2 ms-md-4 small text-muted">
                           {dept.confirmed.clothed.shifts.map((s, idx) => (
                             <div key={idx} className="py-1 border-bottom border-light">
-                              {/* Desktop: single row */}
                               <div className="d-none d-sm-flex justify-content-between">
                                 <span>{s.facultyName}, {s.date}, {s.timeRange}</span>
                                 <span className="ms-2 fw-bold">{s.hours} hrs</span>
                               </div>
-                              {/* Mobile: stacked */}
                               <div className="d-sm-none">
                                 <div>{s.facultyName}</div>
                                 <div className="d-flex justify-content-between">
@@ -172,12 +170,10 @@ function Reports() {
                         <div className="ms-2 ms-md-4 small text-muted">
                           {dept.confirmed.nude.shifts.map((s, idx) => (
                             <div key={idx} className="py-1 border-bottom border-light">
-                              {/* Desktop: single row */}
                               <div className="d-none d-sm-flex justify-content-between">
                                 <span>{s.facultyName}, {s.date}, {s.timeRange}</span>
                                 <span className="ms-2 fw-bold">{s.hours} hrs</span>
                               </div>
-                              {/* Mobile: stacked */}
                               <div className="d-sm-none">
                                 <div>{s.facultyName}</div>
                                 <div className="d-flex justify-content-between">
@@ -193,7 +189,6 @@ function Reports() {
 
                     {dept.cancelled.map((can, j) => (
                       <div key={j} className="mb-2">
-                        {/* Desktop: single row */}
                         <div className="d-none d-sm-flex justify-content-between align-items-center py-1 text-muted fst-italic">
                           <span>
                             <Badge bg="secondary" className="me-2">Cancelled</Badge>
@@ -202,7 +197,6 @@ function Reports() {
                           </span>
                           <span className="fw-bold ms-2">{can.hours} hrs</span>
                         </div>
-                        {/* Mobile: stacked */}
                         <div className="d-sm-none py-1 text-muted fst-italic">
                           <div className="d-flex justify-content-between align-items-center mb-1">
                             <span>
@@ -215,12 +209,10 @@ function Reports() {
                         </div>
                         <div className="ms-2 ms-md-4 small text-muted">
                           <div className="py-1 border-bottom border-light">
-                            {/* Desktop */}
                             <div className="d-none d-sm-flex justify-content-between">
                               <span>{can.facultyName}, {can.date}, {can.timeRange}</span>
                               <span>{can.hours} hrs</span>
                             </div>
-                            {/* Mobile */}
                             <div className="d-sm-none">
                               <div>{can.facultyName}</div>
                               <div className="d-flex justify-content-between">

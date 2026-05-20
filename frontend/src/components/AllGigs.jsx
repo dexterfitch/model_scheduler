@@ -67,7 +67,6 @@ function AllGigs() {
   return (
     <Container className="py-4">
 
-      {/* Header — stacks on mobile */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <h2 className="mb-0">Gig Registry</h2>
         <InputGroup style={{ maxWidth: '300px', width: '100%' }}>
@@ -80,7 +79,6 @@ function AllGigs() {
         </InputGroup>
       </div>
 
-      {/* Filter bar — stacks cleanly on mobile */}
       <div className="p-3 bg-light rounded mb-4">
         <Row className="g-2 align-items-end">
           <Col xs={6} md="auto">
@@ -113,7 +111,6 @@ function AllGigs() {
         </Row>
       </div>
 
-      {/* Desktop table — hidden on mobile */}
       <div className="d-none d-md-block bg-white shadow-sm rounded overflow-hidden">
         <Table hover responsive className="mb-0">
           <thead className="bg-light">
@@ -174,7 +171,6 @@ function AllGigs() {
         </Table>
       </div>
 
-      {/* Mobile cards — hidden on desktop */}
       <div className="d-md-none">
         {filteredGigs.length === 0 ? (
           <p className="text-center text-muted py-3">No gigs found matching your search.</p>

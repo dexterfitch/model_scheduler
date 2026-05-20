@@ -171,7 +171,6 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
         <Badge bg="warning" text="dark">God Mode Active</Badge>
       </div>
 
-      {/* Testing Tools */}
       <div className="card shadow mb-4 border-warning">
         <div className="card-header bg-warning text-dark fw-bold">
           Testing Tools (Real Role Switching)
@@ -189,12 +188,10 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
         </div>
       </div>
 
-      {/* User Management */}
       <div className="card shadow mb-4">
         <div className="card-header bg-light fw-bold">User Management</div>
         <div className="card-body p-0">
 
-          {/* Desktop table — hidden on mobile */}
           <div className="d-none d-md-block">
             <table className="table table-hover align-middle mb-0">
               <thead className="table-light">
@@ -242,7 +239,6 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
             </table>
           </div>
 
-          {/* Mobile cards — hidden on desktop */}
           <div className="d-md-none p-3">
             {users.map(u => (
               <div key={u.id} className="card mb-3 shadow-sm">
@@ -285,7 +281,6 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
         </div>
       </div>
 
-      {/* Create Sock Account */}
       <div className="card shadow mb-4 border-info">
         <div className="card-header bg-info text-white fw-bold">
           Create Sock Account (Offline Model)
@@ -359,7 +354,6 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
         </div>
       </div>
 
-      {/* Manage Model Availability */}
       <div className="card shadow mb-4 border-success">
         <div className="card-header bg-success text-white fw-bold">
           Manage Model Availability

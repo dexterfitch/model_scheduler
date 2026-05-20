@@ -239,7 +239,6 @@ function FacultyDashboard({ user }) {
                     {s.department && <Badge bg="secondary" className="small">{s.department}</Badge>}
                   </div>
 
-                  {/* Show all dates */}
                   <div className="mb-3">
                     {requests.map((req, idx) => (
                       <div key={req.id} className={idx > 0 ? "mt-1 pt-1 border-top" : ""}>

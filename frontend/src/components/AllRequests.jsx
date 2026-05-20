@@ -154,7 +154,6 @@ function AllRequests() {
 
   const renderTable = (rows, showAction) => (
     <>
-      {/* Desktop table — hidden on mobile */}
       <div className="d-none d-md-block">
         <Table hover responsive className="shadow-sm bg-white align-middle mb-0">
           <thead className="bg-light">
@@ -217,7 +216,6 @@ function AllRequests() {
         </Table>
       </div>
 
-      {/* Mobile cards — hidden on desktop */}
       <div className="d-md-none">
         {rows.length === 0 ? (
           <p className="text-center text-muted py-3">None.</p>
@@ -231,7 +229,6 @@ function AllRequests() {
   return (
     <Container className="py-4">
 
-      {/* Header — stacks on mobile */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <h2 className="mb-0">Faculty Requests</h2>
         <InputGroup style={{ maxWidth: '300px', width: '100%' }}>
@@ -243,7 +240,6 @@ function AllRequests() {
         </InputGroup>
       </div>
 
-      {/* Filter bar — stacks cleanly on mobile */}
       <div className="p-3 bg-light rounded mb-4">
         <Row className="g-2 align-items-end">
           <Col xs={6} md="auto">

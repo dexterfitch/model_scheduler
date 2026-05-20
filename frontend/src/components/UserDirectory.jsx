@@ -26,7 +26,6 @@ function UserDirectory() {
 
         <Tab eventKey="models" title={`Models (${models.length})`}>
 
-          {/* Desktop table — hidden on mobile */}
           <div className="d-none d-md-block">
             <Table hover responsive className="bg-white shadow-sm">
               <thead className="bg-light">
@@ -68,7 +67,6 @@ function UserDirectory() {
             </Table>
           </div>
 
-          {/* Mobile cards — hidden on desktop */}
           <div className="d-md-none">
             {models.length === 0 ? (
               <p className="text-center text-muted py-3">No models found.</p>
@@ -113,7 +111,6 @@ function UserDirectory() {
 
         <Tab eventKey="faculty" title={`Faculty (${faculty.length})`}>
 
-          {/* Desktop table — hidden on mobile */}
           <div className="d-none d-md-block">
             <Table hover responsive className="bg-white shadow-sm">
               <thead className="bg-light">
@@ -135,7 +132,6 @@ function UserDirectory() {
             </Table>
           </div>
 
-          {/* Mobile cards — hidden on desktop */}
           <div className="d-md-none">
             {faculty.length === 0 ? (
               <p className="text-center text-muted py-3">No faculty found.</p>
