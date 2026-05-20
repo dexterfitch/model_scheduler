@@ -274,7 +274,7 @@ function FacultyDashboard({ user }) {
                       className="w-100 mt-2"
                       onClick={() => handleCancelSeries(s.id)}
                     >
-                      {s.status === 'matched' ? "Cancel Confirmed Class" : "Cancel Request"}
+                      {s.status === 'matched' ? "Cancel Confirmed Request" : "Cancel Pending Request"}
                     </Button>
                   )}
                 </Card.Body>
