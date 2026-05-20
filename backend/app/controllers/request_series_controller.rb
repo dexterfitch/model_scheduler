@@ -39,8 +39,8 @@ class RequestSeriesController < ApplicationController
       @series.save!
 
       dates.each do |date_entry|
-        starts_at = DateTime.parse("#{date_entry[:date]}T#{date_entry[:start_time]}")
-        ends_at = DateTime.parse("#{date_entry[:date]}T#{date_entry[:end_time]}")
+        starts_at = ActiveSupport::TimeZone["Eastern Time (US & Canada)"].parse("#{date_entry[:date]}T#{date_entry[:start_time]}")
+        ends_at = ActiveSupport::TimeZone["Eastern Time (US & Canada)"].parse("#{date_entry[:date]}T#{date_entry[:end_time]}")
 
         FacultyRequest.create!(
           request_series: @series,
