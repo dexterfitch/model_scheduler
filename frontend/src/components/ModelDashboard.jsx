@@ -255,7 +255,6 @@ function ModelDashboard({ user }) {
 
         <Tab eventKey="availability" title="Manage Availability">
           <Row>
-            {/* CHANGED: sidebar now shows pending series instead of upcoming gigs */}
             <Col md={3}>
               <div className="bg-light p-3 rounded border mb-3">
                 <h5 className="mb-1">Open Calls</h5>
@@ -309,7 +308,6 @@ function ModelDashboard({ user }) {
                 )}
               </div>
 
-              {/* ADDED: upcoming gigs moved below open calls */}
               <div className="bg-light p-3 rounded border mb-3">
                 <h5 className="mb-3">My Gigs (Next 14 Days)</h5>
                 {upcomingGigs.length === 0 ? (
@@ -333,7 +331,6 @@ function ModelDashboard({ user }) {
                 <i className="bi bi-info-circle-fill me-2"></i>
                 Click a date to add time. Click a green block to edit/delete.
               </Alert>
-              {/* CHANGED: removed openCallEvents from calendar */}
               <SharedCalendar
                 events={calendarEvents}
                 editable={true}
