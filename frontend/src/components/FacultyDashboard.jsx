@@ -5,16 +5,13 @@ import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
 
 const DEPARTMENTS = [
-  "Painting",
-  "Drawing",
-  "Illustration",
-  "FYE",
-  "Sculpture",
-  "Open Studies"
+  "Painting", "Drawing", "Illustration", "FYE", "Sculpture", "Open Studies"
 ];
 
+const emptyDate = () => ({ date: "", start_time: "", end_time: "" });
+
 function FacultyDashboard({ user }) {
-  const [requests, setRequests] = useState([]);
+  const [series, setSeries] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitError, setSubmitError] = useState('');
@@ -23,9 +20,6 @@ function FacultyDashboard({ user }) {
   const [formData, setFormData] = useState({
     class_name: "",
     department: "",
-    date: "",
-    start_time: "",
-    end_time: "",
     model_mode: "clothed",
     pref_skin_tone: "Any",
     pref_gender: "Any",
@@ -33,19 +27,26 @@ function FacultyDashboard({ user }) {
     room_number: ""
   });
 
+  // CHANGED: dates is now an array of {date, start_time, end_time}
+  const [dates, setDates] = useState([emptyDate()]);
+
   useEffect(() => {
-    fetchMyRequests();
+    fetchMySeries();
   }, [user.id]);
 
-  const fetchMyRequests = () => {
-    api.get(`/faculty_requests?user_id=${user.id}`)
+  const fetchMySeries = () => {
+    api.get(`/request_series`)
       .then((res) => {
-        const sorted = res.data.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
-        setRequests(sorted);
+        const sorted = res.data.sort((a, b) => {
+          const aFirst = a.faculty_requests?.[0]?.starts_at;
+          const bFirst = b.faculty_requests?.[0]?.starts_at;
+          return new Date(aFirst) - new Date(bFirst);
+        });
+        setSeries(sorted);
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Error fetching requests:", err);
+        console.error("Error fetching series:", err);
         setSubmitError("Error fetching requests. Please try again.");
       });
   };
@@ -76,78 +77,97 @@ function FacultyDashboard({ user }) {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleBlur = (e) => {
-    const { name, value } = e.target;
-    if (name === 'start_time' || name === 'end_time') {
-      const cleanedTime = roundToNearest5(value);
-      setFormData(prev => ({ ...prev, [name]: cleanedTime }));
+  // ADDED: handlers for the dates array
+  const handleDateChange = (index, field, value) => {
+    setDates(prev => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
+  };
+
+  const handleDateBlur = (index, field, value) => {
+    if (field === 'start_time' || field === 'end_time') {
+      const cleaned = roundToNearest5(value);
+      setDates(prev => prev.map((d, i) => i === index ? { ...d, [field]: cleaned } : d));
     }
+  };
+
+  const addDate = () => setDates(prev => [...prev, emptyDate()]);
+
+  const removeDate = (index) => {
+    if (dates.length === 1) return; // always keep at least one
+    setDates(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const inputDate = new Date(formData.date + "T00:00:00");
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    if (inputDate <= today) {
-      setSubmitError("Requests must be made for a future date (tomorrow or later).");
-      return;
-    }
-
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 4);
 
-    if (inputDate > maxDate) {
-      setSubmitError("Requests cannot be made more than 4 months in advance.");
-      return;
-    }
+    // Validate all dates
+    for (let i = 0; i < dates.length; i++) {
+      const d = dates[i];
+      const inputDate = new Date(d.date + "T00:00:00");
 
-    const startDateTime = new Date(`${formData.date}T${formData.start_time}`);
-    const endDateTime = new Date(`${formData.date}T${formData.end_time}`);
-    const startHour = parseInt(formData.start_time.split(':')[0]);
-    const endHour = parseInt(formData.end_time.split(':')[0]);
+      if (inputDate <= today) {
+        setSubmitError(`Date ${i + 1}: Requests must be for a future date (tomorrow or later).`);
+        return;
+      }
+      if (inputDate > maxDate) {
+        setSubmitError(`Date ${i + 1}: Cannot be more than 4 months in advance.`);
+        return;
+      }
 
-    if (startHour < 8 || startHour >= 22) {
-      setSubmitError("Classes must start between 8:00 AM and 10:00 PM.");
-      return;
-    }
-    if (endHour > 22 || (endHour === 22 && formData.end_time.split(':')[1] !== "00")) {
-      setSubmitError("Classes must end by 10:00 PM.");
-      return;
-    }
-    if (endDateTime <= startDateTime) {
-      setSubmitError("End time must be after start time.");
-      return;
+      const startDateTime = new Date(`${d.date}T${d.start_time}`);
+      const endDateTime = new Date(`${d.date}T${d.end_time}`);
+      const startHour = parseInt(d.start_time.split(':')[0]);
+      const endHour = parseInt(d.end_time.split(':')[0]);
+
+      if (startHour < 8 || startHour >= 22) {
+        setSubmitError(`Date ${i + 1}: Classes must start between 8:00 AM and 10:00 PM.`);
+        return;
+      }
+      if (endHour > 22 || (endHour === 22 && d.end_time.split(':')[1] !== "00")) {
+        setSubmitError(`Date ${i + 1}: Classes must end by 10:00 PM.`);
+        return;
+      }
+      if (endDateTime <= startDateTime) {
+        setSubmitError(`Date ${i + 1}: End time must be after start time.`);
+        return;
+      }
     }
 
     const payload = {
-      class_name: formData.class_name,
-      department: formData.department,
-      starts_at: startDateTime,
-      ends_at: endDateTime,
-      model_mode: formData.model_mode,
-      pref_skin_tone: formData.pref_skin_tone,
-      pref_gender: formData.pref_gender,
-      notes: formData.notes,
-      room_number: formData.room_number
+      request_series: {
+        class_name: formData.class_name,
+        department: formData.department,
+        model_mode: formData.model_mode,
+        pref_skin_tone: formData.pref_skin_tone,
+        pref_gender: formData.pref_gender,
+        notes: formData.notes,
+        room_number: formData.room_number
+      },
+      dates: dates.map(d => ({
+        date: d.date,
+        start_time: d.start_time,
+        end_time: d.end_time
+      }))
     };
 
-    api.post("/faculty_requests", { faculty_request: payload })
+    api.post("/request_series", payload)
       .then(() => {
         setSubmitSuccess('Request submitted successfully!');
         setTimeout(() => setSubmitSuccess(''), 3000);
         setShowModal(false);
-        fetchMyRequests();
+        fetchMySeries();
         setFormData({
-          class_name: "", department: "", date: "", start_time: "", end_time: "",
-          model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", notes: "", 
-          room_number: ""
+          class_name: "", department: "", model_mode: "clothed",
+          pref_skin_tone: "Any", pref_gender: "Any", notes: "", room_number: ""
         });
+        setDates([emptyDate()]);
       })
       .catch((err) => {
         console.error(err);
@@ -155,28 +175,13 @@ function FacultyDashboard({ user }) {
       });
   };
 
-  const handleCancel = (id, status, startsAt) => {
-    let message = "Are you sure you want to cancel this request?";
-
-    if (status === 'matched') {
-      const gigDate = new Date(startsAt);
-      const now = new Date();
-      const diffHours = (gigDate - now) / 36e5;
-
-      if (diffHours < 24) {
-        message = "⚠️ LATE CANCELLATION WARNING ⚠️\n\nThis class is less than 24 hours away.\nCancelling now may still incur model fees.\n\nAre you sure?";
-      } else {
-        message = "This will cancel the confirmed model. Are you sure?";
-      }
-    }
-
-    if (!confirm(message)) return;
-
-    api.delete(`/faculty_requests/${id}`)
+  const handleCancelSeries = (seriesId) => {
+    if (!confirm("Cancel this entire request? All dates will be cancelled.")) return;
+    api.delete(`/request_series/${seriesId}`)
       .then(() => {
         setSubmitSuccess("Request cancelled.");
         setTimeout(() => setSubmitSuccess(''), 3000);
-        fetchMyRequests();
+        fetchMySeries();
       })
       .catch(err => console.error(err));
   };
@@ -209,60 +214,75 @@ function FacultyDashboard({ user }) {
         </Button>
       </div>
 
-      {requests.length === 0 && !loading && (
+      {series.length === 0 && !loading && (
         <Alert variant="info">You haven't requested any models yet. Click "New Request" to start.</Alert>
       )}
 
       <Row>
-        {requests.map((req) => (
-          <Col md={6} lg={4} key={req.id} className="mb-4">
-            <Card className={`h-100 shadow-sm border-0 ${styles.card}`}>
-              <Card.Header className={`text-white fw-bold ${req.status === 'matched' ? 'bg-success' : 'bg-warning'}`}>
-                {req.status === 'matched' ? 'Model Confirmed' : 'Pending Match'}
-              </Card.Header>
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-start">
-                  <Card.Title>{req.class_name}</Card.Title>
-                  {req.department && <Badge bg="secondary" className="small">{req.department}</Badge>}
-                </div>
+        {series.map((s) => {
+          const requests = s.faculty_requests || [];
+          const firstReq = requests[0];
+          if (!firstReq) return null;
 
-                <div className="mb-3">
-                  <div className="fs-5">{formatDate(req.starts_at)}</div>
-                  <div className="text-muted">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
-                  {req.room_number && ( // ← add this
-                    <div className="text-muted small">
-                      <i className="bi bi-door-open me-1"></i>{req.room_number}
+          return (
+            <Col md={6} lg={4} key={s.id} className="mb-4">
+              <Card className={`h-100 shadow-sm border-0 ${styles.card}`}>
+                <Card.Header className={`text-white fw-bold ${s.status === 'matched' ? 'bg-success' : 'bg-warning'}`}>
+                  {s.status === 'matched' ? 'Model Confirmed' : 'Pending Match'}
+                  {requests.length > 1 && (
+                    <Badge bg="light" text="dark" className="ms-2">{requests.length} dates</Badge>
+                  )}
+                </Card.Header>
+                <Card.Body>
+                  <div className="d-flex justify-content-between align-items-start">
+                    <Card.Title>{s.class_name}</Card.Title>
+                    {s.department && <Badge bg="secondary" className="small">{s.department}</Badge>}
+                  </div>
+
+                  {/* Show all dates */}
+                  <div className="mb-3">
+                    {requests.map((req, idx) => (
+                      <div key={req.id} className={idx > 0 ? "mt-1 pt-1 border-top" : ""}>
+                        <div className="fw-bold">{formatDate(req.starts_at)}</div>
+                        <div className="text-muted small">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
+                      </div>
+                    ))}
+                    {s.room_number && (
+                      <div className="text-muted small mt-1">
+                        <i className="bi bi-door-open me-1"></i>{s.room_number}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="d-flex flex-wrap gap-2 mb-3">
+                    {s.model_mode === 'nude'
+                      ? <Badge bg="danger">Nude Required</Badge>
+                      : <Badge bg="success">Clothed</Badge>}
+                    {s.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(s.pref_skin_tone)}</Badge>}
+                    {s.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{s.pref_gender} Presentation</Badge>}
+                  </div>
+
+                  {s.notes && (
+                    <div className="mt-1 text-muted small fst-italic">
+                      <i className="bi bi-journal-text"></i>:&nbsp;&nbsp;{s.notes}
                     </div>
                   )}
-                </div>
 
-                <div className="d-flex flex-wrap gap-2 mb-3">
-                  {req.model_mode === 'nude'
-                    ? <Badge bg="danger">Nude Required</Badge>
-                    : <Badge bg="success">Clothed</Badge>
-                  }
-                  {req.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(req.pref_skin_tone)}</Badge>}
-                  {req.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{req.pref_gender} Presentation</Badge>}
-                </div>
-
-                {req.notes && (
-                  <div className="mt-1 text-muted small fst-italic"><i className="bi bi-journal-text"></i>:&nbsp;&nbsp;{req.notes}</div>
-                )}
-
-                {(req.status === 'pending' || req.status === 'matched') && (
-                  <Button
-                    variant={req.status === 'matched' ? "danger" : "outline-danger"}
-                    size="sm"
-                    className="w-100 mt-2"
-                    onClick={() => handleCancel(req.id, req.status, req.starts_at)}
-                  >
-                    {req.status === 'matched' ? "Cancel Confirmed Class" : "Cancel Request"}
-                  </Button>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
+                  {s.status !== 'archived' && (
+                    <Button
+                      variant={s.status === 'matched' ? "danger" : "outline-danger"}
+                      size="sm"
+                      className="w-100 mt-2"
+                      onClick={() => handleCancelSeries(s.id)}
+                    >
+                      {s.status === 'matched' ? "Cancel Confirmed Class" : "Cancel Request"}
+                    </Button>
+                  )}
+                </Card.Body>
+              </Card>
+            </Col>
+          );
+        })}
       </Row>
 
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
@@ -290,29 +310,65 @@ function FacultyDashboard({ user }) {
               </Col>
               <Col md={3} className="mb-3">
                 <Form.Label>Room Number</Form.Label>
-                <Form.Control 
-                  name="room_number" 
-                  value={formData.room_number} 
-                  onChange={handleInputChange} 
-                  placeholder="e.g. Fox 413" 
-                />
+                <Form.Control name="room_number" value={formData.room_number} onChange={handleInputChange} placeholder="e.g. Fox 413" />
               </Col>
             </Row>
 
-            <Row>
-              <Col md={4} className="mb-3">
-                <Form.Label>Date</Form.Label>
-                <Form.Control required type="date" name="date" value={formData.date} onChange={handleInputChange} />
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Label>Start Time</Form.Label>
-                <Form.Control required type="time" name="start_time" list="time-options" value={formData.start_time} onChange={handleInputChange} onBlur={handleBlur} min="08:00" max="22:00" />
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Label>End Time</Form.Label>
-                <Form.Control required type="time" name="end_time" list="time-options" value={formData.end_time} onChange={handleInputChange} onBlur={handleBlur} min="08:00" max="22:00" />
-              </Col>
-            </Row>
+            <hr />
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <h5 className="mb-0">Dates & Times</h5>
+              <Button variant="outline-primary" size="sm" type="button" onClick={addDate}>
+                <i className="bi bi-plus-circle me-1"></i> Add Another Date
+              </Button>
+            </div>
+
+            {dates.map((d, index) => (
+              <div key={index} className="p-3 mb-2 bg-light rounded border">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <small className="fw-bold text-muted">Date {index + 1}</small>
+                  {dates.length > 1 && (
+                    <Button variant="outline-danger" size="sm" type="button" onClick={() => removeDate(index)}>
+                      <i className="bi bi-trash"></i>
+                    </Button>
+                  )}
+                </div>
+                <Row>
+                  <Col md={4} className="mb-2">
+                    <Form.Label className="small">Date</Form.Label>
+                    <Form.Control
+                      required
+                      type="date"
+                      value={d.date}
+                      onChange={e => handleDateChange(index, 'date', e.target.value)}
+                    />
+                  </Col>
+                  <Col md={4} className="mb-2">
+                    <Form.Label className="small">Start Time</Form.Label>
+                    <Form.Control
+                      required
+                      type="time"
+                      list="time-options"
+                      value={d.start_time}
+                      onChange={e => handleDateChange(index, 'start_time', e.target.value)}
+                      onBlur={e => handleDateBlur(index, 'start_time', e.target.value)}
+                      min="08:00" max="22:00"
+                    />
+                  </Col>
+                  <Col md={4} className="mb-2">
+                    <Form.Label className="small">End Time</Form.Label>
+                    <Form.Control
+                      required
+                      type="time"
+                      list="time-options"
+                      value={d.end_time}
+                      onChange={e => handleDateChange(index, 'end_time', e.target.value)}
+                      onBlur={e => handleDateBlur(index, 'end_time', e.target.value)}
+                      min="08:00" max="22:00"
+                    />
+                  </Col>
+                </Row>
+              </div>
+            ))}
 
             <datalist id="time-options">{generateTimeOptions()}</datalist>
 
@@ -327,7 +383,6 @@ function FacultyDashboard({ user }) {
                   <option value="nude">Nude</option>
                 </Form.Select>
               </Col>
-
               <Col md={4} className="mb-3">
                 <Form.Label>Skin Tone</Form.Label>
                 <Form.Select name="pref_skin_tone" value={formData.pref_skin_tone} onChange={handleInputChange}>
@@ -337,7 +392,6 @@ function FacultyDashboard({ user }) {
                   <option value="Dark">Dark</option>
                 </Form.Select>
               </Col>
-
               <Col md={4} className="mb-3">
                 <Form.Label>Gender Presentation</Form.Label>
                 <Form.Select name="pref_gender" value={formData.pref_gender} onChange={handleInputChange}>
