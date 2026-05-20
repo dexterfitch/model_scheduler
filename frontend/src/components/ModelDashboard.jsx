@@ -2,14 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Badge, Tab, Tabs, Button, Modal, Form, Alert, ListGroup } from "react-bootstrap";
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
-import { formatSkinTone } from "../utils/formatters"; 
+import { formatSkinTone } from "../utils/formatters";
 
 function ModelDashboard({ user }) {
   const [myGigs, setMyGigs] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
-  const [openCallEvents, setOpenCallEvents] = useState([]);
-  const [openCallInfo, setOpenCallInfo] = useState(null);
-  const [showOpenCallModal, setShowOpenCallModal] = useState(false)
+  const [pendingSeries, setPendingSeries] = useState([]);
+  const [myAvailabilities, setMyAvailabilities] = useState([]);
   const [activeTab, setActiveTab] = useState("schedule");
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -30,13 +29,14 @@ function ModelDashboard({ user }) {
 
   const fetchData = () => {
     api.get("/gigs").then((res) => {
-      const my_gigs = res.data.sort((a, b) => {
-        return new Date(a.faculty_request.starts_at) - new Date(b.faculty_request.starts_at);
-      });
+      const my_gigs = res.data.sort((a, b) =>
+        new Date(a.faculty_request.starts_at) - new Date(b.faculty_request.starts_at)
+      );
       setMyGigs(my_gigs);
     }).catch(err => console.error("Error fetching gigs:", err));
 
     api.get(`/art_model_availabilities?user_id=${user.id}`).then((res) => {
+      setMyAvailabilities(res.data);
       const events = res.data.map(a => ({
         id: a.id,
         title: a.status === 'active' ? 'Free' : 'Cancelled',
@@ -49,29 +49,74 @@ function ModelDashboard({ user }) {
       setCalendarEvents(events);
     }).catch(err => console.error("Error fetching availabilities:", err));
 
-    api.get("/faculty_requests").then((res) => {
-      const openCalls = res.data
-        .filter(r => r.status === 'pending')
-        .filter(r => r.model_mode === 'clothed' || user.willing_to_model_nude)
-        .map(r => ({
-          id: `open-call-${r.id}`,
-          title: r.model_mode === 'nude' ? '🔴 Open Call (Nude)' : '🟠 Open Call',
-          start: r.starts_at,
-          end: r.ends_at,
-          backgroundColor: r.model_mode === 'nude' ? '#dc3545' : '#fd7e14',
-          borderColor: r.model_mode === 'nude' ? '#dc3545' : '#fd7e14',
-          display: 'block',
-          editable: false,
-          extendedProps: { isOpenCall: true, mode: r.model_mode }
-        }));
-      setOpenCallEvents(openCalls);
-    }).catch(err => console.error("Error fetching requests:", err));    
+    // CHANGED: fetch series instead of individual faculty requests
+    api.get("/request_series").then((res) => {
+      const eligible = res.data.filter(s => {
+        const hasPending = s.faculty_requests?.some(r => r.status === 'pending');
+        const nudeOk = s.model_mode === 'clothed' || user.willing_to_model_nude;
+        return hasPending && nudeOk;
+      });
+      setPendingSeries(eligible);
+    }).catch(err => console.error("Error fetching series:", err));
+  };
+
+  // ADDED: check if model has availability covering all pending dates in a series
+  const isAvailableForSeries = (series) => {
+    const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
+    return pendingRequests.every(req => {
+      const reqStart = new Date(req.starts_at);
+      const reqEnd = new Date(req.ends_at);
+      return myAvailabilities.some(avail => {
+        if (avail.status !== 'active') return false;
+        const availStart = new Date(avail.starts_at);
+        const availEnd = new Date(avail.ends_at);
+        return availStart <= reqStart && availEnd >= reqEnd;
+      });
+    });
+  };
+
+  // ADDED: create availability slots for all pending dates in a series
+  const handleMarkAvailable = async (series) => {
+    const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
+
+    // Only create slots for dates not already covered
+    const missingRequests = pendingRequests.filter(req => {
+      const reqStart = new Date(req.starts_at);
+      const reqEnd = new Date(req.ends_at);
+      return !myAvailabilities.some(avail => {
+        if (avail.status !== 'active') return false;
+        const availStart = new Date(avail.starts_at);
+        const availEnd = new Date(avail.ends_at);
+        return availStart <= reqStart && availEnd >= reqEnd;
+      });
+    });
+
+    if (missingRequests.length === 0) return;
+
+    try {
+      await Promise.all(
+        missingRequests.map(req =>
+          api.post("/art_model_availabilities", {
+            art_model_availability: {
+              starts_at: req.starts_at,
+              ends_at: req.ends_at
+            }
+          })
+        )
+      );
+      setPageSuccess(`Availability added for all ${pendingRequests.length} dates!`);
+      setTimeout(() => setPageSuccess(''), 4000);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      setPageSuccess('');
+    }
   };
 
   const generateTimeOptions = () => {
     const options = [];
-    let start = 8 * 60; 
-    const end = 22 * 60; 
+    let start = 8 * 60;
+    const end = 22 * 60;
     while (start <= end) {
       const hours = Math.floor(start / 60);
       const mins = start % 60;
@@ -100,41 +145,22 @@ function ModelDashboard({ user }) {
     return gigDate >= now && gigDate <= twoWeeks;
   });
 
-
   const handleDateSelect = (selectInfo) => {
     setEditingId(null);
-    setSelectedDate(selectInfo.startStr.split('T')[0]); 
+    setSelectedDate(selectInfo.startStr.split('T')[0]);
     setTimes({ start: "09:00", end: "17:00" });
     setModalError('');
     setShowModal(true);
   };
 
   const handleEventClick = (info) => {
-    if (info.event.extendedProps.isOpenCall) {
-      setOpenCallInfo({
-        start: info.event.start,
-        end: info.event.end,
-        mode: info.event.extendedProps.mode
-      });
-      setShowOpenCallModal(true);
-      return;
-    }
-
     const props = info.event.extendedProps;
     setEditingId(info.event.id);
-    
     const startObj = new Date(props.starts_at);
     const endObj = new Date(props.ends_at);
-    
     setSelectedDate(props.starts_at.split('T')[0]);
-
     const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    
-    setTimes({
-        start: formatTime(startObj),
-        end: formatTime(endObj)
-    });
-
+    setTimes({ start: formatTime(startObj), end: formatTime(endObj) });
     setModalError('');
     setShowModal(true);
   };
@@ -152,78 +178,32 @@ function ModelDashboard({ user }) {
 
   const handleSubmitAvailability = (e) => {
     e.preventDefault();
-    
     const startsAt = new Date(`${selectedDate}T${times.start}`);
     const endsAt = new Date(`${selectedDate}T${times.end}`);
-    
     const now = new Date();
-    if (startsAt < now) {
-      setModalError("You cannot set availability in the past.");
-      return;
-    }
-
+    if (startsAt < now) { setModalError("You cannot set availability in the past."); return; }
     const startHour = parseInt(times.start.split(':')[0]);
     const endHour = parseInt(times.end.split(':')[0]);
-
-    if (startHour < 8 || startHour >= 22) {
-      setModalError("Availability must start between 8:00 AM and 10:00 PM.");
-      return;
-    }
-    if (endHour > 22 || (endHour === 22 && times.end.split(':')[1] !== "00")) {
-      setModalError("Availability must end by 10:00 PM.");
-      return;
-    }
-    if (endsAt <= startsAt) {
-      setModalError("End time must be after start time");
-      return;
-    }
-
-    const payload = {
-      starts_at: startsAt,
-      ends_at: endsAt
-    };
-
+    if (startHour < 8 || startHour >= 22) { setModalError("Availability must start between 8:00 AM and 10:00 PM."); return; }
+    if (endHour > 22 || (endHour === 22 && times.end.split(':')[1] !== "00")) { setModalError("Availability must end by 10:00 PM."); return; }
+    if (endsAt <= startsAt) { setModalError("End time must be after start time"); return; }
+    const payload = { starts_at: startsAt, ends_at: endsAt };
     if (editingId) {
-        api.patch(`/art_model_availabilities/${editingId}`, { art_model_availability: payload })
-        .then(() => {
-            setPageSuccess(editingId ? "Availability updated!" : "Availability added!");
-            setTimeout(() => setPageSuccess(''), 3000);
-            setShowModal(false);
-            fetchData();
-        })
-        .catch(err => {
-            console.error(err);
-            setModalError("Error saving availability. Please try again.");
-        });
+      api.patch(`/art_model_availabilities/${editingId}`, { art_model_availability: payload })
+        .then(() => { setPageSuccess("Availability updated!"); setTimeout(() => setPageSuccess(''), 3000); setShowModal(false); fetchData(); })
+        .catch(() => setModalError("Error saving availability. Please try again."));
     } else {
-        api.post("/art_model_availabilities", { art_model_availability: payload })
-        .then(() => {
-            setPageSuccess(editingId ? "Availability updated!" : "Availability added!");
-            setTimeout(() => setPageSuccess(''), 3000);
-            setShowModal(false);
-            fetchData();
-        })
-        .catch(err => {
-            console.error(err);
-            setModalError("Error saving availability. Please try again.");
-        });
+      api.post("/art_model_availabilities", { art_model_availability: payload })
+        .then(() => { setPageSuccess("Availability added!"); setTimeout(() => setPageSuccess(''), 3000); setShowModal(false); fetchData(); })
+        .catch(() => setModalError("Error saving availability. Please try again."));
     }
   };
 
   const handleDelete = () => {
-    if(!editingId || !confirm("Delete this availability slot?")) return;
-    
+    if (!editingId || !confirm("Delete this availability slot?")) return;
     api.delete(`/art_model_availabilities/${editingId}`)
-      .then(() => {
-        setPageSuccess("Availability deleted!");
-        setTimeout(() => setPageSuccess(''), 3000);
-        setShowModal(false);
-        fetchData();
-      })
-      .catch(err => {
-        setModalError("Error deleting. Please try again.");
-      }
-      );
+      .then(() => { setPageSuccess("Availability deleted!"); setTimeout(() => setPageSuccess(''), 3000); setShowModal(false); fetchData(); })
+      .catch(() => setModalError("Error deleting. Please try again."));
   };
 
   const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
@@ -239,7 +219,9 @@ function ModelDashboard({ user }) {
             <div className="text-muted">{formatSkinTone(user.skin_tone)} • {user.gender_identity} Presentation</div>
           </div>
           <div className="text-end">
-             {user.willing_to_model_nude ? <Badge bg="danger" className="p-2">⚠️ Willing to Model Nude</Badge> : <Badge bg="success" className="p-2">Clothed Only</Badge>}
+            {user.willing_to_model_nude
+              ? <Badge bg="danger" className="p-2">⚠️ Willing to Model Nude</Badge>
+              : <Badge bg="success" className="p-2">Clothed Only</Badge>}
           </div>
         </Card.Body>
       </Card>
@@ -259,8 +241,9 @@ function ModelDashboard({ user }) {
                         <div className="text-muted">{formatTime(gig.faculty_request.starts_at)} - {formatTime(gig.faculty_request.ends_at)}</div>
                       </div>
                       <div className="p-2 bg-light rounded small">
-                        <strong>Faculty:</strong> {gig.faculty_request.user.first_name} {gig.faculty_request.user.last_name} <br/>
-                        <strong>Mode:</strong> {gig.faculty_request.model_mode === 'nude' ? <span className="text-danger fw-bold">NUDE</span> : "Clothed"}
+                        <strong>Mode:</strong> {gig.faculty_request.model_mode === 'nude'
+                          ? <span className="text-danger fw-bold">NUDE</span>
+                          : "Clothed"}
                       </div>
                     </Card.Body>
                   </Card>
@@ -272,40 +255,91 @@ function ModelDashboard({ user }) {
 
         <Tab eventKey="availability" title="Manage Availability">
           <Row>
+            {/* CHANGED: sidebar now shows pending series instead of upcoming gigs */}
             <Col md={3}>
-                <div className="bg-light p-3 rounded border mb-3">
-                    <h5 className="mb-3">My Gigs (Next 14 Days)</h5>
-                    {upcomingGigs.length === 0 ? (
-                        <p className="text-muted small">No upcoming gigs in the next 2 weeks.</p>
-                    ) : (
-                        <ListGroup variant="flush">
-                            {upcomingGigs.map(gig => (
-                                <ListGroup.Item key={gig.id} className="bg-transparent px-0 py-2">
-                                    <div className="fw-bold small">{gig.faculty_request.class_name}</div>
-                                    <div className="small text-muted">
-                                        {formatDate(gig.faculty_request.starts_at)}
-                                    </div>
-                                    <div className="small text-muted">
-                                        {formatTime(gig.faculty_request.starts_at)} - {formatTime(gig.faculty_request.ends_at)}
-                                    </div>
-                                </ListGroup.Item>
-                            ))}
-                        </ListGroup>
-                    )}
-                </div>
+              <div className="bg-light p-3 rounded border mb-3">
+                <h5 className="mb-1">Open Calls</h5>
+                <p className="text-muted small mb-3">Click "I'm Available" to sign up for a gig.</p>
+                {pendingSeries.length === 0 ? (
+                  <p className="text-muted small">No open calls right now.</p>
+                ) : (
+                  pendingSeries.map(series => {
+                    const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
+                    const available = isAvailableForSeries(series);
+                    return (
+                      <Card key={series.id} className={`mb-2 border ${available ? 'border-success' : 'border-secondary'}`}>
+                        <Card.Body className="p-2">
+                          <div className="fw-bold small">{series.class_name}</div>
+                          <div className="small text-muted mb-1">{series.department}</div>
+                          {pendingRequests.map(req => (
+                            <div key={req.id} className="small text-muted">
+                              <i className="bi bi-calendar3 me-1"></i>
+                              {formatDate(req.starts_at)}<br />
+                              <span className="ms-3">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</span>
+                            </div>
+                          ))}
+                          <div className="mt-2">
+                            {series.model_mode === 'nude'
+                              ? <Badge bg="danger" className="me-1">Nude</Badge>
+                              : <Badge bg="success" className="me-1">Clothed</Badge>}
+                            {pendingRequests.length > 1 && (
+                              <Badge bg="info" text="dark">{pendingRequests.length} dates</Badge>
+                            )}
+                          </div>
+                          <div className="mt-2">
+                            {available ? (
+                              <div className="text-success small fw-bold">
+                                <i className="bi bi-check-circle-fill me-1"></i>You're Available
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline-success"
+                                size="sm"
+                                className="w-100 mt-1"
+                                onClick={() => handleMarkAvailable(series)}
+                              >
+                                I'm Available
+                              </Button>
+                            )}
+                          </div>
+                        </Card.Body>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* ADDED: upcoming gigs moved below open calls */}
+              <div className="bg-light p-3 rounded border mb-3">
+                <h5 className="mb-3">My Gigs (Next 14 Days)</h5>
+                {upcomingGigs.length === 0 ? (
+                  <p className="text-muted small">No upcoming gigs in the next 2 weeks.</p>
+                ) : (
+                  <ListGroup variant="flush">
+                    {upcomingGigs.map(gig => (
+                      <ListGroup.Item key={gig.id} className="bg-transparent px-0 py-2">
+                        <div className="fw-bold small">{gig.faculty_request.class_name}</div>
+                        <div className="small text-muted">{formatDate(gig.faculty_request.starts_at)}</div>
+                        <div className="small text-muted">{formatTime(gig.faculty_request.starts_at)} - {formatTime(gig.faculty_request.ends_at)}</div>
+                      </ListGroup.Item>
+                    ))}
+                  </ListGroup>
+                )}
+              </div>
             </Col>
-            
+
             <Col md={9}>
-                <Alert variant="secondary" className="mb-3">
-                    <i className="bi bi-info-circle-fill me-2"></i>
-                    Click a date to add time. Click a green block to edit/delete.
-                </Alert>
-                <SharedCalendar 
-                    events={[...calendarEvents, ...openCallEvents]} 
-                    editable={true} 
-                    onDateSelect={handleDateSelect}
-                    onEventClick={handleEventClick} 
-                />
+              <Alert variant="secondary" className="mb-3">
+                <i className="bi bi-info-circle-fill me-2"></i>
+                Click a date to add time. Click a green block to edit/delete.
+              </Alert>
+              {/* CHANGED: removed openCallEvents from calendar */}
+              <SharedCalendar
+                events={calendarEvents}
+                editable={true}
+                onDateSelect={handleDateSelect}
+                onEventClick={handleEventClick}
+              />
             </Col>
           </Row>
         </Tab>
@@ -334,13 +368,10 @@ function ModelDashboard({ user }) {
               </Col>
             </Row>
             <datalist id="model-time-options">{generateTimeOptions()}</datalist>
-
             <div className="mt-4 d-flex justify-content-between">
               <div>
                 {editingId && (
-                  <Button variant="danger" onClick={handleDelete}>
-                    Delete Slot
-                  </Button>
+                  <Button variant="danger" onClick={handleDelete}>Delete Slot</Button>
                 )}
               </div>
               <div>
@@ -350,35 +381,6 @@ function ModelDashboard({ user }) {
             </div>
           </Form>
         </Modal.Body>
-      </Modal>
-      <Modal show={showOpenCallModal} onHide={() => setShowOpenCallModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {openCallInfo?.mode === 'nude' ? '🔴 Open Call (Nude)' : '🟠 Open Call (Clothed)'}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {openCallInfo && (
-            <>
-              <p className="mb-2">
-                <strong>Date:</strong> {new Date(openCallInfo.start).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-              </p>
-              <p className="mb-2">
-                <strong>Time:</strong> {formatTime(openCallInfo.start)} - {formatTime(openCallInfo.end)}
-              </p>
-              <p className="mb-0">
-                <strong>Type:</strong> {openCallInfo.mode === 'nude' ? <span className="text-danger fw-bold">Nude</span> : <span className="text-success">Clothed</span>}
-              </p>
-              <hr />
-              <p className="text-muted small mb-0">
-                If you're available for this time slot, add your availability on the calendar and the admin will match you.
-              </p>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowOpenCallModal(false)}>Close</Button>
-        </Modal.Footer>
       </Modal>
     </Container>
   );
