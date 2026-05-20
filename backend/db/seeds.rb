@@ -2,6 +2,7 @@ puts "🌱 Seeding Database..."
 
 Gig.destroy_all
 FacultyRequest.destroy_all
+RequestSeries.destroy_all
 ArtModelAvailability.destroy_all
 User.where.not(email: "dfitch@mica.edu").destroy_all
 
@@ -107,7 +108,7 @@ avail3 = create_past_availability(
 )
 Gig.create!(faculty_request: req3, art_model_availability: avail3, status: "confirmed")
 
-# Ruth: Confirmed - Drawing Clothed (1.75 hrs → rounds to 1.75)
+# Ruth: Confirmed - Drawing Clothed (1.75 hrs)
 req_round = create_past_request(
   user: frank, class_name: "Quick Sketch Session", department: "Drawing",
   starts_at: (two_weeks_ago + 3.days).change(hour: 9, min: 0),
@@ -122,7 +123,7 @@ avail_round = create_past_availability(
 )
 Gig.create!(faculty_request: req_round, art_model_availability: avail_round, status: "confirmed")
 
-# Ruth: Confirmed - Illustration Clothed (weird time: 1hr 23min → rounds to 1.25)
+# Ruth: Confirmed - Illustration Clothed
 req_weird = create_past_request(
   user: sarah, class_name: "Oddly Timed Session", department: "Illustration",
   starts_at: (two_weeks_ago + 3.days).change(hour: 13, min: 7),
@@ -137,7 +138,7 @@ avail_weird = create_past_availability(
 )
 Gig.create!(faculty_request: req_weird, art_model_availability: avail_weird, status: "confirmed")
 
-# Ruth: Confirmed - Painting Clothed again (accumulates with req1 → total 6 hrs)
+# Ruth: Confirmed - Painting Clothed
 req_accum = create_past_request(
   user: bob, class_name: "Portrait Painting II", department: "Painting",
   starts_at: (two_weeks_ago + 4.days).change(hour: 13, min: 0),
@@ -182,7 +183,7 @@ avail5 = create_past_availability(
 )
 Gig.create!(faculty_request: req5, art_model_availability: avail5, status: "confirmed")
 
-# Mike: Confirmed - weird time (2hr 37min → rounds to 2.75)
+# Mike: Confirmed - weird time
 req_mike_weird = create_past_request(
   user: bob, class_name: "Extended Life Drawing", department: "Drawing",
   starts_at: (two_weeks_ago + 1.day).change(hour: 9, min: 11),
@@ -227,7 +228,7 @@ avail7 = create_past_availability(
 )
 Gig.create!(faculty_request: req7, art_model_availability: avail7, status: "confirmed")
 
-# Alex: Confirmed - weird time (1hr 53min → rounds to 2.0)
+# Alex: Confirmed - weird time
 req_alex_weird = create_past_request(
   user: sarah, class_name: "Experimental Figure", department: "FYE",
   starts_at: (two_weeks_ago + 2.days).change(hour: 10, min: 22),
@@ -246,7 +247,6 @@ puts "✅ Past confirmed gigs created."
 
 # --- CANCELLED GIGS ---
 
-# Ruth: Cancelled NOT late (billable: false)
 req8 = create_past_request(
   user: sarah, class_name: "Watercolor Figure", department: "Painting",
   starts_at: (two_weeks_ago + 2.days).change(hour: 10, min: 0),
@@ -261,7 +261,6 @@ avail8 = create_past_availability(
 )
 Gig.create!(faculty_request: req8, art_model_availability: avail8, status: "cancelled", billable: false)
 
-# Mike: Cancelled LATE (billable: true) ⚠️
 req9 = create_past_request(
   user: bob, class_name: "Emergency Substitute", department: "Drawing",
   starts_at: (two_weeks_ago + 3.days).change(hour: 14, min: 0),
@@ -276,7 +275,6 @@ avail9 = create_past_availability(
 )
 Gig.create!(faculty_request: req9, art_model_availability: avail9, status: "cancelled", billable: true)
 
-# Alex: Cancelled LATE (billable: true) ⚠️
 req10 = create_past_request(
   user: sarah, class_name: "Illustration Workshop", department: "Illustration",
   starts_at: (two_weeks_ago + 4.days).change(hour: 13, min: 0),
@@ -295,7 +293,6 @@ puts "✅ Past cancelled gigs created."
 
 # --- SAME-DAY BILLABLE LOGIC TESTS ---
 
-# A Gig for TODAY (confirmed, should be billable if cancelled today)
 req_today = create_past_request(
   user: frank, class_name: "Today's Class", department: "Painting",
   starts_at: Time.current.change(hour: 14, min: 0),
@@ -310,7 +307,6 @@ avail_today = create_past_availability(
 )
 Gig.create!(faculty_request: req_today, art_model_availability: avail_today, status: "confirmed")
 
-# A Gig for TOMORROW (confirmed, should NOT be billable if cancelled today)
 req_tomorrow = create_past_request(
   user: sarah, class_name: "Tomorrow's Class", department: "Drawing",
   starts_at: 1.day.from_now.change(hour: 10, min: 0),
@@ -327,22 +323,109 @@ Gig.create!(faculty_request: req_tomorrow, art_model_availability: avail_tomorro
 
 puts "🧪 Same-day billable logic test gigs created."
 
-# --- PENDING REQUESTS (future, unmatched) ---
+# --- PENDING SERIES (future, unmatched) ---
+
+# Single date series
+series1 = RequestSeries.create!(
+  user: frank,
+  class_name: "Figure Drawing 101",
+  department: "Drawing",
+  model_mode: "nude",
+  pref_skin_tone: "Any",
+  pref_gender: "Any",
+  status: "pending"
+)
 FacultyRequest.create!(
-  user: frank, class_name: "Figure Drawing 101", department: "Drawing",
+  request_series: series1,
+  user: frank,
+  class_name: "Figure Drawing 101",
+  department: "Drawing",
   starts_at: DateTime.now.next_week(:monday).change(hour: 9, min: 0),
   ends_at: DateTime.now.next_week(:monday).change(hour: 12, min: 0),
-  model_mode: "nude", pref_skin_tone: "Any", pref_gender: "Female", status: "pending"
+  model_mode: "nude",
+  pref_skin_tone: "Any",
+  pref_gender: "Any",
+  status: "pending"
 )
 
+# Single date series
+series2 = RequestSeries.create!(
+  user: sarah,
+  class_name: "Costume Gestures",
+  department: "Illustration",
+  model_mode: "clothed",
+  pref_skin_tone: "Any",
+  pref_gender: "Any",
+  status: "pending"
+)
 FacultyRequest.create!(
-  user: sarah, class_name: "Costume Gestures", department: "Illustration",
+  request_series: series2,
+  user: sarah,
+  class_name: "Costume Gestures",
+  department: "Illustration",
   starts_at: DateTime.now.next_week(:tuesday).change(hour: 14, min: 0),
   ends_at: DateTime.now.next_week(:tuesday).change(hour: 16, min: 0),
-  model_mode: "clothed", pref_skin_tone: "Light", pref_gender: "Any", status: "pending"
+  model_mode: "clothed",
+  pref_skin_tone: "Any",
+  pref_gender: "Any",
+  status: "pending"
 )
 
-puts "📝 Pending requests created."
+# Multi-date series — 3 dates across 3 weeks
+series3 = RequestSeries.create!(
+  user: bob,
+  class_name: "Life Drawing Series",
+  department: "Drawing",
+  model_mode: "clothed",
+  pref_skin_tone: "Any",
+  pref_gender: "Any",
+  room_number: "Fox 320",
+  status: "pending"
+)
+[
+  [DateTime.now.next_week(:wednesday).change(hour: 9, min: 0), DateTime.now.next_week(:wednesday).change(hour: 12, min: 0)],
+  [(DateTime.now + 2.weeks).next_week(:wednesday).change(hour: 9, min: 0), (DateTime.now + 2.weeks).next_week(:wednesday).change(hour: 12, min: 0)],
+  [(DateTime.now + 3.weeks).next_week(:wednesday).change(hour: 9, min: 0), (DateTime.now + 3.weeks).next_week(:wednesday).change(hour: 12, min: 0)]
+].each do |starts, ends|
+  FacultyRequest.create!(
+    request_series: series3,
+    user: bob,
+    class_name: "Life Drawing Series",
+    department: "Drawing",
+    starts_at: starts,
+    ends_at: ends,
+    model_mode: "clothed",
+    pref_skin_tone: "Any",
+    pref_gender: "Any",
+    room_number: "Fox 320",
+    status: "pending"
+  )
+end
+
+# No models available test — far future
+series4 = RequestSeries.create!(
+  user: bob,
+  class_name: "No Models Available Test",
+  department: "Sculpture",
+  model_mode: "clothed",
+  pref_skin_tone: "Any",
+  pref_gender: "Any",
+  status: "pending"
+)
+FacultyRequest.create!(
+  request_series: series4,
+  user: bob,
+  class_name: "No Models Available Test",
+  department: "Sculpture",
+  starts_at: DateTime.now.next_week(:thursday).change(hour: 9, min: 0),
+  ends_at: DateTime.now.next_week(:thursday).change(hour: 12, min: 0),
+  model_mode: "clothed",
+  pref_skin_tone: "Any",
+  pref_gender: "Any",
+  status: "pending"
+)
+
+puts "📝 Pending series created."
 
 # --- FREE AVAILABILITY (future, unbooked) ---
 ArtModelAvailability.create!(
@@ -359,27 +442,18 @@ ArtModelAvailability.create!(
   status: "active"
 )
 
-# --- RUTH: Future availability so she can be matched to pending requests ---
+# Ruth available for series1 and series2
 ArtModelAvailability.create!(
   user: ruth,
-  starts_at: DateTime.now.next_week(:monday).change(hour: 8, min: 0),
-  ends_at: DateTime.now.next_week(:monday).change(hour: 17, min: 0),
+  starts_at: DateTime.now.next_week(:monday).change(hour: 9, min: 0),
+  ends_at: DateTime.now.next_week(:monday).change(hour: 12, min: 0),
   status: "active"
 )
-
 ArtModelAvailability.create!(
   user: ruth,
-  starts_at: DateTime.now.next_week(:tuesday).change(hour: 13, min: 0),
-  ends_at: DateTime.now.next_week(:tuesday).change(hour: 18, min: 0),
+  starts_at: DateTime.now.next_week(:tuesday).change(hour: 14, min: 0),
+  ends_at: DateTime.now.next_week(:tuesday).change(hour: 16, min: 0),
   status: "active"
-)
-
-# --- A pending request with NO available models (to test empty match state) ---
-FacultyRequest.create!(
-  user: bob, class_name: "No Models Available Test", department: "Sculpture",
-  starts_at: DateTime.now.next_week(:wednesday).change(hour: 9, min: 0),
-  ends_at: DateTime.now.next_week(:wednesday).change(hour: 12, min: 0),
-  model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "pending"
 )
 
 puts "📅 Free availability created."

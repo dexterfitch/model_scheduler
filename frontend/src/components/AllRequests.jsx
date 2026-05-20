@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Container, Table, Badge, Form, InputGroup, Button, Offcanvas, ListGroup, Row, Col } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+import { Container, Table, Badge, Form, InputGroup, Button, Row, Col } from "react-bootstrap";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
 
 function AllRequests() {
-  const [requests, setRequests] = useState([]);
-  const [availabilities, setAvailabilities] = useState([]);
+  const navigate = useNavigate();
+  const [allSeries, setAllSeries] = useState([]);
   const [search, setSearch] = useState("");
-
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const [recommendedModels, setRecommendedModels] = useState([]);
 
   const today = new Date();
   const [filterStart, setFilterStart] = useState(
@@ -22,213 +19,206 @@ function AllRequests() {
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    api.get("/faculty_requests").then(res => setRequests(res.data));
-    api.get("/art_model_availabilities").then(res => setAvailabilities(res.data));
+    api.get("/request_series").then(res => setAllSeries(res.data));
   }, []);
 
-  const filterRequests = (status) => {
+  const filterSeries = (statusFilter) => {
     const term = search.toLowerCase();
-    return requests
-      .filter(r => r.status === status)
-      .filter(r => {
+    return allSeries
+      .filter(s => {
+        if (statusFilter === 'pending') return s.faculty_requests?.some(r => r.status === 'pending');
+        if (statusFilter === 'matched') return s.status === 'matched';
+        if (statusFilter === 'archived') return s.status === 'archived';
+        return false;
+      })
+      .filter(s => {
         if (showAll) return true;
-        const gigDate = new Date(r.starts_at);
+        const firstReq = s.faculty_requests?.[0];
+        if (!firstReq) return false;
+        const gigDate = new Date(firstReq.starts_at);
         return gigDate >= new Date(filterStart + "T00:00:00") && gigDate <= new Date(filterEnd + "T23:59:59");
       })
-      .filter(r => {
-        const className = r.class_name?.toLowerCase() || "";
-        const department = r.department?.toLowerCase() || "";
-        const firstName = r.user?.first_name?.toLowerCase() || "";
-        const lastName = r.user?.last_name?.toLowerCase() || "";
+      .filter(s => {
+        const className = s.class_name?.toLowerCase() || "";
+        const department = s.department?.toLowerCase() || "";
+        const firstName = s.faculty_requests?.[0]?.user?.first_name?.toLowerCase() || "";
+        const lastName = s.faculty_requests?.[0]?.user?.last_name?.toLowerCase() || "";
         const fullName = `${firstName} ${lastName}`;
         return className.includes(term) || department.includes(term) ||
           firstName.includes(term) || lastName.includes(term) || fullName.includes(term);
       })
-      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+      .sort((a, b) => {
+        const aFirst = a.faculty_requests?.[0]?.starts_at;
+        const bFirst = b.faculty_requests?.[0]?.starts_at;
+        return new Date(aFirst) - new Date(bFirst);
+      });
   };
 
-  const pending = filterRequests('pending');
-  const matched = filterRequests('matched');
-  const archived = filterRequests('archived').reverse();
+  const pending = filterSeries('pending');
+  const matched = filterSeries('matched');
+  const archived = filterSeries('archived').reverse();
 
-  const handleShowMatch = (request) => {
-    setSelectedRequest(request);
-    const reqStart = new Date(request.starts_at);
-    const reqEnd = new Date(request.ends_at);
-    const isNudeReq = request.model_mode === "nude";
+  const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatDateShort = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
-    const candidates = availabilities.filter((avail) => {
-      const availStart = new Date(avail.starts_at);
-      const availEnd = new Date(avail.ends_at);
-      const timeMatch = availStart <= reqStart && availEnd >= reqEnd;
-      const nudityMatch = !isNudeReq || avail.user?.willing_to_model_nude;
-      const statusMatch = avail.status === 'active';
-      return timeMatch && nudityMatch && statusMatch;
-    });
+  const renderSeriesCard = (s, showAction) => {
+    const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
+    const allRequests = s.faculty_requests || [];
+    const displayRequests = showAction ? pendingRequests : allRequests;
+    const faculty = allRequests[0]?.user;
 
-    const scoredCandidates = candidates.map(avail => {
-      let score = 0;
-      if (avail.user) {
-        if (avail.user.skin_tone === request.pref_skin_tone) score += 1;
-        if (avail.user.gender_identity === request.pref_gender) score += 1;
-      }
-      return { ...avail, score };
-    });
-
-    scoredCandidates.sort((a, b) => b.score - a.score);
-    setRecommendedModels(scoredCandidates);
-    setShowSidebar(true);
-  };
-
-  const handleCreateGig = (availabilityId) => {
-    if (!confirm("Confirm booking?")) return;
-    api.post("/gigs", {
-      gig: {
-        faculty_request_id: selectedRequest.id,
-        art_model_availability_id: availabilityId
-      }
-    })
-    .then(() => {
-      setShowSidebar(false);
-      api.get("/faculty_requests").then(res => setRequests(res.data));
-      api.get("/art_model_availabilities").then(res => setAvailabilities(res.data));
-    })
-    .catch(err => {
-      console.error(err);
-      alert("Error creating gig. Check console.");
-    });
-  };
-
-  const formatDate = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  // Mobile card for a single request row
-  const renderMobileCard = (req, showAction) => (
-    <div key={req.id} className="card mb-3 shadow-sm">
-      <div className="card-body">
-        <div className="d-flex justify-content-between align-items-start mb-2">
-          <div>
-            <div className="fw-bold">{req.class_name}</div>
-            {req.department && (
-              <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{req.department}</Badge>
-            )}
-            {req.room_number && ( // ← add this
-              <div className="small text-muted">
-                <i className="bi bi-door-open me-1"></i>{req.room_number}
+    return (
+      <div key={s.id} className="card mb-3 shadow-sm">
+        <div className="card-body">
+          <div className="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div className="fw-bold">{s.class_name}</div>
+              <div className="d-flex gap-1 flex-wrap mt-1">
+                {s.department && <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{s.department}</Badge>}
+                {allRequests.length > 1 && <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>{allRequests.length} dates</Badge>}
               </div>
-            )}
+              {s.room_number && (
+                <div className="small text-muted mt-1">
+                  <i className="bi bi-door-open me-1"></i>{s.room_number}
+                </div>
+              )}
+            </div>
+            {s.model_mode === 'nude'
+              ? <Badge bg="danger">Nude</Badge>
+              : <Badge bg="success">Clothed</Badge>}
           </div>
-          {req.model_mode === 'nude'
-            ? <Badge bg="danger">Nude</Badge>
-            : <Badge bg="success">Clothed</Badge>}
-        </div>
-        <div className="small text-muted mb-1">
-          <i className="bi bi-calendar3 me-1"></i>
-          {new Date(req.starts_at).toLocaleDateString()} &bull; {formatDate(req.starts_at)} &ndash; {formatDate(req.ends_at)}
-        </div>
-        <div className="small text-muted mb-1">
-          <i className="bi bi-person me-1"></i>
-          {req.user?.first_name} {req.user?.last_name}
-        </div>
-        <div className="small text-muted mb-2">
-          <i className="bi bi-palette me-1"></i>
-          {formatSkinTone(req.pref_skin_tone)}, {req.pref_gender} Gender Presentation
-        </div>
-        {req.notes && (
-          <div className="small text-muted fst-italic mb-2 border rounded p-2">
-            <i className="bi bi-journal-text me-1"></i>{req.notes}
-          </div>
-        )}
-        {showAction && (
-          <Button
-            size="sm"
-            variant="outline-primary"
-            className="w-100 mt-1"
-            onClick={() => handleShowMatch(req)}
-          >
-            Find Match
-          </Button>
-        )}
-      </div>
-    </div>
-  );
 
-  const renderTable = (rows, showAction) => (
-    <>
-      <div className="d-none d-md-block">
-        <Table hover responsive className="shadow-sm bg-white align-middle mb-0">
-          <thead className="bg-light">
+          {/* All dates */}
+          <div className="mb-2">
+            {displayRequests.map(req => (
+              <div key={req.id} className="small text-muted">
+                <i className="bi bi-calendar3 me-1"></i>
+                {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
+              </div>
+            ))}
+          </div>
+
+          <div className="small text-muted mb-1">
+            <i className="bi bi-person me-1"></i>
+            {faculty?.first_name} {faculty?.last_name}
+          </div>
+          <div className="small text-muted mb-2">
+            <i className="bi bi-palette me-1"></i>
+            {formatSkinTone(s.pref_skin_tone)}, {s.pref_gender} Gender Presentation
+          </div>
+          {s.notes && (
+            <div className="small text-muted fst-italic mb-2 border rounded p-2">
+              <i className="bi bi-journal-text me-1"></i>{s.notes}
+            </div>
+          )}
+          {showAction && (
+            <Button
+              size="sm"
+              variant="outline-primary"
+              className="w-100 mt-1"
+              onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}
+            >
+              Find Match
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderDesktopTable = (seriesList, showAction) => (
+    <div className="d-none d-md-block">
+      <Table hover responsive className="shadow-sm bg-white align-middle mb-0">
+        <thead className="bg-light">
+          <tr>
+            <th>Date(s)</th>
+            <th>Class / Dept</th>
+            <th>Faculty</th>
+            <th>Reqs</th>
+            {showAction && <th>Action</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {seriesList.length === 0 ? (
             <tr>
-              <th>Date Needed</th>
-              <th>Class / Dept</th>
-              <th>Faculty</th>
-              <th>Reqs</th>
-              {showAction && <th>Action</th>}
+              <td colSpan={showAction ? 5 : 4} className="text-center py-3 text-muted">None.</td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={showAction ? 5 : 4} className="text-center py-3 text-muted">None.</td>
-              </tr>
-            ) : (
-              rows.map(req => (
-                <tr key={req.id}>
-                  <td>{new Date(req.starts_at).toLocaleDateString()}</td>
+          ) : (
+            seriesList.map(s => {
+              const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
+              const allRequests = s.faculty_requests || [];
+              const displayRequests = showAction ? pendingRequests : allRequests;
+              const faculty = allRequests[0]?.user;
+
+              return (
+                <tr key={s.id}>
                   <td>
-                    <div className="fw-bold">{req.class_name}</div>
-                    {req.department && (
-                      <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{req.department}</Badge>
-                    )}
-                    {req.room_number && ( // ← add this
-                      <div className="small text-muted">
-                        <i className="bi bi-door-open me-1"></i>{req.room_number}
+                    {displayRequests.map(req => (
+                      <div key={req.id} className="small">
+                        {formatDateShort(req.starts_at)}<br />
+                        <span className="text-muted">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</span>
+                      </div>
+                    ))}
+                  </td>
+                  <td>
+                    <div className="fw-bold">{s.class_name}</div>
+                    <div className="d-flex gap-1 flex-wrap mt-1">
+                      {s.department && <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{s.department}</Badge>}
+                      {allRequests.length > 1 && <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>{allRequests.length} dates</Badge>}
+                    </div>
+                    {s.room_number && (
+                      <div className="small text-muted mt-1">
+                        <i className="bi bi-door-open me-1"></i>{s.room_number}
                       </div>
                     )}
-                    <div className="small text-muted mt-1">
-                      {formatDate(req.starts_at)} - {formatDate(req.ends_at)}
-                    </div>
                   </td>
-                  <td>{req.user?.first_name} {req.user?.last_name}</td>
+                  <td>{faculty?.first_name} {faculty?.last_name}</td>
                   <td>
-                    {req.model_mode === 'nude'
+                    {s.model_mode === 'nude'
                       ? <span className="text-danger fw-bold me-2">Nude</span>
                       : <span className="text-success me-2">Clothed</span>}
                     <small className="text-muted d-block">
-                      {formatSkinTone(req.pref_skin_tone)}, {req.pref_gender} Gender Presentation
+                      {formatSkinTone(s.pref_skin_tone)}, {s.pref_gender} Gender Presentation
                     </small>
-                    {req.notes && (
+                    {s.notes && (
                       <small className="text-muted fst-italic d-block">
-                        <i className="bi bi-journal-text me-1"></i>{req.notes}
+                        <i className="bi bi-journal-text me-1"></i>{s.notes}
                       </small>
                     )}
                   </td>
                   {showAction && (
                     <td>
-                      <Button size="sm" variant="outline-primary" onClick={() => handleShowMatch(req)}>
+                      <Button
+                        size="sm"
+                        variant="outline-primary"
+                        onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}
+                      >
                         Find Match
                       </Button>
                     </td>
                   )}
                 </tr>
-              ))
-            )}
-          </tbody>
-        </Table>
-      </div>
+              );
+            })
+          )}
+        </tbody>
+      </Table>
+    </div>
+  );
 
+  const renderSection = (seriesList, showAction) => (
+    <>
+      {renderDesktopTable(seriesList, showAction)}
       <div className="d-md-none">
-        {rows.length === 0 ? (
-          <p className="text-center text-muted py-3">None.</p>
-        ) : (
-          rows.map(req => renderMobileCard(req, showAction))
-        )}
+        {seriesList.length === 0
+          ? <p className="text-center text-muted py-3">None.</p>
+          : seriesList.map(s => renderSeriesCard(s, showAction))}
       </div>
     </>
   );
 
   return (
     <Container className="py-4">
-
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <h2 className="mb-0">Faculty Requests</h2>
         <InputGroup style={{ maxWidth: '300px', width: '100%' }}>
@@ -274,63 +264,18 @@ function AllRequests() {
 
       <div className="mb-4">
         <h5 className="fw-bold text-warning mb-2">Pending ({pending.length})</h5>
-        {renderTable(pending, true)}
+        {renderSection(pending, true)}
       </div>
 
       <div className="mb-4">
         <h5 className="fw-bold text-success mb-2">Matched ({matched.length})</h5>
-        {renderTable(matched, false)}
+        {renderSection(matched, false)}
       </div>
 
       <div className="mb-4">
         <h5 className="fw-bold text-secondary mb-2">Cancelled ({archived.length})</h5>
-        {renderTable(archived, false)}
+        {renderSection(archived, false)}
       </div>
-
-      <Offcanvas show={showSidebar} onHide={() => setShowSidebar(false)} placement="end">
-        <Offcanvas.Header closeButton>
-          <Offcanvas.Title>Find Model</Offcanvas.Title>
-        </Offcanvas.Header>
-        <Offcanvas.Body>
-          {selectedRequest && (
-            <div className="mb-4 p-3 bg-light rounded">
-              <strong>Match for:</strong> {selectedRequest.class_name}<br />
-              <small>{new Date(selectedRequest.starts_at).toLocaleDateString()} &bull; {formatDate(selectedRequest.starts_at)} - {formatDate(selectedRequest.ends_at)}</small><br />
-              {selectedRequest.room_number && ( // ← add this
-                <small className="text-muted d-block">
-                  <i className="bi bi-door-open me-1"></i>{selectedRequest.room_number}
-                </small>
-              )}
-              <small className="text-muted">Needs: {formatSkinTone(selectedRequest.pref_skin_tone)}, {selectedRequest.pref_gender} Gender Presentation</small>
-              {selectedRequest.notes && (
-                <div className="mt-2 text-muted small fst-italic">📝 {selectedRequest.notes}</div>
-              )}
-            </div>
-          )}
-          <h5 className="text-secondary">Recommended</h5>
-          <ListGroup variant="flush">
-            {recommendedModels.length === 0 ? (
-              <div className="text-danger p-2">No models available for this time slot.</div>
-            ) : (
-              recommendedModels.map(model => (
-                <ListGroup.Item key={model.id} action onClick={() => handleCreateGig(model.id)}>
-                  <div className="d-flex justify-content-between">
-                    <strong>{model.user?.first_name} {model.user?.last_name}</strong>
-                    {model.score > 0 && <Badge bg="info">Top Match</Badge>}
-                  </div>
-                  <div className="small text-muted">
-                    {formatSkinTone(model.user?.skin_tone)} / {model.user?.gender_identity}
-                  </div>
-                  <div className="small text-muted">
-                    Avail: {formatDate(model.starts_at)} - {formatDate(model.ends_at)}
-                  </div>
-                </ListGroup.Item>
-              ))
-            )}
-          </ListGroup>
-        </Offcanvas.Body>
-      </Offcanvas>
-
     </Container>
   );
 }
