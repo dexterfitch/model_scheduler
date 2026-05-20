@@ -23,6 +23,7 @@ class GigsController < ApplicationController
     if gig.save
       gig.art_model_availability&.update(status: 'active')
       gig.faculty_request&.update(status: 'matched')
+      gig.faculty_request&.request_series&.update_status!
       render json: gig, status: :created
     else
       render json: { errors: gig.errors.full_messages }, status: :unprocessable_entity
@@ -41,6 +42,7 @@ class GigsController < ApplicationController
   def destroy
     gig = Gig.find(params[:id])
     gig.faculty_request&.update(status: 'pending')
+    gig.faculty_request&.request_series&.update_status! # ADDED
     gig.destroy
     head :no_content
   end
