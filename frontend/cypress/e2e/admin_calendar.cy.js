@@ -7,11 +7,11 @@ describe("Admin - Calendar", () => {
   beforeEach(() => {
     cy.loginAsAdmin();
     cy.get('.nav-link').contains('Calendar').click();
-    cy.contains("Master Schedule", { timeout: 8000 }).should("be.visible");
+    cy.contains("Full Schedule", { timeout: 8000 }).should("be.visible");
   });
 
   it("shows the calendar page", () => {
-    cy.contains("Master Schedule").should("be.visible");
+    cy.contains("Full Schedule").should("be.visible");
   });
 
   it("shows the calendar", () => {

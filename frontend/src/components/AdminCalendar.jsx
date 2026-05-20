@@ -73,7 +73,7 @@ const handleEventClick = (info) => {
       )}
       <Row>
         <Col md={9} className="order-2 order-md-1 my-4 my-md-0">
-          <h2 className="mb-4">Master Schedule</h2>
+          <h2 className="mb-4">Full Schedule</h2>
           <SharedCalendar 
             events={calendarEvents} 
             onEventClick={handleEventClick}
