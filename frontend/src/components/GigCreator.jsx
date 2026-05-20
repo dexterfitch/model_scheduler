@@ -37,29 +37,34 @@ function GigCreator() {
         const pendingRequests = targetSeries.faculty_requests?.filter(r => r.status === 'pending') || [];
         const isNudeReq = targetSeries.model_mode === "nude";
 
-        // CHANGED: model must be available for ALL pending dates
-        const candidates = availRes.data.filter(avail => {
-          if (avail.status !== 'active') return false;
-          if (isNudeReq && !avail.user.willing_to_model_nude) return false;
+        const availsByUser = {};
+        availRes.data.forEach(avail => {
+          if (avail.status !== 'active') return;
+          const uid = avail.user.id;
+          if (!availsByUser[uid]) availsByUser[uid] = { user: avail.user, avails: [] };
+          availsByUser[uid].avails.push(avail);
+        });
 
+        const candidates = Object.values(availsByUser).filter(({ user, avails }) => {
+          if (isNudeReq && !user.willing_to_model_nude) return false;
           return pendingRequests.every(req => {
             const reqStart = new Date(req.starts_at);
             const reqEnd = new Date(req.ends_at);
-            const availStart = new Date(avail.starts_at);
-            const availEnd = new Date(avail.ends_at);
-            return availStart <= reqStart && availEnd >= reqEnd;
+            return avails.some(avail => {
+              const availStart = new Date(avail.starts_at);
+              const availEnd = new Date(avail.ends_at);
+              return availStart <= reqStart && availEnd >= reqEnd;
+            });
           });
-        });
-
-        const scored = candidates.map(c => {
+        }).map(({ user, avails }) => {
           let score = 0;
-          if (c.user.skin_tone === targetSeries.pref_skin_tone) score++;
-          if (c.user.gender_identity === targetSeries.pref_gender) score++;
-          return { ...c, score };
+          if (user.skin_tone === targetSeries.pref_skin_tone) score++;
+          if (user.gender_identity === targetSeries.pref_gender) score++;
+          return { user, avails, score };
         });
 
-        scored.sort((a, b) => b.score - a.score);
-        setMatches(scored);
+        candidates.sort((a, b) => b.score - a.score);
+        setMatches(candidates);
       }
       setLoading(false);
     }).catch(err => {
@@ -109,22 +114,28 @@ function GigCreator() {
     });
   };
 
-  const handleBook = (availabilityId) => {
+  const handleBook = (model) => {
     if (!confirm("Confirm booking this model for all dates in this series?")) return;
 
     if (isSeries) {
-      // CHANGED: create a gig for each pending request in the series
       const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
 
       Promise.all(
-        pendingRequests.map(req =>
-          api.post("/gigs", {
+        pendingRequests.map(req => {
+          const reqStart = new Date(req.starts_at);
+          const reqEnd = new Date(req.ends_at);
+          const matchingAvail = model.avails.find(avail => {
+            const availStart = new Date(avail.starts_at);
+            const availEnd = new Date(avail.ends_at);
+            return availStart <= reqStart && availEnd >= reqEnd;
+          });
+          return api.post("/gigs", {
             gig: {
               faculty_request_id: req.id,
-              art_model_availability_id: availabilityId
+              art_model_availability_id: matchingAvail.id
             }
-          })
-        )
+          });
+        })
       ).then(() => {
         setBookingSuccess(true);
         setTimeout(() => navigate("/calendar"), 1500);
@@ -136,7 +147,7 @@ function GigCreator() {
       api.post("/gigs", {
         gig: {
           faculty_request_id: requestId,
-          art_model_availability_id: availabilityId
+          art_model_availability_id: model.id
         }
       }).then(() => {
         setBookingSuccess(true);
@@ -160,11 +171,6 @@ function GigCreator() {
     </Container>
   );
 
-  const formatDate = (d) => new Date(d).toLocaleString([], {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
-
   const formatDateOnly = (d) => new Date(d).toLocaleDateString(undefined, {
     weekday: 'short', month: 'short', day: 'numeric'
   });
@@ -173,7 +179,11 @@ function GigCreator() {
     hour: '2-digit', minute: '2-digit'
   });
 
-  // Use series or single request data for display
+  const formatDate = (d) => new Date(d).toLocaleString([], {
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+
   const displayData = isSeries ? series : request;
   const pendingRequests = isSeries
     ? series.faculty_requests?.filter(r => r.status === 'pending') || []
@@ -213,16 +223,14 @@ function GigCreator() {
               ? `${pendingRequests[0]?.user?.first_name} ${pendingRequests[0]?.user?.last_name}`
               : `${request.user.first_name} ${request.user.last_name}`}
           </div>
-
           <div className="mb-2">
-            {pendingRequests.map((req, idx) => (
+            {pendingRequests.map((req) => (
               <div key={req.id} className="small">
                 <i className="bi bi-calendar3 me-1"></i>
                 {formatDateOnly(req.starts_at)} &nbsp; {formatTime(req.starts_at)} - {formatTime(req.ends_at)}
               </div>
             ))}
           </div>
-
           <div>
             {displayData.model_mode === 'nude'
               ? <Badge bg="danger" className="me-2">Nude Required</Badge>
@@ -250,22 +258,24 @@ function GigCreator() {
         ) : (
           matches.map(model => (
             <ListGroup.Item
-              key={model.id}
+              key={isSeries ? model.user.id : model.id}
               className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 p-3"
             >
               <div>
                 <h5 className="mb-1">
-                  {model.user.first_name} {model.user.last_name}
+                  {isSeries ? model.user.first_name : model.user.first_name} {isSeries ? model.user.last_name : model.user.last_name}
                   {model.score > 0 && <Badge bg="warning" text="dark" className="ms-2">★ Match</Badge>}
                 </h5>
                 <div className="text-muted small">
-                  {formatSkinTone(model.user.skin_tone)} / {model.user.gender_identity}
+                  {formatSkinTone(isSeries ? model.user.skin_tone : model.user.skin_tone)} / {isSeries ? model.user.gender_identity : model.user.gender_identity}
                 </div>
-                <div className="text-success small">
-                  Available: {formatDate(model.starts_at)} - {formatDate(model.ends_at)}
-                </div>
+                {!isSeries && (
+                  <div className="text-success small">
+                    Available: {formatDate(model.starts_at)} - {formatDate(model.ends_at)}
+                  </div>
+                )}
               </div>
-              <Button variant="success" onClick={() => handleBook(model.id)}>
+              <Button variant="success" onClick={() => handleBook(model)}>
                 {isSeries ? `Book for All ${pendingRequests.length} Dates` : 'Book Model'}
               </Button>
             </ListGroup.Item>
