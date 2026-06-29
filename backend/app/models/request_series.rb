@@ -43,8 +43,8 @@ class RequestSeries < ApplicationRecord
       gig = request.gig
       next unless gig
 
-      gig.art_model_availability.update!(status: 'active')
       gig.destroy!
+      gig.art_model_availability.update!(status: 'active')
     end
   end
 end

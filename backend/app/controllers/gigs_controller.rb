@@ -45,8 +45,8 @@ class GigsController < ApplicationController
 
     Gig.transaction do
       gig.faculty_request&.update!(status: 'pending')
-      gig.art_model_availability&.update!(status: 'active')
       gig.update!(status: 'cancelled', billable: is_late_cancel)
+      gig.art_model_availability&.update!(status: 'active')
     end
 
     gig.faculty_request&.request_series&.update_status!

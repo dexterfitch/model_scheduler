@@ -62,11 +62,11 @@ class FacultyRequestsController < ApplicationController
 
       Gig.transaction do
         @request.update!(status: 'archived')
-        gig.art_model_availability.update!(status: 'active')
         gig.update!(
           status: 'cancelled',
           billable: is_late_cancel
         )
+        gig.art_model_availability.update!(status: 'active')
       end
 
       @request.request_series&.update_status!
