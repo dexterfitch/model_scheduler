@@ -17,20 +17,41 @@ class ArtModelAvailability < ApplicationRecord
     gigs.find { |g| g.status == 'confirmed' }
   end
 
-  def cancel_with_gig!
+  def cancel_with_gig!(cancel_remaining_series: false)
     gig = active_gig
     return false unless gig
 
     ActiveRecord::Base.transaction do
-      gig.faculty_request.update!(status: :pending)
-      gig.destroy!
-      gigs.reload
-      update!(status: :cancelled)
+      cancel_single_gig!(self, gig)
+
+      if cancel_remaining_series
+        series = gig.faculty_request.request_series
+        if series
+          future_matched_requests = series.faculty_requests
+            .where(status: :matched)
+            .where("starts_at > ?", Time.current)
+            .where.not(id: gig.faculty_request_id)
+
+          future_matched_requests.each do |other_request|
+            other_gig = other_request.gig
+            next unless other_gig
+            other_availability = other_gig.art_model_availability
+            cancel_single_gig!(other_availability, other_gig)
+          end
+        end
+      end
     end
     true
   end
 
   private
+
+  def cancel_single_gig!(availability, gig)
+    gig.faculty_request.update!(status: :pending)
+    gig.destroy!
+    availability.gigs.reload
+    availability.update!(status: :cancelled)
+  end
 
   def prevent_past_deletion
     if starts_at < Time.current

@@ -28,6 +28,27 @@ function ModelDashboard({ user }) {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const events = myAvailabilities.map(a => {
+      const gig = myGigs.find(g =>
+        g.art_model_availability.id === a.id && g.status === 'confirmed'
+      );
+      const label = a.status !== 'active' ? 'Cancelled' : (gig ? 'Confirmed Gig' : 'Free');
+      const color = a.status !== 'active' ? '#6c757d' : (gig ? '#0d6efd' : '#198754');
+
+      return {
+        id: a.id,
+        title: label,
+        start: a.starts_at,
+        end: a.ends_at,
+        backgroundColor: color,
+        display: 'block',
+        extendedProps: { ...a }
+      };
+    });
+    setCalendarEvents(events);
+  }, [myAvailabilities, myGigs]);
+
   const fetchData = () => {
     api.get("/gigs").then((res) => {
       const my_gigs = res.data.sort((a, b) =>
@@ -38,16 +59,6 @@ function ModelDashboard({ user }) {
 
     api.get(`/art_model_availabilities?user_id=${user.id}`).then((res) => {
       setMyAvailabilities(res.data);
-      const events = res.data.map(a => ({
-        id: a.id,
-        title: a.status === 'active' ? 'Free' : 'Cancelled',
-        start: a.starts_at,
-        end: a.ends_at,
-        backgroundColor: a.status === 'active' ? '#198754' : '#6c757d',
-        display: 'block',
-        extendedProps: { ...a }
-      }));
-      setCalendarEvents(events);
     }).catch(err => console.error("Error fetching availabilities:", err));
 
     api.get("/request_series/available_for_model").then((res) => {
@@ -201,11 +212,20 @@ function ModelDashboard({ user }) {
       .catch(() => setModalError("Error deleting. Please try again."));
   };
 
-  const handleCancelGig = () => {
-    if (!editingId || !confirm("Cancel your participation in this gig? The faculty member's request will go back to pending so an admin can find a replacement. You will not be paid for this slot since you are cancelling.")) return;
-    api.post(`/art_model_availabilities/${editingId}/cancel`)
+  const handleCancelGig = (cancelRemainingSeries = false) => {
+    if (!editingId) return;
+
+    const message = cancelRemainingSeries
+      ? "Cancel your participation in this AND all remaining future dates in this series? The faculty member's requests will go back to pending so an admin can find a replacement. You will not be paid for these slots since you are cancelling."
+      : "Cancel your participation in this gig? The faculty member's request will go back to pending so an admin can find a replacement. You will not be paid for this slot since you are cancelling.";
+
+    if (!confirm(message)) return;
+
+    api.post(`/art_model_availabilities/${editingId}/cancel`, {
+      cancel_remaining_series: cancelRemainingSeries
+    })
       .then(() => {
-        setPageSuccess("Gig participation cancelled.");
+        setPageSuccess(cancelRemainingSeries ? "Gig and remaining series dates cancelled." : "Gig participation cancelled.");
         setTimeout(() => setPageSuccess(''), 3000);
         setShowModal(false);
         fetchData();
@@ -401,8 +421,15 @@ function ModelDashboard({ user }) {
                 You're confirmed for <strong>{activeGig.faculty_request.class_name}</strong> from{' '}
                 {times.start} to {times.end}. Your availability can't be edited while a gig is scheduled.
               </Alert>
-              <div className="d-flex justify-content-end">
-                <Button variant="danger" onClick={handleCancelGig}>Cancel Gig</Button>
+              <div className="d-flex justify-content-end gap-2">
+                <Button variant="outline-danger" onClick={() => handleCancelGig(false)}>
+                  Cancel Just This Date
+                </Button>
+                {activeGig.faculty_request.request_series_id && (
+                  <Button variant="danger" onClick={() => handleCancelGig(true)}>
+                    Cancel This &amp; Remaining Series
+                  </Button>
+                )}
               </div>
             </>
           ) : (
