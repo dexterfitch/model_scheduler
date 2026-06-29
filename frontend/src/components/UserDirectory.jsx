@@ -117,7 +117,6 @@ function UserDirectory() {
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
-                  <th>Joined</th>
                 </tr>
               </thead>
               <tbody>
@@ -125,7 +124,6 @@ function UserDirectory() {
                   <tr key={u.id}>
                     <td className="align-middle fw-bold">{u.first_name} {u.last_name}</td>
                     <td className="align-middle">{u.email}</td>
-                    <td className="align-middle">{new Date(u.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -142,10 +140,6 @@ function UserDirectory() {
                     <div className="fw-bold fs-6 mb-1">{u.first_name} {u.last_name}</div>
                     <div className="small text-muted mb-1">
                       <i className="bi bi-envelope me-1"></i>{u.email}
-                    </div>
-                    <div className="small text-muted">
-                      <i className="bi bi-calendar3 me-1"></i>
-                      Joined {new Date(u.created_at).toLocaleDateString()}
                     </div>
                   </div>
                 </div>
