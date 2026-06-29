@@ -4,7 +4,7 @@ class RequestSeries < ApplicationRecord
 
   enum :status, { pending: 0, matched: 1, archived: 2 }
 
-  before_destroy :release_gigs
+  before_destroy :release_gigs, prepend: true
 
   validates :class_name, presence: true
   validates :department, presence: true
