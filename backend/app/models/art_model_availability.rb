@@ -24,6 +24,7 @@ class ArtModelAvailability < ApplicationRecord
     ActiveRecord::Base.transaction do
       gig.faculty_request.update!(status: :pending)
       gig.destroy!
+      gigs.reload
       update!(status: :cancelled)
     end
     true
