@@ -73,7 +73,7 @@ function AdminDashboard() {
 
                           <div className="mb-1 small">
                             <span className="text-muted">Requested by:</span>{' '}
-                            <span className="fw-bold">{firstReq.user?.first_name} {firstReq.user?.last_name}</span>
+                            <span className="fw-bold">{series.user?.first_name} {series.user?.last_name}</span>
                           </div>
 
                           {(series.building || series.room_number) && (

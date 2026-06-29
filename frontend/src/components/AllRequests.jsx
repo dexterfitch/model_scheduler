@@ -75,7 +75,7 @@ function AllRequests() {
     const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
     const allRequests = s.faculty_requests || [];
     const displayRequests = showAction ? pendingRequests : allRequests;
-    const faculty = allRequests[0]?.user;
+    const faculty = s.user;
 
     const matchedCount = allRequests.filter(r => r.status === 'matched').length;
     const pendingCount = allRequests.filter(r => r.status === 'pending').length;
@@ -179,7 +179,7 @@ function AllRequests() {
               const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
               const allRequests = s.faculty_requests || [];
               const displayRequests = showAction ? pendingRequests : allRequests;
-              const faculty = allRequests[0]?.user;
+              const faculty = s.user;
               const matchedCount = allRequests.filter(r => r.status === 'matched').length;
               const pendingCount = allRequests.filter(r => r.status === 'pending').length;
               const archivedCount = allRequests.filter(r => r.status === 'archived').length;
