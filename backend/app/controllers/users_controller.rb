@@ -1,19 +1,16 @@
 class UsersController < ApplicationController
   ALLOWED_ROLES = %w[admin faculty model].freeze
+  SELECTABLE_ROLES = %w[faculty model].freeze
 
   before_action -> { require_role(:admin) }, only: [:index, :promote, :create, :promote_to_superuser]
-
+  before_action :require_self_or_admin, only: [:show, :update]
 
   def index
     render json: User.all.order(:id)
   end
 
   def show
-    user = User.find(params[:id])
-    unless current_user.role_admin? || user.id == current_user.id
-      return render json: { error: "Not authorized" }, status: :forbidden
-    end
-    render json: user
+    render json: @target_user
   end
 
   def create
@@ -27,21 +24,14 @@ class UsersController < ApplicationController
   end
 
   def update
-    user = User.find(params[:id])
-
-    unless current_user.role_admin? || user.id == current_user.id
-      return render json: { error: "Not authorized" }, status: :forbidden
-    end
-
     safe_params = user_params.except(:role)
 
-    if user.update(safe_params)
-      render json: user
+    if @target_user.update(safe_params)
+      render json: @target_user
     else
-      render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: @target_user.errors.full_messages }, status: :unprocessable_entity
     end
   end
-  
 
   def promote
     target_role = params[:role]
@@ -85,7 +75,7 @@ class UsersController < ApplicationController
   def select_role
     target_role = params[:role]
 
-    unless ALLOWED_ROLES.include?(target_role)
+    unless SELECTABLE_ROLES.include?(target_role)
       return render json: { error: "Invalid role" }, status: :unprocessable_entity
     end
 
@@ -109,6 +99,12 @@ class UsersController < ApplicationController
   end
 
   private
+
+  def require_self_or_admin
+    @target_user = User.find(params[:id])
+    return if current_user.role_admin? || @target_user.id == current_user.id
+    render json: { error: "Not authorized" }, status: :forbidden
+  end
 
   def user_params
     params.require(:user).permit(

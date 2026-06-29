@@ -77,9 +77,10 @@ function AllRequests() {
                 {s.department && <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{s.department}</Badge>}
                 {allRequests.length > 1 && <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>{allRequests.length} dates</Badge>}
               </div>
-              {s.room_number && (
+              {(s.building || s.room_number) && (
                 <div className="small text-muted mt-1">
-                  <i className="bi bi-door-open me-1"></i>{s.room_number}
+                  <i className="bi bi-door-open me-1"></i>
+                  {s.building}{s.building && s.room_number && " "}{s.room_number}
                 </div>
               )}
             </div>
@@ -166,9 +167,10 @@ function AllRequests() {
                       {s.department && <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{s.department}</Badge>}
                       {allRequests.length > 1 && <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>{allRequests.length} dates</Badge>}
                     </div>
-                    {s.room_number && (
+                    {(s.building || s.room_number) && (
                       <div className="small text-muted mt-1">
-                        <i className="bi bi-door-open me-1"></i>{s.room_number}
+                        <i className="bi bi-door-open me-1"></i>
+                        {s.building}{s.building && s.room_number && " "}{s.room_number}
                       </div>
                     )}
                   </td>

@@ -41,10 +41,17 @@ class GigsController < ApplicationController
 
   def destroy
     gig = Gig.find(params[:id])
-    gig.faculty_request&.update(status: 'pending')
-    gig.faculty_request&.request_series&.update_status! # ADDED
-    gig.destroy
-    head :no_content
+    is_late_cancel = gig.faculty_request.starts_at.to_date == Date.current
+
+    Gig.transaction do
+      gig.faculty_request&.update!(status: 'pending')
+      gig.art_model_availability&.update!(status: 'active')
+      gig.update!(status: 'cancelled', billable: is_late_cancel)
+    end
+
+    gig.faculty_request&.request_series&.update_status!
+
+    render json: { message: "Gig cancelled. Billable: #{is_late_cancel}" }, status: :ok
   end
 
   private

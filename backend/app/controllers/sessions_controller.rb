@@ -3,6 +3,12 @@ class SessionsController < ApplicationController
 
   def omniauth
     auth = request.env['omniauth.auth']
+
+    unless auth.info.email.to_s.downcase.end_with?('@mica.edu')
+      Rails.logger.warn("Rejected non-MICA login attempt: #{auth.info.email}")
+      return redirect_to "#{ENV['FRONTEND_URL']}?error=Invalid+domain", allow_other_host: true
+    end
+
     user = User.from_omniauth(auth)
 
     if user.save

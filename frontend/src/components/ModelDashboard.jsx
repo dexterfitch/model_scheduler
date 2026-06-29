@@ -16,6 +16,7 @@ function ModelDashboard({ user }) {
   const [times, setTimes] = useState({ start: "09:00", end: "17:00" });
   const [modalError, setModalError] = useState('');
   const [pageSuccess, setPageSuccess] = useState('');
+  const [activeGig, setActiveGig] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -49,18 +50,11 @@ function ModelDashboard({ user }) {
       setCalendarEvents(events);
     }).catch(err => console.error("Error fetching availabilities:", err));
 
-    // CHANGED: fetch series instead of individual faculty requests
-    api.get("/request_series").then((res) => {
-      const eligible = res.data.filter(s => {
-        const hasPending = s.faculty_requests?.some(r => r.status === 'pending');
-        const nudeOk = s.model_mode === 'clothed' || user.willing_to_model_nude;
-        return hasPending && nudeOk;
-      });
-      setPendingSeries(eligible);
+    api.get("/request_series/available_for_model").then((res) => {
+      setPendingSeries(res.data);
     }).catch(err => console.error("Error fetching series:", err));
   };
 
-  // ADDED: check if model has availability covering all pending dates in a series
   const isAvailableForSeries = (series) => {
     const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
     return pendingRequests.every(req => {
@@ -75,11 +69,9 @@ function ModelDashboard({ user }) {
     });
   };
 
-  // ADDED: create availability slots for all pending dates in a series
   const handleMarkAvailable = async (series) => {
     const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
 
-    // Only create slots for dates not already covered
     const missingRequests = pendingRequests.filter(req => {
       const reqStart = new Date(req.starts_at);
       const reqEnd = new Date(req.ends_at);
@@ -104,6 +96,7 @@ function ModelDashboard({ user }) {
           })
         )
       );
+
       setPageSuccess(`Availability added for all ${pendingRequests.length} dates!`);
       setTimeout(() => setPageSuccess(''), 4000);
       fetchData();
@@ -150,6 +143,7 @@ function ModelDashboard({ user }) {
     setSelectedDate(selectInfo.startStr.split('T')[0]);
     setTimes({ start: "09:00", end: "17:00" });
     setModalError('');
+    setActiveGig(null);
     setShowModal(true);
   };
 
@@ -162,6 +156,7 @@ function ModelDashboard({ user }) {
     const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     setTimes({ start: formatTime(startObj), end: formatTime(endObj) });
     setModalError('');
+    setActiveGig(getActiveGigForAvailability(Number(info.event.id)));
     setShowModal(true);
   };
 
@@ -206,6 +201,39 @@ function ModelDashboard({ user }) {
       .catch(() => setModalError("Error deleting. Please try again."));
   };
 
+  const handleCancelGig = () => {
+    if (!editingId || !confirm("Cancel your participation in this gig? The faculty member's request will go back to pending so an admin can find a replacement. You will not be paid for this slot since you are cancelling.")) return;
+    api.post(`/art_model_availabilities/${editingId}/cancel`)
+      .then(() => {
+        setPageSuccess("Gig participation cancelled.");
+        setTimeout(() => setPageSuccess(''), 3000);
+        setShowModal(false);
+        fetchData();
+      })
+      .catch(() => setModalError("Error cancelling. Please try again."));
+  };
+
+  const getActiveGigForAvailability = (availabilityId) => {
+    return myGigs.find(g =>
+      g.art_model_availability.id === availabilityId && g.status === 'confirmed'
+    );
+  };
+
+  const renderGigStatusBadge = (gig) => {
+    if (gig.status === 'confirmed') {
+      return <Badge bg="success" className="mb-2">Confirmed</Badge>;
+    }
+    if (gig.status === 'completed') {
+      return <Badge bg="primary" className="mb-2">Completed</Badge>;
+    }
+    if (gig.status === 'cancelled') {
+      return gig.billable
+        ? <Badge bg="warning" text="dark" className="mb-2">Cancelled (Paid — Late Cancellation)</Badge>
+        : <Badge bg="secondary" className="mb-2">Cancelled</Badge>;
+    }
+    return null;
+  };
+
   const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -215,7 +243,7 @@ function ModelDashboard({ user }) {
       <Card className="mb-4 bg-light border-0 shadow-sm">
         <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
           <div>
-            <h2 className="mb-1">Hello, {user.first_name}</h2>
+            <h2 className="mb-1">Hello, {user.stage_name || user.first_name}</h2>
             <div className="text-muted">{formatSkinTone(user.skin_tone)} • {user.gender_identity} Presentation</div>
           </div>
           <div className="text-end">
@@ -227,19 +255,25 @@ function ModelDashboard({ user }) {
       </Card>
 
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
-        <Tab eventKey="schedule" title={`My Schedule (${myGigs.length})`}>
-          {myGigs.length === 0 ? <Alert variant="info">You have no upcoming gigs.</Alert> : (
+        <Tab eventKey="schedule" title={`My Gigs (${myGigs.length})`}>
+          {myGigs.length === 0 ? <Alert variant="info">You have no gigs yet.</Alert> : (
             <Row>
               {myGigs.map(gig => (
                 <Col md={6} lg={4} key={gig.id} className="mb-3">
-                  <Card className="h-100 shadow-sm border-start border-5 border-success">
+                  <Card className="h-100 shadow-sm border-start border-5 border-primary">
                     <Card.Body>
-                      <Badge bg="success" className="mb-2">Confirmed Gig</Badge>
+                      {renderGigStatusBadge(gig)}
                       <Card.Title>{gig.faculty_request.class_name}</Card.Title>
                       <div className="mb-3">
                         <div className="fw-bold fs-5">{formatDate(gig.faculty_request.starts_at)}</div>
                         <div className="text-muted">{formatTime(gig.faculty_request.starts_at)} - {formatTime(gig.faculty_request.ends_at)}</div>
                       </div>
+                      {(gig.faculty_request.building || gig.faculty_request.room_number) && (
+                        <div className="text-muted small mb-2">
+                          <i className="bi bi-door-open me-1"></i>
+                          {gig.faculty_request.building}{gig.faculty_request.building && gig.faculty_request.room_number && " "}{gig.faculty_request.room_number}
+                        </div>
+                      )}
                       <div className="p-2 bg-light rounded small">
                         <strong>Mode:</strong> {gig.faculty_request.model_mode === 'nude'
                           ? <span className="text-danger fw-bold">NUDE</span>
@@ -319,6 +353,12 @@ function ModelDashboard({ user }) {
                         <div className="fw-bold small">{gig.faculty_request.class_name}</div>
                         <div className="small text-muted">{formatDate(gig.faculty_request.starts_at)}</div>
                         <div className="small text-muted">{formatTime(gig.faculty_request.starts_at)} - {formatTime(gig.faculty_request.ends_at)}</div>
+                        {(gig.faculty_request.building || gig.faculty_request.room_number) && (
+                          <div className="small text-muted">
+                            <i className="bi bi-door-open me-1"></i>
+                            {gig.faculty_request.building}{gig.faculty_request.building && gig.faculty_request.room_number && " "}{gig.faculty_request.room_number}
+                          </div>
+                        )}
                       </ListGroup.Item>
                     ))}
                   </ListGroup>
@@ -344,7 +384,7 @@ function ModelDashboard({ user }) {
 
       <Modal show={showModal} onHide={() => setShowModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>{editingId ? "Edit Availability" : "Set Availability"}</Modal.Title>
+          <Modal.Title>{activeGig ? "Gig Scheduled" : (editingId ? "Edit Availability" : "Set Availability")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {modalError && (
@@ -353,30 +393,44 @@ function ModelDashboard({ user }) {
             </Alert>
           )}
           <p>Date: <strong>{new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</strong></p>
-          <Form onSubmit={handleSubmitAvailability}>
-            <Row>
-              <Col>
-                <Form.Label>Start Time</Form.Label>
-                <Form.Control type="time" name="start" list="model-time-options" value={times.start} onChange={handleTimeChange} onBlur={handleBlur} min="08:00" max="22:00" required />
-              </Col>
-              <Col>
-                <Form.Label>End Time</Form.Label>
-                <Form.Control type="time" name="end" list="model-time-options" value={times.end} onChange={handleTimeChange} onBlur={handleBlur} min="08:00" max="22:00" required />
-              </Col>
-            </Row>
-            <datalist id="model-time-options">{generateTimeOptions()}</datalist>
-            <div className="mt-4 d-flex justify-content-between">
-              <div>
-                {editingId && (
-                  <Button variant="danger" onClick={handleDelete}>Delete Slot</Button>
-                )}
+
+          {activeGig ? (
+            <>
+              <Alert variant="info">
+                <i className="bi bi-info-circle-fill me-2"></i>
+                You're confirmed for <strong>{activeGig.faculty_request.class_name}</strong> from{' '}
+                {times.start} to {times.end}. Your availability can't be edited while a gig is scheduled.
+              </Alert>
+              <div className="d-flex justify-content-end">
+                <Button variant="danger" onClick={handleCancelGig}>Cancel Gig</Button>
               </div>
-              <div>
-                <Button variant="secondary" className="me-2" onClick={() => setShowModal(false)}>Cancel</Button>
-                <Button variant="success" type="submit">{editingId ? "Save Changes" : "Add Availability"}</Button>
+            </>
+          ) : (
+            <Form onSubmit={handleSubmitAvailability}>
+              <Row>
+                <Col>
+                  <Form.Label>Start Time</Form.Label>
+                  <Form.Control type="time" name="start" list="model-time-options" value={times.start} onChange={handleTimeChange} onBlur={handleBlur} min="08:00" max="22:00" required />
+                </Col>
+                <Col>
+                  <Form.Label>End Time</Form.Label>
+                  <Form.Control type="time" name="end" list="model-time-options" value={times.end} onChange={handleTimeChange} onBlur={handleBlur} min="08:00" max="22:00" required />
+                </Col>
+              </Row>
+              <datalist id="model-time-options">{generateTimeOptions()}</datalist>
+              <div className="mt-4 d-flex justify-content-between">
+                <div>
+                  {editingId && (
+                    <Button variant="danger" onClick={handleDelete}>Delete Slot</Button>
+                  )}
+                </div>
+                <div>
+                  <Button variant="secondary" className="me-2" onClick={() => setShowModal(false)}>Cancel</Button>
+                  <Button variant="success" type="submit">{editingId ? "Save Changes" : "Add Availability"}</Button>
+                </div>
               </div>
-            </div>
-          </Form>
+            </Form>
+          )}
         </Modal.Body>
       </Modal>
     </Container>

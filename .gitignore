@@ -40,6 +40,7 @@ pgdata/
 userstories.md
 brakeman_report.md
 urls.txt
+/rawimages
 
 # Secrets files
 oauth_secrets.json
@@ -130,3 +131,4 @@ docker-logs/
 # Local SSL certs
 *.pem
 certs/
+files.txt

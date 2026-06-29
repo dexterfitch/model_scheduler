@@ -6,6 +6,7 @@ class Gig < ApplicationRecord
 
   validate :request_must_fit_availability
   validate :no_overlap_for_model
+  validate :model_must_be_nudity_compatible
 
   def as_json(options = {})
     super(options.merge(include: {
@@ -41,6 +42,14 @@ class Gig < ApplicationRecord
 
     if overlapping_gigs.exists?
       errors.add(:base, "This model is already booked for another class during this time")
+    end
+  end
+
+  def model_must_be_nudity_compatible
+    return unless faculty_request && art_model_availability&.user
+
+    if faculty_request.model_mode == 'nude' && !art_model_availability.user.willing_to_model_nude
+      errors.add(:base, "This model is not willing to model nude, and the class requires a nude session")
     end
   end
 end

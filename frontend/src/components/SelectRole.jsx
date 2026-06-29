@@ -9,7 +9,7 @@ const SKIN_TONE_OPTIONS = [
   { label: 'Dark', color: '#593C2B' }
 ];
 
-const SelectRole = ({ onLogin }) => {
+const SelectRole = ({ onLogin, userId: propUserId }) => {
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -25,7 +25,7 @@ const SelectRole = ({ onLogin }) => {
     willing_to_model_nude: false,
   });
 
-  const userId = location.state?.userId;
+  const userId = propUserId || location.state?.userId;
 
   useEffect(() => {
     if (!userId) navigate('/login');
@@ -171,8 +171,8 @@ const SelectRole = ({ onLogin }) => {
                     <option value="">Select...</option>
                     <option value="Woman">Woman</option>
                     <option value="Man">Man</option>
-                    <option value="Non-Binary">Non-Binary</option>
-                    <option value="Transgender">Transgender</option>
+                    <option value="Non-binary">Non-binary</option>
+                    <option value="Agender">Agender</option>
                     <option value="Prefer not to say">Prefer not to say</option>
                   </Form.Select>
                 </Col>

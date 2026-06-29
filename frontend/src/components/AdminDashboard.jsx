@@ -63,7 +63,12 @@ function AdminDashboard() {
                           <h5 className="mb-1">{series.class_name}</h5>
                           <div className="mb-1 text-muted small">
                             {firstReq.user?.first_name} {firstReq.user?.last_name}
-                            {series.room_number && <span> &nbsp;|&nbsp; <i className="bi bi-door-open me-1"></i>{series.room_number}</span>}
+                            {(series.building || series.room_number) && (
+                              <span>
+                                &nbsp;|&nbsp;<i className="bi bi-door-open me-1"></i>
+                                {series.building}{series.building && series.room_number && " "}{series.room_number}
+                              </span>
+                            )}
                           </div>
 
                           <div className="mb-2">

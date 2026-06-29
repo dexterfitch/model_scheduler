@@ -8,6 +8,8 @@ const DEPARTMENTS = [
   "Painting", "Drawing", "Illustration", "FYE", "Sculpture", "Open Studies"
 ];
 
+const BUILDINGS = ["Main", "Fox", "Lazarus", "Station"];
+
 const emptyDate = () => ({ date: "", start_time: "", end_time: "" });
 
 function FacultyDashboard({ user }) {
@@ -16,10 +18,19 @@ function FacultyDashboard({ user }) {
   const [loading, setLoading] = useState(true);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    class_name: "", department: "", building: "", room_number: "",
+    model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", notes: "",
+    starts_at: "", starts_time: "", ends_time: ""
+  });
+  const [editError, setEditError] = useState('');
 
   const [formData, setFormData] = useState({
     class_name: "",
     department: "",
+    building: "",
     model_mode: "clothed",
     pref_skin_tone: "Any",
     pref_gender: "Any",
@@ -27,14 +38,13 @@ function FacultyDashboard({ user }) {
     room_number: ""
   });
 
-  // CHANGED: dates is now an array of {date, start_time, end_time}
   const [dates, setDates] = useState([emptyDate()]);
 
   useEffect(() => {
-    fetchMySeries();
+    fetchSeries();
   }, [user.id]);
 
-  const fetchMySeries = () => {
+  const fetchSeries = () => {
     api.get(`/request_series`)
       .then((res) => {
         const sorted = res.data.sort((a, b) => {
@@ -80,7 +90,6 @@ function FacultyDashboard({ user }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // ADDED: handlers for the dates array
   const handleDateChange = (index, field, value) => {
     setDates(prev => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
   };
@@ -107,7 +116,6 @@ function FacultyDashboard({ user }) {
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 4);
 
-    // Validate all dates
     for (let i = 0; i < dates.length; i++) {
       const d = dates[i];
       const inputDate = new Date(d.date + "T00:00:00");
@@ -144,6 +152,7 @@ function FacultyDashboard({ user }) {
       request_series: {
         class_name: formData.class_name,
         department: formData.department,
+        building: formData.building,
         model_mode: formData.model_mode,
         pref_skin_tone: formData.pref_skin_tone,
         pref_gender: formData.pref_gender,
@@ -162,9 +171,9 @@ function FacultyDashboard({ user }) {
         setSubmitSuccess('Request submitted successfully!');
         setTimeout(() => setSubmitSuccess(''), 3000);
         setShowModal(false);
-        fetchMySeries();
+        fetchSeries();
         setFormData({
-          class_name: "", department: "", model_mode: "clothed",
+          class_name: "", department: "", building: "", model_mode: "clothed",
           pref_skin_tone: "Any", pref_gender: "Any", notes: "", room_number: ""
         });
         setDates([emptyDate()]);
@@ -175,15 +184,106 @@ function FacultyDashboard({ user }) {
       });
   };
 
+  const handleCancelDate = (req) => {
+    if (!confirm("Cancel this date?")) return;
+
+    api.delete(`/faculty_requests/${req.id}`)
+      .then(() => {
+        setSubmitSuccess("Date cancelled.");
+        setTimeout(() => setSubmitSuccess(''), 3000);
+        fetchSeries();
+      })
+      .catch((err) => {
+        console.error(err);
+        setSubmitSuccess('');
+      });
+  };
+
   const handleCancelSeries = (seriesId) => {
     if (!confirm("Cancel this entire request? All dates will be cancelled.")) return;
     api.delete(`/request_series/${seriesId}`)
       .then(() => {
         setSubmitSuccess("Request cancelled.");
         setTimeout(() => setSubmitSuccess(''), 3000);
-        fetchMySeries();
+        fetchSeries();
       })
       .catch(err => console.error(err));
+  };
+
+  const openEditModal = (req) => {
+    const start = new Date(req.starts_at);
+    const end = new Date(req.ends_at);
+    const pad = (n) => n.toString().padStart(2, '0');
+
+    setEditingRequest(req);
+    setEditFormData({
+      class_name: req.class_name,
+      department: req.department,
+      building: req.building,
+      room_number: req.room_number || "",
+      model_mode: req.model_mode,
+      pref_skin_tone: req.pref_skin_tone,
+      pref_gender: req.pref_gender,
+      notes: req.notes || "",
+      starts_at: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
+      starts_time: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
+      ends_time: `${pad(end.getHours())}:${pad(end.getMinutes())}`
+    });
+    setEditError('');
+    setShowEditModal(true);
+  };
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+
+    const startDateTime = new Date(`${editFormData.starts_at}T${editFormData.starts_time}`);
+    const endDateTime = new Date(`${editFormData.starts_at}T${editFormData.ends_time}`);
+
+    if (endDateTime <= startDateTime) {
+      setEditError("End time must be after start time.");
+      return;
+    }
+
+    const startHour = parseInt(editFormData.starts_time.split(':')[0]);
+    const endHour = parseInt(editFormData.ends_time.split(':')[0]);
+    if (startHour < 8 || startHour >= 22) {
+      setEditError("Classes must start between 8:00 AM and 10:00 PM.");
+      return;
+    }
+    if (endHour > 22 || (endHour === 22 && editFormData.ends_time.split(':')[1] !== "00")) {
+      setEditError("Classes must end by 10:00 PM.");
+      return;
+    }
+
+    api.patch(`/faculty_requests/${editingRequest.id}`, {
+      faculty_request: {
+        class_name: editFormData.class_name,
+        department: editFormData.department,
+        building: editFormData.building,
+        room_number: editFormData.room_number,
+        model_mode: editFormData.model_mode,
+        pref_skin_tone: editFormData.pref_skin_tone,
+        pref_gender: editFormData.pref_gender,
+        notes: editFormData.notes,
+        starts_at: startDateTime,
+        ends_at: endDateTime
+      }
+    })
+      .then(() => {
+        setSubmitSuccess('Request updated successfully!');
+        setTimeout(() => setSubmitSuccess(''), 3000);
+        setShowEditModal(false);
+        fetchSeries();
+      })
+      .catch((err) => {
+        console.error(err);
+        setEditError(err.response?.data?.error || "Error updating request. Please try again.");
+      });
   };
 
   const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
@@ -242,13 +342,34 @@ function FacultyDashboard({ user }) {
                   <div className="mb-3">
                     {requests.map((req, idx) => (
                       <div key={req.id} className={idx > 0 ? "mt-1 pt-1 border-top" : ""}>
-                        <div className="fw-bold">{formatDate(req.starts_at)}</div>
-                        <div className="text-muted small">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <div className="fw-bold">{formatDate(req.starts_at)}</div>
+                            <div className="text-muted small">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
+                            {req.status === 'matched' && (
+                              <Badge bg="success" className="mt-1">Model Confirmed</Badge>
+                            )}
+                          </div>
+                          <div className="d-flex gap-1">
+                            {req.status === 'pending' && (
+                              <Button variant="outline-secondary" size="sm" onClick={() => openEditModal(req)}>
+                                <i className="bi bi-pencil"></i> Edit
+                              </Button>
+                            )}
+                            {req.status !== 'archived' && (
+                              <Button variant="outline-danger" size="sm" onClick={() => handleCancelDate(req)}>
+                                <i className="bi bi-x-lg"></i> Cancel
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
-                    {s.room_number && (
+
+                    {(s.building || s.room_number) && (
                       <div className="text-muted small mt-1">
-                        <i className="bi bi-door-open me-1"></i>{s.room_number}
+                        <i className="bi bi-door-open me-1"></i>
+                        {s.building}{s.building && s.room_number && " "}{s.room_number}
                       </div>
                     )}
                   </div>
@@ -300,20 +421,31 @@ function FacultyDashboard({ user }) {
                 <Form.Label>Class Name</Form.Label>
                 <Form.Control required name="class_name" value={formData.class_name} onChange={handleInputChange} placeholder="e.g. Figure Drawing 101" />
               </Col>
-              <Col md={3} className="mb-3">
+              <Col md={6} className="mb-3">
                 <Form.Label>Department</Form.Label>
                 <Form.Select required name="department" value={formData.department} onChange={handleInputChange}>
                   <option value="">-- Select --</option>
                   {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
                 </Form.Select>
               </Col>
-              <Col md={3} className="mb-3">
+            </Row>
+
+            <Row>
+              <Col md={4} className="mb-3">
+                <Form.Label>Building</Form.Label>
+                <Form.Select required name="building" value={formData.building} onChange={handleInputChange}>
+                  <option value="">-- Select --</option>
+                  {BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
+                </Form.Select>
+              </Col>
+              <Col md={4} className="mb-3">
                 <Form.Label>Room Number</Form.Label>
-                <Form.Control name="room_number" value={formData.room_number} onChange={handleInputChange} placeholder="e.g. Fox 413" />
+                <Form.Control name="room_number" value={formData.room_number} onChange={handleInputChange} placeholder="e.g. 413" />
               </Col>
             </Row>
 
             <hr />
+
             <div className="d-flex justify-content-between align-items-center mb-2">
               <h5 className="mb-0">Dates & Times</h5>
               <Button variant="outline-primary" size="sm" type="button" onClick={addDate}>
@@ -395,9 +527,10 @@ function FacultyDashboard({ user }) {
                 <Form.Label>Gender Presentation</Form.Label>
                 <Form.Select name="pref_gender" value={formData.pref_gender} onChange={handleInputChange}>
                   <option value="Any">Any</option>
-                  <option value="Female">Female</option>
-                  <option value="Male">Male</option>
-                  <option value="Non-Binary">Non-Binary</option>
+                  <option value="Woman">Woman</option>
+                  <option value="Man">Man</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Agender">Agender</option>
                 </Form.Select>
               </Col>
             </Row>
@@ -417,6 +550,104 @@ function FacultyDashboard({ user }) {
             <div className="d-flex justify-content-end gap-2 mt-3">
               <Button variant="secondary" onClick={() => setShowModal(false)}>Close</Button>
               <Button variant="primary" type="submit">Submit Request</Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Request</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {editError && (
+            <Alert variant="danger" dismissible onClose={() => setEditError('')}>
+              {editError}
+            </Alert>
+          )}
+          <Form onSubmit={handleEditSubmit}>
+            <Row>
+              <Col md={6} className="mb-3">
+                <Form.Label>Class Name</Form.Label>
+                <Form.Control required name="class_name" value={editFormData.class_name} onChange={handleEditInputChange} />
+              </Col>
+              <Col md={6} className="mb-3">
+                <Form.Label>Department</Form.Label>
+                <Form.Select required name="department" value={editFormData.department} onChange={handleEditInputChange}>
+                  <option value="">-- Select --</option>
+                  {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
+                </Form.Select>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={4} className="mb-3">
+                <Form.Label>Building</Form.Label>
+                <Form.Select required name="building" value={editFormData.building} onChange={handleEditInputChange}>
+                  <option value="">-- Select --</option>
+                  {BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
+                </Form.Select>
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label>Room Number</Form.Label>
+                <Form.Control name="room_number" value={editFormData.room_number} onChange={handleEditInputChange} placeholder="e.g. 413" />
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={4} className="mb-3">
+                <Form.Label>Date</Form.Label>
+                <Form.Control required type="date" name="starts_at" value={editFormData.starts_at} onChange={handleEditInputChange} />
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label>Start Time</Form.Label>
+                <Form.Control required type="time" name="starts_time" value={editFormData.starts_time} onChange={handleEditInputChange} min="08:00" max="22:00" />
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label>End Time</Form.Label>
+                <Form.Control required type="time" name="ends_time" value={editFormData.ends_time} onChange={handleEditInputChange} min="08:00" max="22:00" />
+              </Col>
+            </Row>
+
+            <hr />
+            <h5>Model Preferences</h5>
+            <Row>
+              <Col md={4} className="mb-3">
+                <Form.Label>Nudity</Form.Label>
+                <Form.Select name="model_mode" value={editFormData.model_mode} onChange={handleEditInputChange}>
+                  <option value="clothed">Clothed</option>
+                  <option value="nude">Nude</option>
+                </Form.Select>
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label>Skin Tone</Form.Label>
+                <Form.Select name="pref_skin_tone" value={editFormData.pref_skin_tone} onChange={handleEditInputChange}>
+                  <option value="Any">Any</option>
+                  <option value="Light">Light</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Dark">Dark</option>
+                </Form.Select>
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label>Gender Presentation</Form.Label>
+                <Form.Select name="pref_gender" value={editFormData.pref_gender} onChange={handleEditInputChange}>
+                  <option value="Any">Any</option>
+                  <option value="Woman">Woman</option>
+                  <option value="Man">Man</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Agender">Agender</option>
+                </Form.Select>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Notes for Admin</Form.Label>
+              <Form.Control as="textarea" rows={3} name="notes" value={editFormData.notes} onChange={handleEditInputChange} />
+            </Form.Group>
+
+            <div className="d-flex justify-content-end gap-2 mt-3">
+              <Button variant="secondary" onClick={() => setShowEditModal(false)}>Close</Button>
+              <Button variant="primary" type="submit">Save Changes</Button>
             </div>
           </Form>
         </Modal.Body>

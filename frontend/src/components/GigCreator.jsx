@@ -28,14 +28,26 @@ function GigCreator() {
   const loadSeriesData = () => {
     Promise.all([
       api.get("/request_series"),
-      api.get("/art_model_availabilities")
-    ]).then(([seriesRes, availRes]) => {
+      api.get("/art_model_availabilities"),
+      api.get("/gigs")
+    ]).then(([seriesRes, availRes, gigsRes]) => {
       const targetSeries = seriesRes.data.find(s => s.id === parseInt(requestId));
       setSeries(targetSeries);
 
       if (targetSeries) {
         const pendingRequests = targetSeries.faculty_requests?.filter(r => r.status === 'pending') || [];
         const isNudeReq = targetSeries.model_mode === "nude";
+
+        const confirmedGigs = gigsRes.data.filter(g => g.status === 'confirmed');
+        const pendingRequestIds = new Set(pendingRequests.map(r => r.id));
+
+        const hasConflict = (userId, reqStart, reqEnd) => confirmedGigs.some(g => {
+          if (g.art_model_availability.user.id !== userId) return false;
+          if (pendingRequestIds.has(g.faculty_request.id)) return false;
+          const gigStart = new Date(g.faculty_request.starts_at);
+          const gigEnd = new Date(g.faculty_request.ends_at);
+          return gigStart < reqEnd && gigEnd > reqStart;
+        });
 
         const availsByUser = {};
         availRes.data.forEach(avail => {
@@ -50,11 +62,12 @@ function GigCreator() {
           return pendingRequests.every(req => {
             const reqStart = new Date(req.starts_at);
             const reqEnd = new Date(req.ends_at);
-            return avails.some(avail => {
+            const timeMatch = avails.some(avail => {
               const availStart = new Date(avail.starts_at);
               const availEnd = new Date(avail.ends_at);
               return availStart <= reqStart && availEnd >= reqEnd;
             });
+            return timeMatch && !hasConflict(user.id, reqStart, reqEnd);
           });
         }).map(({ user, avails }) => {
           let score = 0;
@@ -77,8 +90,9 @@ function GigCreator() {
   const loadSingleRequestData = () => {
     Promise.all([
       api.get("/faculty_requests"),
-      api.get("/art_model_availabilities")
-    ]).then(([reqRes, availRes]) => {
+      api.get("/art_model_availabilities"),
+      api.get("/gigs")
+    ]).then(([reqRes, availRes, gigsRes]) => {
       const targetReq = reqRes.data.find(r => r.id === parseInt(requestId));
       setRequest(targetReq);
 
@@ -87,13 +101,24 @@ function GigCreator() {
         const reqEnd = new Date(targetReq.ends_at);
         const isNudeReq = targetReq.model_mode === "nude";
 
+        const confirmedGigs = gigsRes.data.filter(g => g.status === 'confirmed');
+
+        const hasConflict = (userId) => confirmedGigs.some(g => {
+          if (g.art_model_availability.user.id !== userId) return false;
+          if (g.faculty_request.id === targetReq.id) return false;
+          const gigStart = new Date(g.faculty_request.starts_at);
+          const gigEnd = new Date(g.faculty_request.ends_at);
+          return gigStart < reqEnd && gigEnd > reqStart;
+        });
+
         const candidates = availRes.data.filter(avail => {
           const availStart = new Date(avail.starts_at);
           const availEnd = new Date(avail.ends_at);
           const timeMatch = availStart <= reqStart && availEnd >= reqEnd;
           const nudityMatch = !isNudeReq || avail.user.willing_to_model_nude;
           const statusMatch = avail.status === 'active';
-          return timeMatch && nudityMatch && statusMatch;
+          const noConflict = !hasConflict(avail.user.id);
+          return timeMatch && nudityMatch && statusMatch && noConflict;
         });
 
         const scored = candidates.map(c => {
@@ -215,6 +240,7 @@ function GigCreator() {
             <Badge bg="light" text="dark" className="ms-2">{pendingRequests.length} dates</Badge>
           )}
         </Card.Header>
+        
         <Card.Body>
           <h3>{displayData.class_name}</h3>
           <div className="text-muted mb-2">
@@ -231,6 +257,12 @@ function GigCreator() {
               </div>
             ))}
           </div>
+          {(displayData.building || displayData.room_number) && (
+            <div className="text-muted small mb-2">
+              <i className="bi bi-door-open me-1"></i>
+              {displayData.building}{displayData.building && displayData.room_number && " "}{displayData.room_number}
+            </div>
+          )}
           <div>
             {displayData.model_mode === 'nude'
               ? <Badge bg="danger" className="me-2">Nude Required</Badge>

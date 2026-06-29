@@ -3,7 +3,11 @@ class ApplicationController < ActionController::API
 
   before_action :require_login
 
+  rescue_from NotAuthorizedError, with: :render_forbidden
+
   private
+
+  class NotAuthorizedError < StandardError; end
 
   def require_login
     unless current_user
@@ -18,7 +22,11 @@ class ApplicationController < ActionController::API
   def require_role(*roles)
     return if current_user&.superuser?
     unless roles.map(&:to_s).include?(current_user&.role)
-      render json: { error: "Not authorized" }, status: :forbidden and return
+      raise NotAuthorizedError
     end
+  end
+
+  def render_forbidden
+    render json: { error: "Not authorized" }, status: :forbidden
   end
 end

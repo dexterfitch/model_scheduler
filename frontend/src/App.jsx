@@ -42,6 +42,8 @@ function LoginSuccess({ onLogin }) {
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [needsRoleSelection, setNeedsRoleSelection] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const handleLogout = async () => {
     try {
@@ -50,6 +52,7 @@ function App() {
       console.error("Logout error", err);
     } finally {
       setCurrentUser(null);
+      setNeedsRoleSelection(false);
     }
   };
 
@@ -57,12 +60,15 @@ function App() {
     if (userData) setCurrentUser(userData);
   };
 
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     api.get('/me')
       .then(res => {
-        setCurrentUser(res.data);
+        if (!res.data.role) {
+          setNeedsRoleSelection(true);
+          setCurrentUser(res.data);
+        } else {
+          setCurrentUser(res.data);
+        }
         setLoading(false);
       })
       .catch(() => {
@@ -84,6 +90,16 @@ function App() {
           <Route path="/login_success/:id" element={<LoginSuccess onLogin={setCurrentUser} />} />
           <Route path="/select-role" element={<SelectRole onLogin={setCurrentUser} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      ) : needsRoleSelection ? (
+        <Routes>
+          <Route path="/select-role" element={
+            <SelectRole 
+              userId={currentUser.id}
+              onLogin={(user) => { setNeedsRoleSelection(false); setCurrentUser(user); }} 
+            />
+          } />
+          <Route path="*" element={<Navigate to="/select-role" replace />} />
         </Routes>
       ) : (
         <Routes>

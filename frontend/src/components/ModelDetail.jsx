@@ -17,6 +17,8 @@ function ModelDetail() {
   const [selectedDate, setSelectedDate] = useState('');
   const [times, setTimes] = useState({ start: '09:00', end: '17:00' });
   const [modalError, setModalError] = useState('');
+  const [gigs, setGigs] = useState([]);
+  const [activeGig, setActiveGig] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -41,6 +43,13 @@ function ModelDetail() {
         setAvailabilities(events);
       })
       .catch(() => setError("Failed to load availability. Please try again."));
+
+    api.get(`/gigs`)
+      .then(res => {
+        const modelGigs = res.data.filter(g => g.art_model_availability.user.id === parseInt(id));
+        setGigs(modelGigs);
+      })
+      .catch(() => setError("Failed to load gig data. Please try again."));
   };
 
   const handleDateSelect = (selectInfo) => {
@@ -48,6 +57,7 @@ function ModelDetail() {
     setSelectedDate(selectInfo.startStr.split('T')[0]);
     setTimes({ start: '09:00', end: '17:00' });
     setModalError('');
+    setActiveGig(null);
     setShowModal(true);
   };
 
@@ -61,6 +71,7 @@ function ModelDetail() {
       end: formatTime(props.ends_at)
     });
     setModalError('');
+    setActiveGig(getActiveGigForAvailability(Number(info.event.id)));
     setShowModal(true);
   };
 
@@ -105,6 +116,24 @@ function ModelDetail() {
         fetchData();
       })
       .catch(() => setModalError("Error deleting. Please try again."));
+  };
+
+  const handleCancelGig = () => {
+    if (!editingId || !confirm("Cancel this model's participation in this gig? The faculty request will go back to pending.")) return;
+    api.post(`/art_model_availabilities/${editingId}/cancel`)
+      .then(() => {
+        setPageSuccess("Gig cancelled.");
+        setTimeout(() => setPageSuccess(''), 3000);
+        setShowModal(false);
+        fetchData();
+      })
+      .catch(() => setModalError("Error cancelling. Please try again."));
+  };
+
+  const getActiveGigForAvailability = (availabilityId) => {
+    return gigs.find(g =>
+      g.art_model_availability.id === availabilityId && g.status === 'confirmed'
+    );
   };
 
   if (!user && !error) return (
@@ -168,7 +197,7 @@ function ModelDetail() {
 
       <Modal show={showModal} onHide={() => setShowModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>{editingId ? "Edit Availability" : "Add Availability"}</Modal.Title>
+          <Modal.Title>{activeGig ? "Gig Scheduled" : (editingId ? "Edit Availability" : "Add Availability")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {modalError && (
@@ -177,29 +206,43 @@ function ModelDetail() {
             </Alert>
           )}
           <p>Date: <strong>{selectedDate && new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</strong></p>
-          <Form onSubmit={handleSubmit}>
-            <Row>
-              <Col>
-                <Form.Label>Start Time</Form.Label>
-                <Form.Control type="time" name="start" value={times.start} onChange={handleTimeChange} min="08:00" max="22:00" required />
-              </Col>
-              <Col>
-                <Form.Label>End Time</Form.Label>
-                <Form.Control type="time" name="end" value={times.end} onChange={handleTimeChange} min="08:00" max="22:00" required />
-              </Col>
-            </Row>
-            <div className="mt-4 d-flex justify-content-between">
-              <div>
-                {editingId && (
-                  <Button variant="danger" onClick={handleDelete}>Delete Slot</Button>
-                )}
+
+          {activeGig ? (
+            <>
+              <Alert variant="info">
+                <i className="bi bi-info-circle-fill me-2"></i>
+                This model is confirmed for <strong>{activeGig.faculty_request.class_name}</strong> from{' '}
+                {times.start} to {times.end}. Availability can't be edited while a gig is scheduled.
+              </Alert>
+              <div className="d-flex justify-content-end">
+                <Button variant="danger" onClick={handleCancelGig}>Cancel Gig</Button>
               </div>
-              <div>
-                <Button variant="secondary" className="me-2" onClick={() => setShowModal(false)}>Cancel</Button>
-                <Button variant="success" type="submit">{editingId ? "Save Changes" : "Add Availability"}</Button>
+            </>
+          ) : (
+            <Form onSubmit={handleSubmit}>
+              <Row>
+                <Col>
+                  <Form.Label>Start Time</Form.Label>
+                  <Form.Control type="time" name="start" value={times.start} onChange={handleTimeChange} min="08:00" max="22:00" required />
+                </Col>
+                <Col>
+                  <Form.Label>End Time</Form.Label>
+                  <Form.Control type="time" name="end" value={times.end} onChange={handleTimeChange} min="08:00" max="22:00" required />
+                </Col>
+              </Row>
+              <div className="mt-4 d-flex justify-content-between">
+                <div>
+                  {editingId && (
+                    <Button variant="danger" onClick={handleDelete}>Delete Slot</Button>
+                  )}
+                </div>
+                <div>
+                  <Button variant="secondary" className="me-2" onClick={() => setShowModal(false)}>Cancel</Button>
+                  <Button variant="success" type="submit">{editingId ? "Save Changes" : "Add Availability"}</Button>
+                </div>
               </div>
-            </div>
-          </Form>
+            </Form>
+          )}
         </Modal.Body>
       </Modal>
     </Container>

@@ -54,13 +54,20 @@ function AdminCalendar() {
     }
   };
 
-const handleEventClick = (info) => {
+  const handleEventClick = (info) => {
     const props = info.event.extendedProps;
     
     if (props.type === 'request') {
       navigate(`/gigs/new/${props.requestId}`);
     } else {
-      alert(`Gig: ${props.faculty_request.class_name}\nModel: ${props.art_model_availability.user.first_name}`);
+      const location = [props.faculty_request.building, props.faculty_request.room_number]
+        .filter(Boolean)
+        .join(' ');
+      alert(
+        `Gig: ${props.faculty_request.class_name}\n` +
+        `Model: ${props.art_model_availability.user.first_name}` +
+        (location ? `\nLocation: ${location}` : '')
+      );
     }
   };
 

@@ -1,5 +1,6 @@
 class RequestSeriesController < ApplicationController
-  before_action -> { require_role(:admin, :faculty) }
+  before_action -> { require_role(:admin, :faculty) }, except: [:available_for_model]
+  before_action -> { require_role(:admin, :model) }, only: [:available_for_model]
 
   def index
     @series = if current_user.role_admin?
@@ -12,16 +13,28 @@ class RequestSeriesController < ApplicationController
       user: {},
       faculty_requests: {
         include: {
-          gig: {
-            include: {
-              art_model_availability: {
-                include: :user
-              }
-            }
+          gig: current_user.role_admin? ? {
+            include: { art_model_availability: { include: :user } }
+          } : {
+            only: [:id, :status]
           }
         }
       }
     }
+  end
+
+  def available_for_model
+    series = RequestSeries.visible_to_model(current_user)
+      .includes(faculty_requests: {})
+
+    render json: series.as_json(
+      only: [:id, :class_name, :department, :model_mode, :pref_skin_tone, :pref_gender, :room_number, :status],
+      include: {
+        faculty_requests: {
+          only: [:id, :starts_at, :ends_at, :status]
+        }
+      }
+    )
   end
 
   def create
@@ -47,6 +60,7 @@ class RequestSeriesController < ApplicationController
           user: @series.user,
           class_name: @series.class_name,
           department: @series.department,
+          building: @series.building,
           model_mode: @series.model_mode,
           pref_skin_tone: @series.pref_skin_tone,
           pref_gender: @series.pref_gender,
@@ -82,6 +96,7 @@ class RequestSeriesController < ApplicationController
       :user_id,
       :class_name,
       :department,
+      :building,
       :model_mode,
       :pref_skin_tone,
       :pref_gender,

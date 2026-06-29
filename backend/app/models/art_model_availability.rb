@@ -1,7 +1,9 @@
 class ArtModelAvailability < ApplicationRecord
   belongs_to :user
   has_many :gigs
-  before_destroy :release_future_gigs
+
+  before_destroy :prevent_past_deletion
+  before_destroy :prevent_destroy_with_active_gig
 
   enum :status, { active: 0, cancelled: 1 }
 
@@ -9,17 +11,43 @@ class ArtModelAvailability < ApplicationRecord
   validate :end_after_start
   validate :must_be_within_business_hours
   validate :must_be_future_time, on: :create
+  validate :prevent_edit_with_active_gig, on: :update
+
+  def active_gig
+    gigs.find { |g| g.status == 'confirmed' }
+  end
+
+  def cancel_with_gig!
+    gig = active_gig
+    return false unless gig
+
+    ActiveRecord::Base.transaction do
+      gig.faculty_request.update!(status: :pending)
+      gig.destroy!
+      update!(status: :cancelled)
+    end
+    true
+  end
 
   private
 
-  def release_future_gigs
-    gigs.each do |gig|
-      if gig.faculty_request.starts_at > Time.current
-        ActiveRecord::Base.transaction do
-          gig.faculty_request.update!(status: :pending)
-          gig.destroy!
-        end
-      end
+  def prevent_past_deletion
+    if starts_at < Time.current
+      errors.add(:base, "Cannot delete a past availability slot")
+      throw :abort
+    end
+  end
+
+  def prevent_destroy_with_active_gig
+    if active_gig
+      errors.add(:base, "Cannot delete this availability slot because a gig is scheduled. Use 'Cancel Gig' instead.")
+      throw :abort
+    end
+  end
+
+  def prevent_edit_with_active_gig
+    if active_gig
+      errors.add(:base, "Cannot edit this availability slot because a gig is scheduled. Cancel the gig first if you need to change your availability.")
     end
   end
 

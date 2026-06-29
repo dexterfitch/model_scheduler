@@ -15,11 +15,16 @@ class FacultyRequest < ApplicationRecord
     "Open Studies"
   ]
 
+  BUILDINGS = ["Main", "Fox", "Lazarus", "Station"].freeze
+
   validates :starts_at, :ends_at, :class_name, :model_mode, presence: true
   validate :end_after_start
   validate :must_be_faculty_role, on: :create
   validate :must_be_within_business_hours
   validates :department, presence: true, inclusion: { in: DEPARTMENTS }
+  validates :building, presence: true, inclusion: { in: BUILDINGS }
+  validates :pref_gender, inclusion: { in: User::GENDER_IDENTITIES + ["Any"] }, allow_nil: true
+  validates :pref_skin_tone, inclusion: { in: User::SKIN_TONES + ["Any"] }, allow_nil: true
   validate :must_be_future_date
   validate :must_be_within_four_months
 

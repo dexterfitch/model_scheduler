@@ -20,6 +20,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [newSlots, setNewSlots] = useState([]);
   const [availErrors, setAvailErrors] = useState([]);
   const [availSuccess, setAvailSuccess] = useState(false);
+  const [modelGigs, setModelGigs] = useState([]);
 
   useEffect(() => {
     if (currentUser && !currentUser.superuser) navigate('/');
@@ -42,6 +43,20 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     } catch (err) {
       console.error("Failed to fetch availability", err);
     }
+
+    try {
+      const gigsRes = await api.get('/gigs');
+      const filtered = gigsRes.data.filter(g =>
+        g.art_model_availability.user.id === parseInt(userId) && g.status === 'confirmed'
+      );
+      setModelGigs(filtered);
+    } catch (err) {
+      console.error("Failed to fetch gigs", err);
+    }
+  };
+
+  const getActiveGigForSlot = (slotId) => {
+    return modelGigs.find(g => g.art_model_availability.id === slotId);
   };
 
   const handleModelSelect = (e) => {
@@ -51,7 +66,10 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     setAvailErrors([]);
     setAvailSuccess(false);
     if (id) fetchModelAvailability(id);
-    else setModelAvailability([]);
+    else {
+      setModelAvailability([]);
+      setModelGigs([]);
+    }
   };
 
   const handleDeleteSlot = async (slotId) => {
@@ -61,6 +79,16 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
       fetchModelAvailability(selectedModelId);
     } catch (err) {
       alert("Failed to delete slot.");
+    }
+  };
+
+  const handleCancelSlotGig = async (slotId) => {
+    if (!confirm("Cancel this model's participation in this gig? The faculty request will go back to pending.")) return;
+    try {
+      await api.post(`/art_model_availabilities/${slotId}/cancel`);
+      fetchModelAvailability(selectedModelId);
+    } catch (err) {
+      alert("Failed to cancel gig.");
     }
   };
 
@@ -324,8 +352,8 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                   <option value="">Select...</option>
                   <option value="Woman">Woman</option>
                   <option value="Man">Man</option>
-                  <option value="Non-Binary">Non-Binary</option>
-                  <option value="Transgender">Transgender</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Agender">Agender</option>
                   <option value="Prefer not to say">Prefer not to say</option>
                 </select>
               </Col>
@@ -378,15 +406,25 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                 <p className="text-muted small mb-3">No availability on record.</p>
               ) : (
                 <div className="mb-4">
-                  {modelAvailability.map(slot => (
-                    <div key={slot.id} className="d-flex justify-content-between align-items-center py-2 border-bottom">
-                      <span className="small">
-                        {formatDateTime(slot.starts_at)} &mdash; {new Date(slot.ends_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        {slot.status === 'cancelled' && <Badge bg="secondary" className="ms-2">Cancelled</Badge>}
-                      </span>
-                      <button className="btn btn-sm btn-outline-danger ms-2" onClick={() => handleDeleteSlot(slot.id)}>✕</button>
-                    </div>
-                  ))}
+                  {modelAvailability.map(slot => {
+                    const activeGig = getActiveGigForSlot(slot.id);
+                    return (
+                      <div key={slot.id} className="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <span className="small">
+                          {formatDateTime(slot.starts_at)} &mdash; {new Date(slot.ends_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {slot.status === 'cancelled' && <Badge bg="secondary" className="ms-2">Cancelled</Badge>}
+                          {activeGig && <Badge bg="info" text="dark" className="ms-2">{activeGig.faculty_request.class_name}</Badge>}
+                        </span>
+                        {activeGig ? (
+                          <button className="btn btn-sm btn-outline-warning ms-2" onClick={() => handleCancelSlotGig(slot.id)}>
+                            Cancel Gig
+                          </button>
+                        ) : (
+                          <button className="btn btn-sm btn-outline-danger ms-2" onClick={() => handleDeleteSlot(slot.id)}>✕</button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

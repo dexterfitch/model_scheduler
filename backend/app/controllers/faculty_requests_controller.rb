@@ -23,39 +23,58 @@ class FacultyRequestsController < ApplicationController
     end
   end
 
+  def update
+    @request = FacultyRequest.find(params[:id])
+
+    unless current_user.role_admin? || @request.user_id == current_user.id
+      return render json: { error: "Not authorized" }, status: :forbidden
+    end
+
+    unless @request.status == 'pending'
+      return render json: { error: "This request can no longer be edited because it has already been matched or archived" }, status: :forbidden
+    end
+
+    if @request.update(request_params)
+      render json: @request
+    else
+      render json: { errors: @request.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
   def destroy
     @request = FacultyRequest.find(params[:id])
 
     unless current_user.role_admin? || @request.user_id == current_user.id
       return render json: { error: "Not authorized" }, status: :forbidden
     end
-    
+
     if @request.status == 'pending'
       @request.destroy
+      @request.request_series&.update_status!
       head :no_content
       return
     end
 
     if @request.status == 'matched' && @request.gig
       gig = @request.gig
-      
-      # Determine if this is a late cancellation (same-day)
+
       is_late_cancel = gig.faculty_request.starts_at.to_date == Date.current
 
       Gig.transaction do
         @request.update!(status: 'archived')
-
         gig.art_model_availability.update!(status: 'active')
-
         gig.update!(
           status: 'cancelled',
           billable: is_late_cancel
         )
       end
-      
+
+      @request.request_series&.update_status!
+
       render json: { message: "Request cancelled. Gig billable: #{is_late_cancel}" }, status: :ok
     else
       @request.destroy
+      @request.request_series&.update_status!
       head :no_content
     end
   end
@@ -69,6 +88,7 @@ class FacultyRequestsController < ApplicationController
       :ends_at, 
       :class_name, 
       :department, 
+      :building,
       :pref_skin_tone, 
       :pref_gender, 
       :model_mode,

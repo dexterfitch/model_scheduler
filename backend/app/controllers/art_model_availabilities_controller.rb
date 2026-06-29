@@ -41,9 +41,26 @@ class ArtModelAvailabilitiesController < ApplicationController
     unless current_user.role_admin? || availability.user_id == current_user.id
       return render json: { error: "Not authorized" }, status: :forbidden
     end
-    
-    availability.destroy
-    head :no_content
+
+    if availability.destroy
+      head :no_content
+    else
+      render json: { errors: availability.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
+  def cancel
+    availability = ArtModelAvailability.find(params[:id])
+
+    unless current_user.role_admin? || availability.user_id == current_user.id
+      return render json: { error: "Not authorized" }, status: :forbidden
+    end
+
+    if availability.cancel_with_gig!
+      render json: availability
+    else
+      render json: { error: "No active gig found for this availability slot" }, status: :unprocessable_entity
+    end
   end
 
   private
