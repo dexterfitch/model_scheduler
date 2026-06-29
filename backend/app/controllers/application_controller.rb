@@ -1,13 +1,13 @@
 class ApplicationController < ActionController::API
   include ActionController::Cookies
 
+  class NotAuthorizedError < StandardError; end
+
   before_action :require_login
 
   rescue_from NotAuthorizedError, with: :render_forbidden
 
   private
-
-  class NotAuthorizedError < StandardError; end
 
   def require_login
     unless current_user
