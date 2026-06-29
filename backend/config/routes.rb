@@ -5,16 +5,22 @@ Rails.application.routes.draw do
       post "promote_to_superuser"
     end
   end
+
   resources :art_model_availabilities, only: [:index, :create, :destroy, :update] do
     member do
       post "cancel"
     end
   end
+
   resources :faculty_requests, only: [:index, :create, :update, :destroy]
   resources :gigs, only: [:index, :create, :destroy, :update]
+
   resources :request_series, only: [:index, :create, :destroy] do
     collection do
       get "available_for_model"
+    end
+    member do
+      post "release_remaining"
     end
   end
 

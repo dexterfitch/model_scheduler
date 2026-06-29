@@ -35,6 +35,27 @@ class RequestSeries < ApplicationRecord
       update!(status: :pending)
     end
   end
+  
+  def release_remaining_for_rematch!
+    future_matched_requests = faculty_requests
+      .where(status: :matched)
+      .where("starts_at > ?", Time.current)
+
+    ActiveRecord::Base.transaction do
+      future_matched_requests.each do |request|
+        gig = request.gig
+        next unless gig
+
+        availability = gig.art_model_availability
+        request.update!(status: :pending)
+        gig.destroy!
+        availability.gigs.reload
+        availability.update!(status: :active)
+      end
+    end
+
+    update_status!
+  end
 
   private
 
@@ -47,4 +68,5 @@ class RequestSeries < ApplicationRecord
       gig.art_model_availability.update!(status: 'active')
     end
   end
+
 end

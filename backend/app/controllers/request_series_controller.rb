@@ -1,6 +1,7 @@
 class RequestSeriesController < ApplicationController
   before_action -> { require_role(:admin, :faculty) }, except: [:available_for_model]
   before_action -> { require_role(:admin, :model) }, only: [:available_for_model]
+  before_action -> { require_role(:admin) }, only: [:release_remaining]
 
   def index
     @series = if current_user.role_admin?
@@ -76,6 +77,12 @@ class RequestSeriesController < ApplicationController
     render json: @series, status: :created
   rescue ActiveRecord::RecordInvalid => e
     render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def release_remaining
+    @series = RequestSeries.find(params[:id])
+    @series.release_remaining_for_rematch!
+    render json: @series
   end
 
   def destroy

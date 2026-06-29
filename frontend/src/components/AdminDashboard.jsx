@@ -15,7 +15,6 @@ function AdminDashboard() {
       api.get("/gigs"),
     ]);
 
-    // CHANGED: filter series with at least one pending request
     const pending = seriesRes.data
       .filter(s => s.faculty_requests?.some(r => r.status === 'pending'))
       .sort((a, b) => {
@@ -39,6 +38,16 @@ function AdminDashboard() {
   const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+  const handleReleaseRemaining = async (seriesId) => {
+    if (!confirm("Release all remaining matched dates in this series back to pending? This will cancel those gigs and let you rematch the whole remaining series to a new model.")) return;
+    try {
+      await api.post(`/request_series/${seriesId}/release_remaining`);
+      fetchDashboardData();
+    } catch (err) {
+      alert("Failed to release remaining dates.");
+    }
+  };
+
   return (
     <div>
       <h2 className="mb-4">Admin Dashboard</h2>
@@ -61,15 +70,35 @@ function AdminDashboard() {
                       <Card.Body className="d-flex justify-content-between align-items-start gap-3">
                         <div className="flex-grow-1">
                           <h5 className="mb-1">{series.class_name}</h5>
-                          <div className="mb-1 text-muted small">
-                            {firstReq.user?.first_name} {firstReq.user?.last_name}
-                            {(series.building || series.room_number) && (
-                              <span>
-                                &nbsp;|&nbsp;<i className="bi bi-door-open me-1"></i>
-                                {series.building}{series.building && series.room_number && " "}{series.room_number}
-                              </span>
-                            )}
+
+                          <div className="mb-1 small">
+                            <span className="text-muted">Requested by:</span>{' '}
+                            <span className="fw-bold">{firstReq.user?.first_name} {firstReq.user?.last_name}</span>
                           </div>
+
+                          {(series.building || series.room_number) && (
+                            <div className="mb-1 text-muted small">
+                              <i className="bi bi-door-open me-1"></i>
+                              {series.building}{series.building && series.room_number && " "}{series.room_number}
+                            </div>
+                          )}
+
+                          {series.faculty_requests && series.faculty_requests.length > 1 && (
+                            <div className="mb-1">
+                              {(() => {
+                                const matchedCount = series.faculty_requests.filter(r => r.status === 'matched').length;
+                                const pendingCount = series.faculty_requests.filter(r => r.status === 'pending').length;
+                                const archivedCount = series.faculty_requests.filter(r => r.status === 'archived').length;
+                                return (
+                                  <span className="small text-muted">
+                                    Series: {matchedCount > 0 && <Badge bg="success" className="me-1">{matchedCount} Matched</Badge>}
+                                    {pendingCount > 0 && <Badge bg="warning" text="dark" className="me-1">{pendingCount} Pending</Badge>}
+                                    {archivedCount > 0 && <Badge bg="secondary" className="me-1">{archivedCount} Cancelled</Badge>}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          )}
 
                           <div className="mb-2">
                             {pendingRequests.map((req, idx) => (
@@ -98,12 +127,23 @@ function AdminDashboard() {
                           )}
                         </div>
 
-                        <Button
-                          variant="outline-primary"
-                          onClick={() => navigate(`/gigs/new/${series.id}?type=series`)}
-                        >
-                          Find Match
-                        </Button>
+                        <div className="d-flex flex-column gap-2">
+                          <Button
+                            variant="outline-primary"
+                            onClick={() => navigate(`/gigs/new/${series.id}?type=series`)}
+                          >
+                            Find Match
+                          </Button>
+                          {series.faculty_requests?.some(r => r.status === 'matched') && (
+                            <Button
+                              variant="outline-warning"
+                              size="sm"
+                              onClick={() => handleReleaseRemaining(series.id)}
+                            >
+                              Release Remaining for Rematch
+                            </Button>
+                          )}
+                        </div>
                       </Card.Body>
                     </Card>
                   );

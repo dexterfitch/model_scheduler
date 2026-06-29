@@ -61,11 +61,25 @@ function AllRequests() {
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const formatDateShort = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
+  const handleReleaseRemaining = async (seriesId) => {
+    if (!confirm("Release all remaining matched dates in this series back to pending? This will cancel those gigs and let you rematch the whole remaining series to a new model.")) return;
+    try {
+      await api.post(`/request_series/${seriesId}/release_remaining`);
+      api.get("/request_series").then(res => setAllSeries(res.data));
+    } catch (err) {
+      alert("Failed to release remaining dates.");
+    }
+  };
+
   const renderSeriesCard = (s, showAction) => {
     const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
     const allRequests = s.faculty_requests || [];
     const displayRequests = showAction ? pendingRequests : allRequests;
     const faculty = allRequests[0]?.user;
+
+    const matchedCount = allRequests.filter(r => r.status === 'matched').length;
+    const pendingCount = allRequests.filter(r => r.status === 'pending').length;
+    const archivedCount = allRequests.filter(r => r.status === 'archived').length;
 
     return (
       <div key={s.id} className="card mb-3 shadow-sm">
@@ -83,13 +97,19 @@ function AllRequests() {
                   {s.building}{s.building && s.room_number && " "}{s.room_number}
                 </div>
               )}
+              {showAction && allRequests.length > 1 && (
+                <div className="small text-muted mt-1">
+                  Series: {matchedCount > 0 && <Badge bg="success" className="me-1">{matchedCount} Matched</Badge>}
+                  {pendingCount > 0 && <Badge bg="warning" text="dark" className="me-1">{pendingCount} Pending</Badge>}
+                  {archivedCount > 0 && <Badge bg="secondary" className="me-1">{archivedCount} Cancelled</Badge>}
+                </div>
+              )}
             </div>
             {s.model_mode === 'nude'
               ? <Badge bg="danger">Nude</Badge>
               : <Badge bg="success">Clothed</Badge>}
           </div>
 
-          {/* All dates */}
           <div className="mb-2">
             {displayRequests.map(req => (
               <div key={req.id} className="small text-muted">
@@ -113,14 +133,24 @@ function AllRequests() {
             </div>
           )}
           {showAction && (
-            <Button
-              size="sm"
-              variant="outline-primary"
-              className="w-100 mt-1"
-              onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}
-            >
-              Find Match
-            </Button>
+            <div className="d-flex flex-column gap-2">
+              <Button
+                size="sm"
+                variant="outline-primary"
+                onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}
+              >
+                Find Match
+              </Button>
+              {matchedCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline-warning"
+                  onClick={() => handleReleaseRemaining(s.id)}
+                >
+                  Release Remaining for Rematch
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -150,6 +180,9 @@ function AllRequests() {
               const allRequests = s.faculty_requests || [];
               const displayRequests = showAction ? pendingRequests : allRequests;
               const faculty = allRequests[0]?.user;
+              const matchedCount = allRequests.filter(r => r.status === 'matched').length;
+              const pendingCount = allRequests.filter(r => r.status === 'pending').length;
+              const archivedCount = allRequests.filter(r => r.status === 'archived').length;
 
               return (
                 <tr key={s.id}>
@@ -167,10 +200,16 @@ function AllRequests() {
                       {s.department && <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{s.department}</Badge>}
                       {allRequests.length > 1 && <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>{allRequests.length} dates</Badge>}
                     </div>
-                    {(s.building || s.room_number) && (
+                    {s.room_number && (
                       <div className="small text-muted mt-1">
-                        <i className="bi bi-door-open me-1"></i>
-                        {s.building}{s.building && s.room_number && " "}{s.room_number}
+                        <i className="bi bi-door-open me-1"></i>{s.building}{s.building && s.room_number && " "}{s.room_number}
+                      </div>
+                    )}
+                    {showAction && allRequests.length > 1 && (
+                      <div className="small text-muted mt-1">
+                        Series: {matchedCount > 0 && <Badge bg="success" className="me-1">{matchedCount} Matched</Badge>}
+                        {pendingCount > 0 && <Badge bg="warning" text="dark" className="me-1">{pendingCount} Pending</Badge>}
+                        {archivedCount > 0 && <Badge bg="secondary" className="me-1">{archivedCount} Cancelled</Badge>}
                       </div>
                     )}
                   </td>
@@ -190,13 +229,24 @@ function AllRequests() {
                   </td>
                   {showAction && (
                     <td>
-                      <Button
-                        size="sm"
-                        variant="outline-primary"
-                        onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}
-                      >
-                        Find Match
-                      </Button>
+                      <div className="d-flex flex-column gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline-primary"
+                          onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}
+                        >
+                          Find Match
+                        </Button>
+                        {matchedCount > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline-warning"
+                            onClick={() => handleReleaseRemaining(s.id)}
+                          >
+                            Release Remaining for Rematch
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   )}
                 </tr>
