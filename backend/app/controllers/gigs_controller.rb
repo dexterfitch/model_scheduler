@@ -22,7 +22,7 @@ class GigsController < ApplicationController
     gig = Gig.new(gig_params)
     if gig.save
       gig.art_model_availability&.update(status: 'active')
-      gig.faculty_request&.update(status: 'matched')
+      gig.faculty_request&.update(status: 'matched', needs_attention: false)
       gig.faculty_request&.request_series&.update_status!
       render json: gig, status: :created
     else

@@ -58,7 +58,10 @@ class ArtModelAvailabilitiesController < ApplicationController
 
     cancel_remaining_series = ActiveModel::Type::Boolean.new.cast(params[:cancel_remaining_series])
 
-    if availability.cancel_with_gig!(cancel_remaining_series: cancel_remaining_series)
+    if availability.cancel_with_gig!(
+      cancel_remaining_series: cancel_remaining_series,
+      flag_for_attention: !current_user.role_admin?
+    )
       render json: availability
     else
       render json: { error: "No active gig found for this availability slot" }, status: :unprocessable_entity

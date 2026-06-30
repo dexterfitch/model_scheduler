@@ -17,12 +17,12 @@ class ArtModelAvailability < ApplicationRecord
     gigs.find { |g| g.status == 'confirmed' }
   end
 
-  def cancel_with_gig!(cancel_remaining_series: false)
+  def cancel_with_gig!(cancel_remaining_series: false, flag_for_attention: false)
     gig = active_gig
     return false unless gig
 
     ActiveRecord::Base.transaction do
-      cancel_single_gig!(self, gig)
+      cancel_single_gig!(self, gig, flag_for_attention: flag_for_attention)
 
       if cancel_remaining_series
         series = gig.faculty_request.request_series
@@ -36,7 +36,7 @@ class ArtModelAvailability < ApplicationRecord
             other_gig = other_request.gig
             next unless other_gig
             other_availability = other_gig.art_model_availability
-            cancel_single_gig!(other_availability, other_gig)
+            cancel_single_gig!(other_availability, other_gig, flag_for_attention: flag_for_attention)
           end
         end
       end
@@ -46,8 +46,8 @@ class ArtModelAvailability < ApplicationRecord
 
   private
 
-  def cancel_single_gig!(availability, gig)
-    gig.faculty_request.update!(status: :pending)
+  def cancel_single_gig!(availability, gig, flag_for_attention: false)
+    gig.faculty_request.update!(status: :pending, needs_attention: flag_for_attention)
     gig.destroy!
     availability.gigs.reload
     availability.update!(status: :cancelled)
