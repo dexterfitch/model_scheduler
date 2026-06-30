@@ -281,7 +281,7 @@ function ModelDashboard({ user }) {
       </Card>
 
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
-        <Tab eventKey="schedule" title={`My Gigs (${myGigs.length})`}>
+        <Tab eventKey="schedule" title={`My Gigs (${filteredGigs.length})`}>
           <div className="d-flex flex-wrap gap-2 mb-3">
             <Button
               size="sm"
