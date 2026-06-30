@@ -17,7 +17,7 @@ function ModelDashboard({ user }) {
   const [modalError, setModalError] = useState('');
   const [pageSuccess, setPageSuccess] = useState('');
   const [activeGig, setActiveGig] = useState(null);
-  const [gigFilter, setGigFilter] = useState('all');
+  const [gigFilter, setGigFilter] = useState('confirmed');
 
   useEffect(() => {
     fetchData();
@@ -285,13 +285,6 @@ function ModelDashboard({ user }) {
           <div className="d-flex flex-wrap gap-2 mb-3">
             <Button
               size="sm"
-              variant={gigFilter === 'all' ? 'dark' : 'outline-dark'}
-              onClick={() => setGigFilter('all')}
-            >
-              All
-            </Button>
-            <Button
-              size="sm"
               variant={gigFilter === 'confirmed' ? 'success' : 'outline-success'}
               onClick={() => setGigFilter('confirmed')}
             >
@@ -310,6 +303,13 @@ function ModelDashboard({ user }) {
               onClick={() => setGigFilter('cancelled')}
             >
               Cancelled
+            </Button>
+            <Button
+              size="sm"
+              variant={gigFilter === 'all' ? 'dark' : 'outline-dark'}
+              onClick={() => setGigFilter('all')}
+            >
+              All
             </Button>
           </div>
           {filteredGigs.length === 0 ? (
