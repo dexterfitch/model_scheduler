@@ -247,6 +247,18 @@ function ModelDashboard({ user }) {
     return gig.status === gigFilter;
   });
 
+  const otherFutureSeriesGigsCount = (gig) => {
+    const seriesId = gig.faculty_request.request_series_id;
+    if (!seriesId) return 0;
+    const now = new Date();
+    return myGigs.filter(g =>
+      g.id !== gig.id &&
+      g.status === 'confirmed' &&
+      g.faculty_request.request_series_id === seriesId &&
+      new Date(g.faculty_request.starts_at) > now
+    ).length;
+  };
+
   const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -452,7 +464,7 @@ function ModelDashboard({ user }) {
                 <Button variant="outline-danger" onClick={() => handleCancelGig(false)}>
                   Cancel Just This Date
                 </Button>
-                {activeGig.faculty_request.request_series_id && (
+                {activeGig && otherFutureSeriesGigsCount(activeGig) > 0 && (
                   <Button variant="danger" onClick={() => handleCancelGig(true)}>
                     Cancel This &amp; Remaining Series
                   </Button>
