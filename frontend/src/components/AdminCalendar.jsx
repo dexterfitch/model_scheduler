@@ -17,15 +17,17 @@ function AdminCalendar() {
   const fetchData = async () => {
     try {
       const gigsRes = await api.get("/gigs");
-      const gigs = gigsRes.data.map(gig => ({
-        id: `gig-${gig.id}`,
-        title: `✅ ${gig.faculty_request.class_name}`,
-        start: gig.faculty_request.starts_at,
-        end: gig.faculty_request.ends_at,
-        backgroundColor: '#198754',
-        borderColor: '#198754',
-        extendedProps: { type: 'gig', ...gig }
-      }));
+      const gigs = gigsRes.data
+        .filter(gig => gig.status === 'confirmed')
+        .map(gig => ({
+          id: `gig-${gig.id}`,
+          title: `✅ ${gig.faculty_request.class_name}`,
+          start: gig.faculty_request.starts_at,
+          end: gig.faculty_request.ends_at,
+          backgroundColor: '#198754',
+          borderColor: '#198754',
+          extendedProps: { type: 'gig', ...gig }
+        }));
 
       const reqRes = await api.get("/faculty_requests");
 
