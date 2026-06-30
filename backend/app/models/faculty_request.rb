@@ -25,8 +25,8 @@ class FacultyRequest < ApplicationRecord
   validates :building, presence: true, inclusion: { in: BUILDINGS }
   validates :pref_gender, inclusion: { in: User::GENDER_IDENTITIES + ["Any"] }, allow_nil: true
   validates :pref_skin_tone, inclusion: { in: User::SKIN_TONES + ["Any"] }, allow_nil: true
-  validate :must_be_future_date
-  validate :must_be_within_four_months
+  validate :must_be_future_date, on: :create
+  validate :must_be_within_four_months, on: :create
 
   private
 

@@ -34,6 +34,16 @@ class FacultyRequestsController < ApplicationController
       return render json: { error: "This request can no longer be edited because it has already been matched or archived" }, status: :forbidden
     end
 
+    new_starts_at = request_params[:starts_at] ? Time.zone.parse(request_params[:starts_at].to_s) : @request.starts_at
+
+    if new_starts_at && new_starts_at.to_date <= Date.current
+      return render json: { error: "Requests must be for a future date (tomorrow or later)" }, status: :unprocessable_entity
+    end
+
+    if new_starts_at && new_starts_at > 4.months.from_now
+      return render json: { error: "Cannot be more than 4 months in the future" }, status: :unprocessable_entity
+    end
+
     if @request.update(request_params)
       render json: @request
     else
