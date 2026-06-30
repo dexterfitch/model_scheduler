@@ -259,6 +259,8 @@ function ModelDashboard({ user }) {
     ).length;
   };
 
+  const otherSeriesCount = activeGig ? otherFutureSeriesGigsCount(activeGig) : 0;
+
   const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -462,9 +464,9 @@ function ModelDashboard({ user }) {
               </Alert>
               <div className="d-flex justify-content-end gap-2">
                 <Button variant="outline-danger" onClick={() => handleCancelGig(false)}>
-                  Cancel Just This Date
+                  Cancel {otherSeriesCount > 0 ? "Just This Date" : "This Date"}
                 </Button>
-                {activeGig && otherFutureSeriesGigsCount(activeGig) > 0 && (
+                {otherSeriesCount > 0 && (
                   <Button variant="danger" onClick={() => handleCancelGig(true)}>
                     Cancel This &amp; Remaining Series
                   </Button>
