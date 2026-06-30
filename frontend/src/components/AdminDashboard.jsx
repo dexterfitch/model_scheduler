@@ -26,7 +26,7 @@ function AdminDashboard() {
 
     const todayStr = new Date().toISOString().split('T')[0];
     const today = gigsRes.data.filter(g =>
-      g.faculty_request?.starts_at?.startsWith(todayStr)
+      g.status === 'confirmed' && g.faculty_request?.starts_at?.startsWith(todayStr)
     );
     setTodaysGigs(today);
   };
