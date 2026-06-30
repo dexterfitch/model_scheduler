@@ -25,12 +25,12 @@ class RequestSeries < ApplicationRecord
   }
 
   def update_status!
-    if faculty_requests.none?
+    active_requests = faculty_requests.where.not(status: :archived)
+
+    if active_requests.none?
       update!(status: :archived)
-    elsif faculty_requests.all? { |r| r.status == 'matched' }
+    elsif active_requests.all? { |r| r.status == 'matched' }
       update!(status: :matched)
-    elsif faculty_requests.all? { |r| r.status == 'archived' }
-      update!(status: :archived)
     else
       update!(status: :pending)
     end

@@ -320,7 +320,9 @@ function FacultyDashboard({ user }) {
 
       <Row>
         {series.map((s) => {
-          const requests = s.faculty_requests || [];
+          const requests = (s.faculty_requests || [])
+            .filter(r => r.status !== 'archived')
+            .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
           const firstReq = requests[0];
           if (!firstReq) return null;
 
