@@ -30,23 +30,25 @@ function ModelDashboard({ user }) {
   }, [activeTab]);
 
   useEffect(() => {
-    const events = myAvailabilities.map(a => {
-      const gig = myGigs.find(g =>
-        g.art_model_availability.id === a.id && g.status === 'confirmed'
-      );
-      const label = a.status !== 'active' ? 'Cancelled' : (gig ? 'Confirmed Gig' : 'Free');
-      const color = a.status !== 'active' ? '#6c757d' : (gig ? '#0d6efd' : '#198754');
+    const events = myAvailabilities
+      .filter(a => a.status === 'active')
+      .map(a => {
+        const gig = myGigs.find(g =>
+          g.art_model_availability.id === a.id && g.status === 'confirmed'
+        );
+        const label = gig ? 'Confirmed Gig' : 'Free';
+        const color = gig ? '#0d6efd' : '#198754';
 
-      return {
-        id: a.id,
-        title: label,
-        start: a.starts_at,
-        end: a.ends_at,
-        backgroundColor: color,
-        display: 'block',
-        extendedProps: { ...a }
-      };
-    });
+        return {
+          id: a.id,
+          title: label,
+          start: a.starts_at,
+          end: a.ends_at,
+          backgroundColor: color,
+          display: 'block',
+          extendedProps: { ...a }
+        };
+      });
     setCalendarEvents(events);
   }, [myAvailabilities, myGigs]);
 
