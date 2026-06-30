@@ -13,7 +13,7 @@ function AllGigs() {
   const [filterEnd, setFilterEnd] = useState(
     new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
   );
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
 
   useEffect(() => {
     fetchGigs();
@@ -105,7 +105,7 @@ function AllGigs() {
               variant={showAll ? "secondary" : "outline-secondary"}
               onClick={() => setShowAll(!showAll)}
             >
-              {showAll ? "Showing All" : "Show All"}
+              {showAll ? "Filter by Date" : "Show All"}
             </Button>
           </Col>
         </Row>

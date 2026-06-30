@@ -16,7 +16,7 @@ function AllRequests() {
   const [filterEnd, setFilterEnd] = useState(
     new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
   );
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
 
   useEffect(() => {
     api.get("/request_series").then(res => setAllSeries(res.data));
@@ -308,7 +308,7 @@ function AllRequests() {
               variant={showAll ? "secondary" : "outline-secondary"}
               onClick={() => setShowAll(!showAll)}
             >
-              {showAll ? "Use Date Filters" : "Show All"}
+              {showAll ? "Filter by Date" : "Show All"}
             </Button>
           </Col>
         </Row>
