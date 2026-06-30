@@ -17,6 +17,7 @@ function ModelDashboard({ user }) {
   const [modalError, setModalError] = useState('');
   const [pageSuccess, setPageSuccess] = useState('');
   const [activeGig, setActiveGig] = useState(null);
+  const [gigFilter, setGigFilter] = useState('all');
 
   useEffect(() => {
     fetchData();
@@ -254,6 +255,11 @@ function ModelDashboard({ user }) {
     return null;
   };
 
+  const filteredGigs = myGigs.filter(gig => {
+    if (gigFilter === 'all') return true;
+    return gig.status === gigFilter;
+  });
+
   const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -276,9 +282,43 @@ function ModelDashboard({ user }) {
 
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
         <Tab eventKey="schedule" title={`My Gigs (${myGigs.length})`}>
-          {myGigs.length === 0 ? <Alert variant="info">You have no gigs yet.</Alert> : (
+          <div className="d-flex flex-wrap gap-2 mb-3">
+            <Button
+              size="sm"
+              variant={gigFilter === 'all' ? 'dark' : 'outline-dark'}
+              onClick={() => setGigFilter('all')}
+            >
+              All
+            </Button>
+            <Button
+              size="sm"
+              variant={gigFilter === 'confirmed' ? 'success' : 'outline-success'}
+              onClick={() => setGigFilter('confirmed')}
+            >
+              Confirmed
+            </Button>
+            <Button
+              size="sm"
+              variant={gigFilter === 'completed' ? 'primary' : 'outline-primary'}
+              onClick={() => setGigFilter('completed')}
+            >
+              Completed
+            </Button>
+            <Button
+              size="sm"
+              variant={gigFilter === 'cancelled' ? 'secondary' : 'outline-secondary'}
+              onClick={() => setGigFilter('cancelled')}
+            >
+              Cancelled
+            </Button>
+          </div>
+          {filteredGigs.length === 0 ? (
+            <Alert variant="info">
+              {gigFilter === 'all' ? 'You have no gigs yet.' : `No ${gigFilter} gigs.`}
+            </Alert>
+          ) : (
             <Row>
-              {myGigs.map(gig => (
+              {filteredGigs.map(gig => (
                 <Col md={6} lg={4} key={gig.id} className="mb-3">
                   <Card className="h-100 shadow-sm border-start border-5 border-primary">
                     <Card.Body>
