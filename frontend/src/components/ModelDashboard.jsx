@@ -143,6 +143,7 @@ function ModelDashboard({ user }) {
   };
 
   const upcomingGigs = myGigs.filter(gig => {
+    if (gig.status !== 'confirmed') return false;
     const gigDate = new Date(gig.faculty_request.starts_at);
     const now = new Date();
     const twoWeeks = new Date();
