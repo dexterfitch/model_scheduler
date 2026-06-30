@@ -61,20 +61,6 @@ function FacultyDashboard({ user }) {
       });
   };
 
-  const generateTimeOptions = () => {
-    const options = [];
-    let start = 8 * 60;
-    const end = 22 * 60;
-    while (start <= end) {
-      const hours = Math.floor(start / 60);
-      const mins = start % 60;
-      const value = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-      options.push(<option key={value} value={value} />);
-      start += 5;
-    }
-    return options;
-  };
-
   const roundToNearest5 = (timeStr) => {
     if (!timeStr) return "";
     const [h, m] = timeStr.split(':').map(Number);
@@ -480,11 +466,9 @@ function FacultyDashboard({ user }) {
                     <Form.Control
                       required
                       type="time"
-                      list="time-options"
                       value={d.start_time}
                       onChange={e => handleDateChange(index, 'start_time', e.target.value)}
                       onBlur={e => handleDateBlur(index, 'start_time', e.target.value)}
-                      min="08:00" max="22:00"
                     />
                   </Col>
                   <Col md={4} className="mb-2">
@@ -492,18 +476,14 @@ function FacultyDashboard({ user }) {
                     <Form.Control
                       required
                       type="time"
-                      list="time-options"
                       value={d.end_time}
                       onChange={e => handleDateChange(index, 'end_time', e.target.value)}
                       onBlur={e => handleDateBlur(index, 'end_time', e.target.value)}
-                      min="08:00" max="22:00"
                     />
                   </Col>
                 </Row>
               </div>
             ))}
-
-            <datalist id="time-options">{generateTimeOptions()}</datalist>
 
             <hr />
             <h5>Model Preferences</h5>
@@ -603,11 +583,11 @@ function FacultyDashboard({ user }) {
               </Col>
               <Col md={4} className="mb-3">
                 <Form.Label>Start Time</Form.Label>
-                <Form.Control required type="time" name="starts_time" value={editFormData.starts_time} onChange={handleEditInputChange} min="08:00" max="22:00" />
+                <Form.Control required type="time" name="starts_time" value={editFormData.starts_time} onChange={handleEditInputChange} />
               </Col>
               <Col md={4} className="mb-3">
                 <Form.Label>End Time</Form.Label>
-                <Form.Control required type="time" name="ends_time" value={editFormData.ends_time} onChange={handleEditInputChange} min="08:00" max="22:00" />
+                <Form.Control required type="time" name="ends_time" value={editFormData.ends_time} onChange={handleEditInputChange} />
               </Col>
             </Row>
 

@@ -131,4 +131,4 @@ docker-logs/
 # Local SSL certs
 *.pem
 certs/
-files.txt
+audit.md
