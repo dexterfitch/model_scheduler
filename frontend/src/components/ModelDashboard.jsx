@@ -118,20 +118,6 @@ function ModelDashboard({ user }) {
     }
   };
 
-  const generateTimeOptions = () => {
-    const options = [];
-    let start = 8 * 60;
-    const end = 22 * 60;
-    while (start <= end) {
-      const hours = Math.floor(start / 60);
-      const mins = start % 60;
-      const value = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-      options.push(<option key={value} value={value} />);
-      start += 5;
-    }
-    return options;
-  };
-
   const roundToNearest5 = (timeStr) => {
     if (!timeStr) return "";
     const [h, m] = timeStr.split(':').map(Number);
@@ -478,14 +464,14 @@ function ModelDashboard({ user }) {
               <Row>
                 <Col>
                   <Form.Label>Start Time</Form.Label>
-                  <Form.Control type="time" name="start" list="model-time-options" value={times.start} onChange={handleTimeChange} onBlur={handleBlur} min="08:00" max="22:00" required />
+                  <Form.Control type="time" name="start" value={times.start} onChange={handleTimeChange} onBlur={handleBlur} required />
                 </Col>
                 <Col>
                   <Form.Label>End Time</Form.Label>
-                  <Form.Control type="time" name="end" list="model-time-options" value={times.end} onChange={handleTimeChange} onBlur={handleBlur} min="08:00" max="22:00" required />
+                  <Form.Control type="time" name="end" value={times.end} onChange={handleTimeChange} onBlur={handleBlur} required />
                 </Col>
               </Row>
-              <datalist id="model-time-options">{generateTimeOptions()}</datalist>
+              
               <div className="mt-4 d-flex justify-content-between">
                 <div>
                   {editingId && (
