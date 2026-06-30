@@ -48,6 +48,16 @@ function AdminDashboard() {
     }
   };
 
+  const handleDropDate = async (requestId) => {
+    if (!confirm("Drop this date from the request entirely? This cannot be undone.")) return;
+    try {
+      await api.delete(`/faculty_requests/${requestId}`);
+      fetchDashboardData();
+    } catch (err) {
+      alert("Failed to drop this date.");
+    }
+  };
+
   return (
     <div>
       <h2 className="mb-4">Admin Dashboard</h2>
@@ -102,9 +112,24 @@ function AdminDashboard() {
 
                           <div className="mb-2">
                             {pendingRequests.map((req, idx) => (
-                              <div key={req.id} className="small">
-                                <i className="bi bi-calendar3 me-1"></i>
-                                {formatDate(req.starts_at)} &nbsp;{formatTime(req.starts_at)} - {formatTime(req.ends_at)}
+                              <div key={req.id} className="small d-flex align-items-center gap-2">
+                                <span>
+                                  <i className="bi bi-calendar3 me-1"></i>
+                                  {formatDate(req.starts_at)} &nbsp;{formatTime(req.starts_at)} - {formatTime(req.ends_at)}
+                                  {req.needs_attention && (
+                                    <Badge bg="danger" className="ms-2">
+                                      <i className="bi bi-exclamation-triangle-fill me-1"></i>Model Cancelled
+                                    </Badge>
+                                  )}
+                                </span>
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="text-danger p-0"
+                                  onClick={() => handleDropDate(req.id)}
+                                >
+                                  Drop This Date
+                                </Button>
                               </div>
                             ))}
                           </div>
