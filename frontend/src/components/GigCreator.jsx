@@ -163,7 +163,7 @@ function GigCreator() {
         })
       ).then(() => {
         setBookingSuccess(true);
-        setTimeout(() => navigate("/calendar"), 1500);
+        setTimeout(() => navigate("/"), 1500);
       }).catch(err => {
         console.error(err);
         setError("Error creating gigs. Please try again.");
@@ -176,7 +176,7 @@ function GigCreator() {
         }
       }).then(() => {
         setBookingSuccess(true);
-        setTimeout(() => navigate("/calendar"), 1500);
+        setTimeout(() => navigate("/"), 1500);
       }).catch(err => {
         console.error(err);
         setError("Error creating gig. Please try again.");

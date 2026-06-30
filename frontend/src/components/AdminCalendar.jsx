@@ -38,7 +38,7 @@ function AdminCalendar() {
           end: req.ends_at,
           backgroundColor: '#fd7e14',
           borderColor: '#fd7e14',
-          extendedProps: { type: 'request', requestId: req.id, ...req }  // ← add requestId
+          extendedProps: { type: 'request', requestId: req.id, seriesId: req.request_series_id, ...req }
         }));
 
       const availRes = await api.get("/art_model_availabilities");
@@ -58,7 +58,7 @@ function AdminCalendar() {
     const props = info.event.extendedProps;
     
     if (props.type === 'request') {
-      navigate(`/gigs/new/${props.requestId}`);
+      navigate(`/gigs/new/${props.seriesId}?type=series`);
     } else {
       const location = [props.faculty_request.building, props.faculty_request.room_number]
         .filter(Boolean)
