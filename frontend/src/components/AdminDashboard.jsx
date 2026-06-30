@@ -172,6 +172,12 @@ function AdminDashboard() {
                       <div className="small mb-1">
                         {formatTime(gig.faculty_request.starts_at)} - {formatTime(gig.faculty_request.ends_at)}
                       </div>
+                      {(gig.faculty_request.building || gig.faculty_request.room_number) && (
+                        <div className="small mb-1">
+                          <i className="bi bi-door-open me-1"></i>
+                          {gig.faculty_request.building}{gig.faculty_request.building && gig.faculty_request.room_number && " "}{gig.faculty_request.room_number}
+                        </div>
+                      )}
                       <div className="small mb-1">
                         Faculty: {gig.faculty_request.user.first_name} {gig.faculty_request.user.last_name}
                       </div>
