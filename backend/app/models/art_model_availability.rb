@@ -21,13 +21,15 @@ class ArtModelAvailability < ApplicationRecord
     gig = active_gig
     return false unless gig
 
+    series = gig.faculty_request.request_series
+
     ActiveRecord::Base.transaction do
       cancel_single_gig!(self, gig, flag_for_attention: flag_for_attention)
 
       if cancel_remaining_series
-        series = gig.faculty_request.request_series
-        if series
-          future_matched_requests = series.faculty_requests
+        series_scope = gig.faculty_request.request_series
+        if series_scope
+          future_matched_requests = series_scope.faculty_requests
             .where(status: :matched)
             .where("starts_at > ?", Time.current)
             .where.not(id: gig.faculty_request_id)
@@ -41,6 +43,8 @@ class ArtModelAvailability < ApplicationRecord
         end
       end
     end
+
+    series&.update_status!
     true
   end
 
