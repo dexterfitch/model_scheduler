@@ -15,7 +15,7 @@ Rails.application.routes.draw do
   resources :faculty_requests, only: [:index, :create, :update, :destroy]
   resources :gigs, only: [:index, :create, :destroy, :update]
 
-  resources :request_series, only: [:index, :create, :destroy] do
+  resources :request_series, only: [:index, :create, :destroy, :update] do
     collection do
       get "available_for_model"
     end
