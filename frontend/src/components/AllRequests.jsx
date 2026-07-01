@@ -180,15 +180,15 @@ function AllRequests() {
     return { allRequests, displayRequests, matchedCount, pendingCount, archivedCount };
   };
 
-  const renderDateRow = (req) => (
+  const renderDateRow = (req, showBadge) => (
     <div key={req.id} className="small text-muted mb-1">
-      {req.status === 'matched' && (
+      {showBadge && req.status === 'matched' && (
         <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
       )}
-      {req.status === 'pending' && (
+      {showBadge && req.status === 'pending' && (
         <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>
       )}
-      {req.status === 'archived' && (
+      {showBadge && req.status === 'archived' && (
         <Badge bg="secondary" className="me-2" style={{ fontSize: '0.65em' }}>Cancelled</Badge>
       )}
       <i className="bi bi-calendar3 me-1"></i>
@@ -286,7 +286,7 @@ function AllRequests() {
           </div>
 
           <div className="mb-2">
-            {displayRequests.map(renderDateRow)}
+            {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0))}
           </div>
 
           <div className="small text-muted mb-1">
@@ -335,7 +335,7 @@ function AllRequests() {
               return (
                 <tr key={s.id}>
                   <td>
-                    {displayRequests.map(renderDateRow)}
+                    {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0))}
                   </td>
                   <td>
                     <div className="fw-bold">{s.class_name}</div>
