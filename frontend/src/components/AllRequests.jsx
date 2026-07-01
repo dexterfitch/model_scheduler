@@ -283,7 +283,7 @@ function AllRequests() {
       </div>
 
       <div className="p-3 bg-light rounded mb-4 d-flex align-items-end date-filter-box">
-        <Row className="g-2 align-items-end">
+        <Row className="g-2 align-items-end w-100">
           <Col xs={12} md="auto">
             <Button
               className="w-100"
