@@ -100,7 +100,7 @@ function AllGigs() {
         </InputGroup>
       </div>
 
-      <div className="p-3 bg-light rounded mb-4">
+      <div className="p-3 bg-light rounded mb-4 d-flex align-items-end" style={{ minHeight: '100px' }}>
         <Row className="g-2 align-items-end">
           <Col xs={12} md="auto">
             <Button
