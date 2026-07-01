@@ -58,12 +58,17 @@ function AllRequests() {
   const matched = filterSeries('matched');
   const archived = filterSeries('archived').reverse();
 
-  const [editingRequest, setEditingRequest] = useState(null);
-  const [editForm, setEditForm] = useState({ date: '', start: '', end: '', building: '', room_number: '' });
+  const [editingSeries, setEditingSeries] = useState(null);
+  const [seriesForm, setSeriesForm] = useState({
+    class_name: '', department: '', building: '', room_number: '', notes: '', dates: []
+  });
   const [editError, setEditError] = useState('');
 
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const formatDateShort = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const DEPARTMENTS = ["Painting", "Drawing", "Illustration", "FYE", "Sculpture", "Open Studies"];
+  const BUILDINGS = ["Main", "Fox", "Lazarus", "Station"];
 
   const handleReleaseRemaining = async (seriesId) => {
     if (!confirm("Release all remaining matched dates in this series back to pending? This will cancel those gigs and let you rematch the whole remaining series to a new model.")) return;
@@ -75,41 +80,67 @@ function AllRequests() {
     }
   };
 
-  const openEditModal = (req) => {
-    const startDate = new Date(req.starts_at);
-    const endDate = new Date(req.ends_at);
+  const openEditSeriesModal = (s) => {
+    const activeRequests = (s.faculty_requests || []).filter(r => r.status !== 'archived');
     const pad = (n) => String(n).padStart(2, '0');
-    setEditForm({
-      date: `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}`,
-      start: `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`,
-      end: `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`,
-      building: req.building || '',
-      room_number: req.room_number || ''
+
+    setSeriesForm({
+      class_name: s.class_name || '',
+      department: s.department || '',
+      building: s.building || '',
+      room_number: s.room_number || '',
+      notes: s.notes || '',
+      dates: activeRequests.map(r => {
+        const startDate = new Date(r.starts_at);
+        const endDate = new Date(r.ends_at);
+        return {
+          id: r.id,
+          status: r.status,
+          date: `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}`,
+          start: `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`,
+          end: `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`
+        };
+      })
     });
     setEditError('');
-    setEditingRequest(req);
+    setEditingSeries(s);
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveSeriesEdit = async () => {
     setEditError('');
-    const starts_at = new Date(`${editForm.date}T${editForm.start}`);
-    const ends_at = new Date(`${editForm.date}T${editForm.end}`);
-
     try {
-      await api.patch(`/faculty_requests/${editingRequest.id}`, {
-        faculty_request: {
-          starts_at,
-          ends_at,
-          building: editForm.building,
-          room_number: editForm.room_number
+      await api.patch(`/request_series/${editingSeries.id}`, {
+        request_series: {
+          class_name: seriesForm.class_name,
+          department: seriesForm.department,
+          building: seriesForm.building,
+          room_number: seriesForm.room_number,
+          notes: seriesForm.notes
         }
       });
-      setEditingRequest(null);
+
+      for (const d of seriesForm.dates) {
+        const starts_at = new Date(`${d.date}T${d.start}`);
+        const ends_at = new Date(`${d.date}T${d.end}`);
+        await api.patch(`/faculty_requests/${d.id}`, {
+          faculty_request: { starts_at, ends_at }
+        });
+      }
+
+      setEditingSeries(null);
       api.get("/request_series").then(res => setAllSeries(res.data));
     } catch (err) {
       const messages = err.response?.data?.errors || [err.response?.data?.error] || ["Failed to save changes."];
       setEditError(Array.isArray(messages) ? messages.join(" ") : messages);
+      api.get("/request_series").then(res => setAllSeries(res.data));
     }
+  };
+
+  const updateSeriesDate = (index, field, value) => {
+    setSeriesForm(prev => ({
+      ...prev,
+      dates: prev.dates.map((d, i) => i === index ? { ...d, [field]: value } : d)
+    }));
   };
 
   const renderSeriesCard = (s, showAction) => {
@@ -153,14 +184,9 @@ function AllRequests() {
 
           <div className="mb-2">
             {displayRequests.map(req => (
-              <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center">
-                <span>
-                  <i className="bi bi-calendar3 me-1"></i>
-                  {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
-                </span>
-                <Button variant="link" size="sm" className="p-0 ms-2" onClick={() => openEditModal(req)}>
-                  Edit
-                </Button>
+              <div key={req.id} className="small text-muted">
+                <i className="bi bi-calendar3 me-1"></i>
+                {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
               </div>
             ))}
           </div>
@@ -178,26 +204,23 @@ function AllRequests() {
               <i className="bi bi-journal-text me-1"></i>{s.notes}
             </div>
           )}
-          {showAction && (
-            <div className="d-flex flex-column gap-2">
-              <Button
-                size="sm"
-                variant="outline-primary"
-                onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}
-              >
+          <div className="d-flex flex-column gap-2">
+            {showAction && (
+              <Button size="sm" variant="outline-primary" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
                 Find Match
               </Button>
-              {matchedCount > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline-warning"
-                  onClick={() => handleReleaseRemaining(s.id)}
-                >
-                  Release Remaining for Rematch
-                </Button>
-              )}
-            </div>
-          )}
+            )}
+            {showAction && matchedCount > 0 && (
+              <Button size="sm" variant="outline-warning" onClick={() => handleReleaseRemaining(s.id)}>
+                Release Remaining for Rematch
+              </Button>
+            )}
+            {s.status !== 'archived' && (
+              <Button size="sm" variant="outline-secondary" onClick={() => openEditSeriesModal(s)}>
+                Edit Series
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -212,13 +235,13 @@ function AllRequests() {
             <th>Class / Dept</th>
             <th>Faculty</th>
             <th>Reqs</th>
-            {showAction && <th>Action</th>}
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {seriesList.length === 0 ? (
             <tr>
-              <td colSpan={showAction ? 5 : 4} className="text-center py-3 text-muted">None.</td>
+              <td colSpan={5} className="text-center py-3 text-muted">None.</td>
             </tr>
           ) : (
             seriesList.map(s => {
@@ -234,14 +257,9 @@ function AllRequests() {
                 <tr key={s.id}>
                   <td>
                     {displayRequests.map(req => (
-                      <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center">
-                        <span>
-                          <i className="bi bi-calendar3 me-1"></i>
-                          {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
-                        </span>
-                        <Button variant="link" size="sm" className="p-0 ms-2" onClick={() => openEditModal(req)}>
-                          Edit
-                        </Button>
+                      <div key={req.id} className="small text-muted">
+                        <i className="bi bi-calendar3 me-1"></i>
+                        {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
                       </div>
                     ))}
                   </td>
@@ -278,9 +296,9 @@ function AllRequests() {
                       </small>
                     )}
                   </td>
-                  {showAction && (
-                    <td>
-                      <div className="d-flex flex-column gap-2">
+                  <td>
+                    <div className="d-flex flex-column gap-2">
+                      {showAction && (
                         <Button
                           size="sm"
                           variant="outline-primary"
@@ -288,18 +306,23 @@ function AllRequests() {
                         >
                           Find Match
                         </Button>
-                        {matchedCount > 0 && (
-                          <Button
-                            size="sm"
-                            variant="outline-warning"
-                            onClick={() => handleReleaseRemaining(s.id)}
-                          >
-                            Release Remaining for Rematch
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  )}
+                      )}
+                      {showAction && matchedCount > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline-warning"
+                          onClick={() => handleReleaseRemaining(s.id)}
+                        >
+                          Release Remaining for Rematch
+                        </Button>
+                      )}
+                      {s.status !== 'archived' && (
+                        <Button size="sm" variant="outline-secondary" onClick={() => openEditSeriesModal(s)}>
+                          Edit Series
+                        </Button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               );
             })
@@ -382,15 +405,15 @@ function AllRequests() {
         {renderSection(archived, false)}
       </div>
 
-      <Modal show={!!editingRequest} onHide={() => setEditingRequest(null)}>
+      <Modal show={!!editingSeries} onHide={() => setEditingSeries(null)} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>Edit Request</Modal.Title>
+          <Modal.Title>Edit Series</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {editingRequest?.status === 'matched' && (
+          {seriesForm.dates.some(d => d.status === 'matched') && (
             <Alert variant="warning" className="small">
-              <strong>⚠️ Editing a Confirmed Gig</strong><br />
-              Only edit confirmed modeling gigs by faculty request, and only for unusual circumstances (campus closures, emergencies, etc.). Make sure you've informed the model of the change and they've agreed to it before saving. If the new time conflicts with another confirmed gig for this model, the edit will be blocked.
+              <strong>⚠️ This series includes confirmed gigs.</strong><br />
+              Only edit confirmed modeling gigs by faculty request, and only for unusual circumstances (campus closures, emergencies, etc.). Make sure you've informed the model of the change and they've agreed to it before saving. If a new time conflicts with another confirmed gig for that model, saving will be blocked.
             </Alert>
           )}
           {editError && (
@@ -398,66 +421,102 @@ function AllRequests() {
               {editError}
             </Alert>
           )}
-          <Form.Group className="mb-3">
-            <Form.Label>Date</Form.Label>
-            <Form.Control
-              type="date"
-              value={editForm.date}
-              onChange={e => setEditForm(prev => ({ ...prev, date: e.target.value }))}
-            />
-          </Form.Group>
+
           <Row>
-            <Col>
+            <Col md={7}>
               <Form.Group className="mb-3">
-                <Form.Label>Start Time</Form.Label>
+                <Form.Label>Class Name</Form.Label>
                 <Form.Control
-                  type="time"
-                  value={editForm.start}
-                  onChange={e => setEditForm(prev => ({ ...prev, start: e.target.value }))}
+                  value={seriesForm.class_name}
+                  onChange={e => setSeriesForm(prev => ({ ...prev, class_name: e.target.value }))}
                 />
               </Form.Group>
             </Col>
-            <Col>
+            <Col md={5}>
               <Form.Group className="mb-3">
-                <Form.Label>End Time</Form.Label>
+                <Form.Label>Department</Form.Label>
+                <Form.Select
+                  value={seriesForm.department}
+                  onChange={e => setSeriesForm(prev => ({ ...prev, department: e.target.value }))}
+                >
+                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Building</Form.Label>
+                <Form.Select
+                  value={seriesForm.building}
+                  onChange={e => setSeriesForm(prev => ({ ...prev, building: e.target.value }))}
+                >
+                  {BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Room Number</Form.Label>
                 <Form.Control
-                  type="time"
-                  value={editForm.end}
-                  onChange={e => setEditForm(prev => ({ ...prev, end: e.target.value }))}
+                  value={seriesForm.room_number}
+                  onChange={e => setSeriesForm(prev => ({ ...prev, room_number: e.target.value }))}
                 />
               </Form.Group>
             </Col>
           </Row>
+
           <Form.Group className="mb-3">
-            <Form.Label>Building</Form.Label>
-            <Form.Select
-              value={editForm.building}
-              onChange={e => setEditForm(prev => ({ ...prev, building: e.target.value }))}
-            >
-              <option value="">Select building...</option>
-              <option value="Main">Main</option>
-              <option value="Fox">Fox</option>
-              <option value="Lazarus">Lazarus</option>
-              <option value="Station">Station</option>
-            </Form.Select>
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>Room Number</Form.Label>
+            <Form.Label>Notes</Form.Label>
             <Form.Control
-              type="text"
-              value={editForm.room_number}
-              onChange={e => setEditForm(prev => ({ ...prev, room_number: e.target.value }))}
+              as="textarea"
+              rows={2}
+              value={seriesForm.notes}
+              onChange={e => setSeriesForm(prev => ({ ...prev, notes: e.target.value }))}
             />
           </Form.Group>
+
+          <hr />
+          <Form.Label className="fw-bold">Dates</Form.Label>
+          {seriesForm.dates.map((d, i) => (
+            <Row key={d.id} className="align-items-center mb-2 g-2">
+              <Col xs={12} md={2}>
+                {d.status === 'matched'
+                  ? <Badge bg="success">Matched</Badge>
+                  : <Badge bg="warning" text="dark">Pending</Badge>}
+              </Col>
+              <Col xs={6} md={4}>
+                <Form.Control
+                  type="date"
+                  value={d.date}
+                  onChange={e => updateSeriesDate(i, 'date', e.target.value)}
+                />
+              </Col>
+              <Col xs={3} md={3}>
+                <Form.Control
+                  type="time"
+                  value={d.start}
+                  onChange={e => updateSeriesDate(i, 'start', e.target.value)}
+                />
+              </Col>
+              <Col xs={3} md={3}>
+                <Form.Control
+                  type="time"
+                  value={d.end}
+                  onChange={e => updateSeriesDate(i, 'end', e.target.value)}
+                />
+              </Col>
+            </Row>
+          ))}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setEditingRequest(null)}>Cancel</Button>
-          <Button variant="primary" onClick={handleSaveEdit}>Save Changes</Button>
+          <Button variant="secondary" onClick={() => setEditingSeries(null)}>Cancel</Button>
+          <Button variant="primary" onClick={handleSaveSeriesEdit}>Save Changes</Button>
         </Modal.Footer>
       </Modal>
-
     </Container>
-
   );
 }
 

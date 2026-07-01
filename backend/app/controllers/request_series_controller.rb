@@ -79,6 +79,28 @@ class RequestSeriesController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def update
+    @series = RequestSeries.find(params[:id])
+
+    unless current_user.role_admin? || @series.user_id == current_user.id
+      return render json: { error: "Not authorized" }, status: :forbidden
+    end
+
+    ActiveRecord::Base.transaction do
+      @series.update!(series_params)
+
+      shared_attrs = series_params.to_h.slice(
+        "class_name", "department", "building", "model_mode",
+        "pref_skin_tone", "pref_gender", "notes", "room_number"
+      )
+      @series.faculty_requests.update_all(shared_attrs) if shared_attrs.present?
+    end
+
+    render json: @series
+  rescue ActiveRecord::RecordInvalid => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def release_remaining
     @series = RequestSeries.find(params[:id])
     @series.release_remaining_for_rematch!
