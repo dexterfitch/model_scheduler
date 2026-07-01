@@ -145,11 +145,33 @@ function AllRequests() {
       });
 
       for (const d of seriesForm.dates) {
+        if (!d.date || !d.start || !d.end) continue;
+
         const starts_at = new Date(`${d.date}T${d.start}`);
         const ends_at = new Date(`${d.date}T${d.end}`);
-        await api.patch(`/faculty_requests/${d.id}`, {
-          faculty_request: { starts_at, ends_at }
-        });
+
+        if (d.isNew) {
+          await api.post(`/faculty_requests`, {
+            faculty_request: {
+              request_series_id: editingSeries.id,
+              user_id: editingSeries.user.id,
+              class_name: seriesForm.class_name,
+              department: seriesForm.department,
+              building: seriesForm.building,
+              room_number: seriesForm.room_number,
+              model_mode: editingSeries.model_mode,
+              pref_skin_tone: editingSeries.pref_skin_tone,
+              pref_gender: editingSeries.pref_gender,
+              notes: seriesForm.notes,
+              starts_at,
+              ends_at
+            }
+          });
+        } else {
+          await api.patch(`/faculty_requests/${d.id}`, {
+            faculty_request: { starts_at, ends_at }
+          });
+        }
       }
 
       setEditingSeries(null);
@@ -161,10 +183,24 @@ function AllRequests() {
     }
   };
 
+  const addSeriesDate = () => {
+    setSeriesForm(prev => ({
+      ...prev,
+      dates: [...prev.dates, { id: `new-${Date.now()}`, status: 'pending', isNew: true, date: '', start: '', end: '' }]
+    }));
+  };
+
   const updateSeriesDate = (index, field, value) => {
     setSeriesForm(prev => ({
       ...prev,
       dates: prev.dates.map((d, i) => i === index ? { ...d, [field]: value } : d)
+    }));
+  };
+
+  const removeNewSeriesDate = (tempId) => {
+    setSeriesForm(prev => ({
+      ...prev,
+      dates: prev.dates.filter(d => d.id !== tempId)
     }));
   };
 
@@ -561,15 +597,31 @@ function AllRequests() {
                   onChange={e => updateSeriesDate(i, 'start', e.target.value)}
                 />
               </Col>
-              <Col xs={3} md={3}>
+              <Col xs={3} md={d.isNew ? 2 : 3}>
                 <Form.Control
                   type="time"
                   value={d.end}
                   onChange={e => updateSeriesDate(i, 'end', e.target.value)}
                 />
               </Col>
+              {d.isNew && (
+                <Col xs={12} md={1}>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-danger p-0"
+                    onClick={() => removeNewSeriesDate(d.id)}
+                    title="Remove this new date"
+                  >
+                    <i className="bi bi-x-lg"></i>
+                  </Button>
+                </Col>
+              )}
             </Row>
           ))}
+          <Button variant="outline-primary" size="sm" className="mt-2" onClick={addSeriesDate}>
+            <i className="bi bi-plus-lg me-1"></i>Add Date
+          </Button>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setEditingSeries(null)}>Cancel</Button>
