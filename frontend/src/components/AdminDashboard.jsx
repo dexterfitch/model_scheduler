@@ -113,23 +113,17 @@ function AdminDashboard() {
 
                           <div className="mb-2">
                             {pendingRequests.map((req) => (
-                              <div key={req.id} className="d-flex align-items-center small mb-1 w-100">
-                                <span className="text-nowrap">
-                                  <i className="bi bi-calendar3 me-1"></i>
-                                  {formatDate(req.starts_at)} &nbsp;{formatTime(req.starts_at)} - {formatTime(req.ends_at)}
-                                  {req.needs_attention && (
-                                    <Badge bg="danger" className="ms-2">
-                                      <i className="bi bi-exclamation-triangle-fill me-1"></i>Model Cancelled
-                                    </Badge>
-                                  )}
-                                </span>
-                                <span
-                                  className="flex-grow-1 mx-2"
-                                  style={{ borderBottom: "2px dotted #ccc", marginBottom: "3px" }}
-                                ></span>
+                              <div key={req.id} className="small mb-1">
+                                <i className="bi bi-calendar3 me-1"></i>
+                                {formatDate(req.starts_at)} &nbsp;{formatTime(req.starts_at)} - {formatTime(req.ends_at)}
+                                {req.needs_attention && (
+                                  <Badge bg="danger" className="ms-2">
+                                    <i className="bi bi-exclamation-triangle-fill me-1"></i>Model Cancelled
+                                  </Badge>
+                                )}
                                 <Button
                                   variant="outline-danger"
-                                  className="text-nowrap flex-shrink-0"
+                                  className="ms-2"
                                   style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem", lineHeight: 1.4 }}
                                   onClick={() => handleDropDate(req.id)}
                                 >
