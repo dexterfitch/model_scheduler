@@ -251,7 +251,9 @@ function AllRequests() {
             seriesList.map(s => {
               const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
               const allRequests = s.faculty_requests || [];
-              const displayRequests = showAction ? pendingRequests : allRequests;
+              const displayRequests = (showAction ? pendingRequests : allRequests)
+                .slice()
+                .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
               const faculty = s.user;
               const matchedCount = allRequests.filter(r => r.status === 'matched').length;
               const pendingCount = allRequests.filter(r => r.status === 'pending').length;
