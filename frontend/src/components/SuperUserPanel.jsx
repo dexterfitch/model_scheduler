@@ -40,7 +40,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     try {
       const res = await api.get(`/art_model_availabilities?user_id=${userId}`);
       const now = new Date();
-      const upcoming = res.data.filter(a => new Date(a.ends_at) >= now);
+      const upcoming = res.data.filter(a => new Date(a.ends_at) >= now && a.status !== 'cancelled');
       setModelAvailability(upcoming.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)));
     } catch (err) {
       console.error("Failed to fetch availability", err);
@@ -414,16 +414,14 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                       <div key={slot.id} className="d-flex justify-content-between align-items-center py-2 border-bottom">
                         <span className="small">
                           {formatDateTime(slot.starts_at)} &mdash; {new Date(slot.ends_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {slot.status === 'cancelled' && <Badge bg="secondary" className="ms-2">Cancelled</Badge>}
                           {activeGig && <Badge bg="info" text="dark" className="ms-2">{activeGig.faculty_request.class_name}</Badge>}
                         </span>
-                        {activeGig ? (
-                          <button className="btn btn-sm btn-outline-warning ms-2" onClick={() => handleCancelSlotGig(slot.id)}>
-                            Cancel Gig
-                          </button>
-                        ) : (
-                          <button className="btn btn-sm btn-outline-danger ms-2" onClick={() => handleDeleteSlot(slot.id)}>✕</button>
-                        )}
+                        <button
+                          className="btn btn-sm btn-outline-danger ms-2"
+                          onClick={() => activeGig ? handleCancelSlotGig(slot.id) : handleDeleteSlot(slot.id)}
+                        >
+                          ✕
+                        </button>
                       </div>
                     );
                   })}
