@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from "re
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
+import { roundToNearest5 } from "../utils/time";
 
 const DEPARTMENTS = [
   "Painting", "Drawing", "Illustration", "FYE", "Sculpture", "Open Studies"
@@ -59,16 +60,6 @@ function FacultyDashboard({ user }) {
         console.error("Error fetching series:", err);
         setSubmitError("Error fetching requests. Please try again.");
       });
-  };
-
-  const roundToNearest5 = (timeStr) => {
-    if (!timeStr) return "";
-    const [h, m] = timeStr.split(':').map(Number);
-    const totalMins = h * 60 + m;
-    const rounded = Math.round(totalMins / 5) * 5;
-    const newH = Math.floor(rounded / 60);
-    const newM = rounded % 60;
-    return `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}`;
   };
 
   const handleInputChange = (e) => {

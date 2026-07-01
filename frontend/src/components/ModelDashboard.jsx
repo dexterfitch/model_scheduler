@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Badge, Tab, Tabs, Button, Modal, Form, Alert
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { formatSkinTone } from "../utils/formatters";
+import { roundToNearest5 } from "../utils/time";
 
 function ModelDashboard({ user }) {
   const [myGigs, setMyGigs] = useState([]);
@@ -118,16 +119,6 @@ function ModelDashboard({ user }) {
       console.error(err);
       setPageSuccess('');
     }
-  };
-
-  const roundToNearest5 = (timeStr) => {
-    if (!timeStr) return "";
-    const [h, m] = timeStr.split(':').map(Number);
-    const totalMins = h * 60 + m;
-    const rounded = Math.round(totalMins / 5) * 5;
-    const newH = Math.floor(rounded / 60);
-    const newM = rounded % 60;
-    return `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}`;
   };
 
   const upcomingGigs = myGigs.filter(gig => {

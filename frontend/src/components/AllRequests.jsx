@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert } from "react-bootstrap";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
+import { roundToNearest5 } from "../utils/time";
 
 function AllRequests() {
   const navigate = useNavigate();
@@ -508,8 +509,8 @@ function AllRequests() {
         <Modal.Body>
           {seriesForm.dates.some(d => d.status === 'matched') && (
             <Alert variant="warning" className="small">
-              <strong>⚠️ This series includes confirmed gigs.</strong><br />
-              Only edit confirmed modeling gigs by request, and only for unusual circumstances (campus closures, emergencies, etc.). Make sure you've informed the model of the change and they've agreed to it before saving. If a new time conflicts with another confirmed gig for that model, saving will be blocked.
+              <strong>⚠️ THIS SERIES INCLUDES CONFIRMED GIGS.</strong><br />
+              Only edit confirmed modeling gigs by request, and only for unusual circumstances (campus closures, emergencies, etc.). Make sure both faculty and the model are aware of the change and they've agreed to any changes before saving. If a new time conflicts with another confirmed gig for that model, saving will be blocked.
             </Alert>
           )}
           {editError && (
