@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { Row, Col, Card, Badge, Button } from "react-bootstrap";
-import { formatSkinTone } from "../utils/formatters";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -38,26 +37,6 @@ function AdminDashboard() {
   const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const handleReleaseRemaining = async (seriesId) => {
-    if (!confirm("Release all remaining matched dates in this series back to pending? This will cancel those gigs and let you rematch the whole remaining series to a new model.")) return;
-    try {
-      await api.post(`/request_series/${seriesId}/release_remaining`);
-      fetchDashboardData();
-    } catch (err) {
-      alert("Failed to release remaining dates.");
-    }
-  };
-
-  const handleDropDate = async (requestId) => {
-    if (!confirm("Drop this date from the request entirely? This cannot be undone.")) return;
-    try {
-      await api.delete(`/faculty_requests/${requestId}`);
-      fetchDashboardData();
-    } catch (err) {
-      alert("Failed to drop this date.");
-    }
-  };
-
   return (
     <div>
       <h2 className="mb-4">Admin Dashboard</h2>
@@ -65,109 +44,50 @@ function AdminDashboard() {
       <Row>
         <Col md={7} className="order-2 order-md-1 my-4 my-md-0">
           <Card className="shadow-sm">
-            <Card.Header className="bg-primary text-white fw-bold">
+            <Card.Header className="bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
               Pending Faculty Requests
+              <Badge bg="light" text="dark">{pendingSeries.length}</Badge>
             </Card.Header>
             <Card.Body>
               {pendingSeries.length === 0 ? <p className="text-muted">No pending requests.</p> : (
                 pendingSeries.map(series => {
-                  const pendingRequests = (series.faculty_requests?.filter(r => r.status === 'pending') || [])
-                    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
-                  const firstReq = pendingRequests[0];
+                  const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
+                  const firstReq = pendingRequests
+                    .slice()
+                    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))[0];
                   if (!firstReq) return null;
 
+                  const needsAttention = pendingRequests.some(r => r.needs_attention);
+
                   return (
-                    <Card key={series.id} className="mb-3 border-start border-5 border-primary">
-                      <Card.Body className="d-flex justify-content-between align-items-start gap-3">
-                        <div className="flex-grow-1">
-                          <h5 className="mb-1">{series.class_name}</h5>
-
-                          <div className="mb-1 small">
-                            <span className="text-muted">Requested by:</span>{' '}
-                            <span className="fw-bold">{series.user?.first_name} {series.user?.last_name}</span>
+                    <Card key={series.id} className="mb-2 border-start border-4 border-primary">
+                      <Card.Body className="d-flex justify-content-between align-items-center gap-3 py-3">
+                        <div>
+                          <div className="fw-bold">
+                            {series.class_name}
+                            {pendingRequests.length > 1 && (
+                              <Badge bg="info" text="dark" className="ms-2" style={{ fontSize: '0.7em' }}>
+                                {pendingRequests.length} dates
+                              </Badge>
+                            )}
+                            {needsAttention && (
+                              <Badge bg="danger" className="ms-2" style={{ fontSize: '0.7em' }}>
+                                <i className="bi bi-exclamation-triangle-fill me-1"></i>Needs Attention
+                              </Badge>
+                            )}
                           </div>
-
-                          {(series.building || series.room_number) && (
-                            <div className="mb-1 text-muted small">
-                              <i className="bi bi-door-open me-1"></i>
-                              {series.building}{series.building && series.room_number && " "}{series.room_number}
-                            </div>
-                          )}
-
-                          {series.faculty_requests && series.faculty_requests.length > 1 && (
-                            <div className="mb-1">
-                              {(() => {
-                                const matchedCount = series.faculty_requests.filter(r => r.status === 'matched').length;
-                                const pendingCount = series.faculty_requests.filter(r => r.status === 'pending').length;
-                                const archivedCount = series.faculty_requests.filter(r => r.status === 'archived').length;
-                                return (
-                                  <span className="small text-muted">
-                                    Series: {matchedCount > 0 && <Badge bg="success" className="me-1">{matchedCount} Matched</Badge>}
-                                    {pendingCount > 0 && <Badge bg="warning" text="dark" className="me-1">{pendingCount} Pending</Badge>}
-                                    {archivedCount > 0 && <Badge bg="secondary" className="me-1">{archivedCount} Cancelled</Badge>}
-                                  </span>
-                                );
-                              })()}
-                            </div>
-                          )}
-
-                          <div className="mb-2">
-                            {pendingRequests.map((req) => (
-                              <div key={req.id} className="small mb-1">
-                                <i className="bi bi-calendar3 me-1"></i>
-                                {formatDate(req.starts_at)} &nbsp;{formatTime(req.starts_at)} - {formatTime(req.ends_at)}
-                                {req.needs_attention && (
-                                  <Badge bg="danger" className="ms-2">
-                                    <i className="bi bi-exclamation-triangle-fill me-1"></i>Model Cancelled
-                                  </Badge>
-                                )}
-                                <Button
-                                  variant="outline-danger"
-                                  className="ms-2"
-                                  style={{ padding: "0.15rem 0.3rem", fontSize: "0.75rem", lineHeight: 1 }}
-                                  onClick={() => handleDropDate(req.id)}
-                                >
-                                  <i className="bi bi-x-circle"></i>&nbsp; Drop
-                                </Button>
-                              </div>
-                            ))}
+                          <div className="small text-muted">
+                            {series.user?.first_name} {series.user?.last_name} &bull; Next: {formatDate(firstReq.starts_at)} {formatTime(firstReq.starts_at)}
                           </div>
-
-                          <div className="text-muted small mb-2">
-                            Request Submitted: {new Date(series.created_at).toLocaleDateString()} at {new Date(series.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                          <div>
-                            {series.model_mode === "nude"
-                              ? <Badge bg="danger">Nude</Badge>
-                              : <Badge bg="success">Clothed</Badge>}
-                            <span className="ms-2 small text-secondary">
-                              Pref: {formatSkinTone(series.pref_skin_tone)}, {series.pref_gender} Gender Presentation
-                            </span>
-                          </div>
-                          {series.notes && (
-                            <div className="mt-2 text-muted small fst-italic border rounded p-2">
-                              <i className="bi bi-journal-text"></i>: {series.notes}
-                            </div>
-                          )}
                         </div>
-
-                        <div className="d-flex flex-column gap-2">
-                          <Button
-                            variant="outline-primary"
-                            onClick={() => navigate(`/gigs/new/${series.id}?type=series`)}
-                          >
-                            Find Match
-                          </Button>
-                          {series.faculty_requests?.some(r => r.status === 'matched') && (
-                            <Button
-                              variant="outline-warning"
-                              size="sm"
-                              onClick={() => handleReleaseRemaining(series.id)}
-                            >
-                              Release Remaining for Rematch
-                            </Button>
-                          )}
-                        </div>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="text-nowrap"
+                          onClick={() => navigate('/requests')}
+                        >
+                          View &amp; Manage
+                        </Button>
                       </Card.Body>
                     </Card>
                   );

@@ -59,7 +59,11 @@ class FacultyRequestsController < ApplicationController
     end
 
     if @request.status == 'pending'
-      @request.destroy
+      if Gig.where(faculty_request_id: @request.id).exists?
+        @request.update!(status: :archived)
+      else
+        @request.destroy
+      end
       @request.request_series&.update_status!
       head :no_content
       return
