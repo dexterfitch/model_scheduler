@@ -124,7 +124,7 @@ function AdminDashboard() {
                                 <Button
                                   variant="outline-danger"
                                   className="ms-2"
-                                  style={{ padding: "0.1rem 0.3rem", fontSize: "0.75rem", lineHeight: 1 }}
+                                  style={{ padding: "0.15rem 0.3rem", fontSize: "0.75rem", lineHeight: 1 }}
                                   onClick={() => handleDropDate(req.id)}
                                 >
                                   <i className="bi bi-x-circle"></i>&nbsp; Drop
