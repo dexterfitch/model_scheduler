@@ -170,8 +170,7 @@ function AllRequests() {
 
   const getSeriesMeta = (s) => {
     const allRequests = s.faculty_requests || [];
-    const displayRequests = allRequests
-      .filter(r => r.status !== 'archived')
+    const displayRequests = (s.status === 'archived' ? allRequests : allRequests.filter(r => r.status !== 'archived'))
       .slice()
       .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
     const matchedCount = allRequests.filter(r => r.status === 'matched').length;
@@ -182,28 +181,37 @@ function AllRequests() {
   };
 
   const renderDateRow = (req) => (
-    <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center gap-2 mb-1">
-      <span>
-        {req.status === 'matched'
-          ? <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
-          : <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>}
-        <i className="bi bi-calendar3 me-1"></i>
-        {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
-        {req.status === 'matched' && req.gig?.art_model_availability?.user && (
-          <span className="ms-1">
-            ({req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name})
+    <div key={req.id} className="small text-muted mb-1">
+      {req.status === 'matched'
+        ? <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
+        : <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>}
+      <i className="bi bi-calendar3 me-1"></i>
+      {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
+      {req.status === 'matched' && req.gig?.art_model_availability?.user && (
+        <>
+          {' ('}
+          <span
+            role="button"
+            className="text-primary text-decoration-underline"
+            onClick={() => handleFindNewModel(req)}
+          >
+            {req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name}
           </span>
-        )}
-      </span>
-      {req.status === 'matched' && req.gig?.art_model_availability && (
-        <Button variant="link" size="sm" className="p-0 text-nowrap" onClick={() => handleFindNewModel(req)}>
-          Find New Model
-        </Button>
+          {')'}
+        </>
       )}
       {req.status === 'pending' && (
-        <Button variant="link" size="sm" className="p-0 text-nowrap" onClick={() => navigate(`/gigs/new/${req.id}`)}>
-          Find Match
-        </Button>
+        <>
+          {' ('}
+          <span
+            role="button"
+            className="text-primary text-decoration-underline"
+            onClick={() => navigate(`/gigs/new/${req.id}`)}
+          >
+            Find Match
+          </span>
+          {')'}
+        </>
       )}
     </div>
   );
