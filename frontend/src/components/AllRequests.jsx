@@ -171,7 +171,8 @@ function AllRequests() {
   const renderSeriesCard = (s, showAction) => {
     const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
     const allRequests = s.faculty_requests || [];
-    const displayRequests = (showAction ? pendingRequests : allRequests)
+    const displayRequests = allRequests
+      .filter(r => r.status !== 'archived')
       .slice()
       .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
     const faculty = s.user;
@@ -211,8 +212,11 @@ function AllRequests() {
 
           <div className="mb-2">
             {displayRequests.map(req => (
-              <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center gap-2">
+              <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center gap-2 mb-1">
                 <span>
+                  {req.status === 'matched'
+                    ? <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
+                    : <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>}
                   <i className="bi bi-calendar3 me-1"></i>
                   {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
                   {req.status === 'matched' && req.gig?.art_model_availability?.user && (
@@ -296,7 +300,8 @@ function AllRequests() {
             seriesList.map(s => {
               const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
               const allRequests = s.faculty_requests || [];
-              const displayRequests = (showAction ? pendingRequests : allRequests)
+              const displayRequests = allRequests
+                .filter(r => r.status !== 'archived')
                 .slice()
                 .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
               const faculty = s.user;
@@ -308,8 +313,11 @@ function AllRequests() {
                 <tr key={s.id}>
                   <td>
                     {displayRequests.map(req => (
-                      <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center gap-2">
+                      <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center gap-2 mb-1">
                         <span>
+                          {req.status === 'matched'
+                            ? <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
+                            : <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>}
                           <i className="bi bi-calendar3 me-1"></i>
                           {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
                           {req.status === 'matched' && req.gig?.art_model_availability?.user && (
