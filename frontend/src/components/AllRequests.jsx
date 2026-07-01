@@ -221,7 +221,7 @@ function AllRequests() {
             )}
             {s.status !== 'archived' && (
               <Button size="sm" variant="outline-secondary" onClick={() => openEditSeriesModal(s)}>
-                Edit Series
+                {(s.faculty_requests?.filter(r => r.status !== 'archived').length || 0) <= 1 ? "Edit Gig" : "Edit Series"}
               </Button>
             )}
           </div>
@@ -324,7 +324,7 @@ function AllRequests() {
                       )}
                       {s.status !== 'archived' && (
                         <Button size="sm" variant="outline-secondary" onClick={() => openEditSeriesModal(s)}>
-                          Edit Series
+                          {(s.faculty_requests?.filter(r => r.status !== 'archived').length || 0) <= 1 ? "Edit Gig" : "Edit Series"}
                         </Button>
                       )}
                     </div>
