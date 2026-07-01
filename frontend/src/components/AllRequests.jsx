@@ -80,6 +80,16 @@ function AllRequests() {
     }
   };
 
+  const handleCancelSeries = async (seriesId) => {
+    if (!confirm("Cancel this entire request? All matched dates will be released and marked cancelled (billable if same-day), and any pending dates will be removed.")) return;
+    try {
+      await api.delete(`/request_series/${seriesId}`);
+      api.get("/request_series").then(res => setAllSeries(res.data));
+    } catch (err) {
+      alert("Failed to cancel this series.");
+    }
+  };
+
   const openEditSeriesModal = (s) => {
     const activeRequests = (s.faculty_requests || [])
       .filter(r => r.status !== 'archived')
@@ -224,6 +234,11 @@ function AllRequests() {
                 {(s.faculty_requests?.filter(r => r.status !== 'archived').length || 0) <= 1 ? "Edit Gig" : "Edit Series"}
               </Button>
             )}
+            {s.status !== 'archived' && (
+              <Button size="sm" variant="outline-danger" onClick={() => handleCancelSeries(s.id)}>
+                {(s.faculty_requests?.filter(r => r.status !== 'archived').length || 0) <= 1 ? "Cancel Gig" : "Cancel Series"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -325,6 +340,11 @@ function AllRequests() {
                       {s.status !== 'archived' && (
                         <Button size="sm" variant="outline-secondary" onClick={() => openEditSeriesModal(s)}>
                           {(s.faculty_requests?.filter(r => r.status !== 'archived').length || 0) <= 1 ? "Edit Gig" : "Edit Series"}
+                        </Button>
+                      )}
+                      {s.status !== 'archived' && (
+                        <Button size="sm" variant="outline-danger" onClick={() => handleCancelSeries(s.id)}>
+                          {(s.faculty_requests?.filter(r => r.status !== 'archived').length || 0) <= 1 ? "Cancel Gig" : "Cancel Series"}
                         </Button>
                       )}
                     </div>

@@ -4,8 +4,6 @@ class RequestSeries < ApplicationRecord
 
   enum :status, { pending: 0, matched: 1, archived: 2 }
 
-  before_destroy :release_gigs, prepend: true
-
   validates :class_name, presence: true
   validates :department, presence: true
   validates :building, presence: true, inclusion: { in: FacultyRequest::BUILDINGS }
@@ -57,16 +55,22 @@ class RequestSeries < ApplicationRecord
     update_status!
   end
 
-  private
+  def cancel_entire_series!
+    ActiveRecord::Base.transaction do
+      faculty_requests.each do |request|
+        next if request.status == 'archived'
 
-  def release_gigs
-    faculty_requests.each do |request|
-      gig = request.gig
-      next unless gig
-
-      gig.destroy!
-      gig.art_model_availability.update!(status: 'active')
+        if request.status == 'matched' && request.gig
+          gig = request.gig
+          is_late_cancel = gig.faculty_request.starts_at.to_date == Date.current
+          request.update!(status: :archived)
+          gig.update!(status: :cancelled, billable: is_late_cancel)
+          gig.art_model_availability.update!(status: :active)
+        else
+          request.destroy!
+        end
+      end
+      update_status!
     end
   end
-
 end

@@ -114,7 +114,7 @@ class RequestSeriesController < ApplicationController
       return render json: { error: "Not authorized" }, status: :forbidden
     end
 
-    @series.destroy
+    @series.cancel_entire_series!
     head :no_content
   end
 
