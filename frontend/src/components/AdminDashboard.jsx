@@ -71,7 +71,8 @@ function AdminDashboard() {
             <Card.Body>
               {pendingSeries.length === 0 ? <p className="text-muted">No pending requests.</p> : (
                 pendingSeries.map(series => {
-                  const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
+                  const pendingRequests = (series.faculty_requests?.filter(r => r.status === 'pending') || [])
+                    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
                   const firstReq = pendingRequests[0];
                   if (!firstReq) return null;
 
