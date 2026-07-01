@@ -127,7 +127,7 @@ function AdminDashboard() {
                                   style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem", lineHeight: 1.4 }}
                                   onClick={() => handleDropDate(req.id)}
                                 >
-                                  Drop This Date
+                                  <i className="bi bi-x-circle"></i> Drop
                                 </Button>
                               </div>
                             ))}
