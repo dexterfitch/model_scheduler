@@ -193,6 +193,17 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
 
   const models = users.filter(u => u.role === 'model');
 
+  const roleOrder = { admin: 0, model: 1, faculty: 2 };
+
+  const sortedUsers = [...users].sort((a, b) => {
+    const aRank = a.superuser ? -1 : (roleOrder[a.role] ?? 99);
+    const bRank = b.superuser ? -1 : (roleOrder[b.role] ?? 99);
+    if (aRank !== bRank) return aRank - bRank;
+    const aName = `${a.first_name} ${a.last_name}`.toLowerCase();
+    const bName = `${b.first_name} ${b.last_name}`.toLowerCase();
+    return aName.localeCompare(bName);
+  });
+
   const formatDateTime = (iso) => new Date(iso).toLocaleString([], {
     weekday: 'short', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit'
@@ -239,7 +250,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => (
+                {sortedUsers.map(u => (
                   <tr key={u.id}>
                     <td>{u.first_name} {u.last_name}</td>
                     <td>{u.email}</td>
@@ -276,7 +287,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
           </div>
 
           <div className="d-md-none p-3">
-            {users.map(u => (
+            {sortedUsers.map(u => (
               <div key={u.id} className="card mb-3 shadow-sm">
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-start mb-1">
