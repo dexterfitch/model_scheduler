@@ -245,7 +245,9 @@ function GigCreator() {
           <h3>{displayData.class_name}</h3>
           <div className="text-muted mb-2">
             <i className="bi bi-person me-1"></i>
-            {request.user.first_name} {request.user.last_name}
+            {isSeries
+              ? `${series?.user?.first_name} ${series?.user?.last_name}`
+              : `${request?.user?.first_name} ${request?.user?.last_name}`}
           </div>
           <div className="mb-2">
             {pendingRequests.map((req) => (
