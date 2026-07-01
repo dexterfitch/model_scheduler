@@ -456,10 +456,16 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                 <button type="button" className="btn btn-sm btn-outline-success" onClick={addNewSlot}>+ Add Slot</button>
               </div>
 
-              {availSuccess && <div className="alert alert-success">Availability saved!</div>}
+              {availSuccess && (
+                <div className="alert alert-success alert-dismissible fade show" role="alert">
+                  Availability saved!
+                  <button type="button" className="btn-close" onClick={() => setAvailSuccess(false)}></button>
+                </div>
+              )}
               {availErrors.length > 0 && (
-                <div className="alert alert-danger">
+                <div className="alert alert-danger alert-dismissible fade show" role="alert">
                   {availErrors.map((e, i) => <div key={i}>{e}</div>)}
+                  <button type="button" className="btn-close" onClick={() => setAvailErrors([])}></button>
                 </div>
               )}
 
