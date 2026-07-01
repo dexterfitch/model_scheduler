@@ -81,7 +81,9 @@ function AllRequests() {
   };
 
   const openEditSeriesModal = (s) => {
-    const activeRequests = (s.faculty_requests || []).filter(r => r.status !== 'archived');
+    const activeRequests = (s.faculty_requests || [])
+      .filter(r => r.status !== 'archived')
+      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
     const pad = (n) => String(n).padStart(2, '0');
 
     setSeriesForm({
@@ -146,7 +148,9 @@ function AllRequests() {
   const renderSeriesCard = (s, showAction) => {
     const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
     const allRequests = s.faculty_requests || [];
-    const displayRequests = showAction ? pendingRequests : allRequests;
+    const displayRequests = (showAction ? pendingRequests : allRequests)
+      .slice()
+      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
     const faculty = s.user;
 
     const matchedCount = allRequests.filter(r => r.status === 'matched').length;
