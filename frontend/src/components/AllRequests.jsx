@@ -90,6 +90,19 @@ function AllRequests() {
     }
   };
 
+  const handleFindNewModel = async (req) => {
+    const modelName = `${req.gig?.art_model_availability?.user?.first_name} ${req.gig?.art_model_availability?.user?.last_name}`;
+    if (!confirm(`Release ${modelName} from this date and reopen it for rematching? This date will move back to Pending.`)) return;
+    try {
+      await api.post(`/art_model_availabilities/${req.gig.art_model_availability.id}/cancel`, {
+        cancel_remaining_series: false
+      });
+      api.get("/request_series").then(res => setAllSeries(res.data));
+    } catch (err) {
+      alert("Failed to release this date for rematching.");
+    }
+  };
+
   const openEditSeriesModal = (s) => {
     const activeRequests = (s.faculty_requests || [])
       .filter(r => r.status !== 'archived')
@@ -198,9 +211,26 @@ function AllRequests() {
 
           <div className="mb-2">
             {displayRequests.map(req => (
-              <div key={req.id} className="small text-muted">
-                <i className="bi bi-calendar3 me-1"></i>
-                {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
+              <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center gap-2">
+                <span>
+                  <i className="bi bi-calendar3 me-1"></i>
+                  {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
+                  {req.status === 'matched' && req.gig?.art_model_availability?.user && (
+                    <span className="ms-1">
+                      ({req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name})
+                    </span>
+                  )}
+                </span>
+                {req.status === 'matched' && req.gig?.art_model_availability && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="p-0 text-nowrap"
+                    onClick={() => handleFindNewModel(req)}
+                  >
+                    Find New Model
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -224,9 +254,9 @@ function AllRequests() {
                 Find Match
               </Button>
             )}
-            {showAction && matchedCount > 0 && (
+            {matchedCount > 0 && (
               <Button size="sm" variant="outline-warning" onClick={() => handleReleaseRemaining(s.id)}>
-                Release Remaining for Rematch
+                Release Model and Rematch
               </Button>
             )}
             {s.status !== 'archived' && (
@@ -278,9 +308,26 @@ function AllRequests() {
                 <tr key={s.id}>
                   <td>
                     {displayRequests.map(req => (
-                      <div key={req.id} className="small text-muted">
-                        <i className="bi bi-calendar3 me-1"></i>
-                        {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
+                      <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center gap-2">
+                        <span>
+                          <i className="bi bi-calendar3 me-1"></i>
+                          {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
+                          {req.status === 'matched' && req.gig?.art_model_availability?.user && (
+                            <span className="ms-1">
+                              ({req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name})
+                            </span>
+                          )}
+                        </span>
+                        {req.status === 'matched' && req.gig?.art_model_availability && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="p-0 text-nowrap"
+                            onClick={() => handleFindNewModel(req)}
+                          >
+                            Find New Model
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </td>
@@ -328,13 +375,13 @@ function AllRequests() {
                           Find Match
                         </Button>
                       )}
-                      {showAction && matchedCount > 0 && (
+                      {matchedCount > 0 && (
                         <Button
                           size="sm"
                           variant="outline-warning"
                           onClick={() => handleReleaseRemaining(s.id)}
                         >
-                          Release Remaining for Rematch
+                          Release Model for Rematch
                         </Button>
                       )}
                       {s.status !== 'archived' && (

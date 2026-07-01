@@ -208,7 +208,7 @@ function ModelDashboard({ user }) {
     const message = cancelRemainingSeries
       ? "Cancel your participation in this AND all remaining future dates in this series? The faculty member's requests will go back to pending so an admin can find a replacement. You will not be paid for these slots since you are cancelling."
       : otherSeriesCount > 0
-        ? "Cancel your participation in this single date? The faculty member's request for this date will go back to pending. Note: since this class wants the same model across all sessions, cancelling even one date may put your place in the rest of the series at risk — an admin may decide to rematch the remaining dates to a different model. You will not be paid for this slot since you are cancelling."
+        ? "Cancel your participation in this single date? The faculty member's request for this date will go back to pending. Note: since this class wants the same model across all sessions, cancelling even one date may put your place in the rest of the series at risk. An admin may decide to rematch the remaining dates to a different model. You will not be paid for this slot since you are cancelling."
         : "Cancel your participation in this date? The faculty member's request will go back to pending so an admin can find a replacement. You will not be paid for this slot since you are cancelling.";
 
     if (!confirm(message)) return;
