@@ -333,10 +333,16 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
           Create Sock Account (Offline Model)
         </div>
         <div className="card-body">
-          {sockSuccess && <div className="alert alert-success">Sock account created successfully!</div>}
+          {sockSuccess && (
+            <div className="alert alert-success alert-dismissible fade show" role="alert">
+              Sock account created successfully!
+              <button type="button" className="btn-close" onClick={() => setSockSuccess(false)}></button>
+            </div>
+          )}
           {sockErrors.length > 0 && (
-            <div className="alert alert-danger">
+            <div className="alert alert-danger alert-dismissible fade show" role="alert">
               {sockErrors.map((e, i) => <div key={i}>{e}</div>)}
+              <button type="button" className="btn-close" onClick={() => setSockErrors([])}></button>
             </div>
           )}
           <form onSubmit={handleCreateSockAccount}>
