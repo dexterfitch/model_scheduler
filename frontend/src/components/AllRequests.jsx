@@ -181,6 +181,63 @@ function AllRequests() {
     return { allRequests, displayRequests, matchedCount, pendingCount, archivedCount };
   };
 
+  const renderDateRow = (req) => (
+    <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center gap-2 mb-1">
+      <span>
+        {req.status === 'matched'
+          ? <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
+          : <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>}
+        <i className="bi bi-calendar3 me-1"></i>
+        {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
+        {req.status === 'matched' && req.gig?.art_model_availability?.user && (
+          <span className="ms-1">
+            ({req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name})
+          </span>
+        )}
+      </span>
+      {req.status === 'matched' && req.gig?.art_model_availability && (
+        <Button variant="link" size="sm" className="p-0 text-nowrap" onClick={() => handleFindNewModel(req)}>
+          Find New Model
+        </Button>
+      )}
+      {req.status === 'pending' && (
+        <Button variant="link" size="sm" className="p-0 text-nowrap" onClick={() => navigate(`/gigs/new/${req.id}`)}>
+          Find Match
+        </Button>
+      )}
+    </div>
+  );
+
+  const renderActionButtons = (s, showAction, matchedCount) => {
+    const activeCount = s.faculty_requests?.filter(r => r.status !== 'archived').length || 0;
+    const isSingle = activeCount <= 1;
+
+    return (
+      <>
+        {showAction && matchedCount === 0 && (
+          <Button size="sm" variant="outline-primary" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
+            Find Match
+          </Button>
+        )}
+        {matchedCount > 0 && (
+          <Button size="sm" variant="outline-warning" onClick={() => handleReleaseRemaining(s.id)}>
+            Release Model and Rematch
+          </Button>
+        )}
+        {s.status !== 'archived' && (
+          <Button size="sm" variant="outline-secondary" onClick={() => openEditSeriesModal(s)}>
+            {isSingle ? "Edit Gig" : "Edit Series"}
+          </Button>
+        )}
+        {s.status !== 'archived' && (
+          <Button size="sm" variant="outline-danger" onClick={() => handleCancelSeries(s.id)}>
+            {isSingle ? "Cancel Gig" : "Cancel Series"}
+          </Button>
+        )}
+      </>
+    );
+  };
+
   const renderSeriesCard = (s, showAction) => {
     const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount } = getSeriesMeta(s);
     const faculty = s.user;
@@ -215,42 +272,7 @@ function AllRequests() {
           </div>
 
           <div className="mb-2">
-            {displayRequests.map(req => (
-              <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center gap-2 mb-1">
-                <span>
-                  {req.status === 'matched'
-                    ? <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
-                    : <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>}
-                  <i className="bi bi-calendar3 me-1"></i>
-                  {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
-                  {req.status === 'matched' && req.gig?.art_model_availability?.user && (
-                    <span className="ms-1">
-                      ({req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name})
-                    </span>
-                  )}
-                </span>
-                {req.status === 'matched' && req.gig?.art_model_availability && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="p-0 text-nowrap"
-                    onClick={() => handleFindNewModel(req)}
-                  >
-                    Find New Model
-                  </Button>
-                )}
-                {req.status === 'pending' && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="p-0 text-nowrap"
-                    onClick={() => navigate(`/gigs/new/${req.id}`)}
-                  >
-                    Find Match
-                  </Button>
-                )}
-              </div>
-            ))}
+            {displayRequests.map(renderDateRow)}
           </div>
 
           <div className="small text-muted mb-1">
@@ -267,26 +289,7 @@ function AllRequests() {
             </div>
           )}
           <div className="d-flex flex-column gap-2">
-            {showAction && matchedCount === 0 && (
-              <Button size="sm" variant="outline-primary" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
-                Find Match
-              </Button>
-            )}
-            {matchedCount > 0 && (
-              <Button size="sm" variant="outline-warning" onClick={() => handleReleaseRemaining(s.id)}>
-                Release Model and Rematch
-              </Button>
-            )}
-            {s.status !== 'archived' && (
-              <Button size="sm" variant="outline-secondary" onClick={() => openEditSeriesModal(s)}>
-                {(s.faculty_requests?.filter(r => r.status !== 'archived').length || 0) <= 1 ? "Edit Gig" : "Edit Series"}
-              </Button>
-            )}
-            {s.status !== 'archived' && (
-              <Button size="sm" variant="outline-danger" onClick={() => handleCancelSeries(s.id)}>
-                {(s.faculty_requests?.filter(r => r.status !== 'archived').length || 0) <= 1 ? "Cancel Gig" : "Cancel Series"}
-              </Button>
-            )}
+            {renderActionButtons(s, showAction, matchedCount)}
           </div>
         </div>
       </div>
@@ -318,42 +321,7 @@ function AllRequests() {
               return (
                 <tr key={s.id}>
                   <td>
-                    {displayRequests.map(req => (
-                      <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center gap-2 mb-1">
-                        <span>
-                          {req.status === 'matched'
-                            ? <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
-                            : <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>}
-                          <i className="bi bi-calendar3 me-1"></i>
-                          {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
-                          {req.status === 'matched' && req.gig?.art_model_availability?.user && (
-                            <span className="ms-1">
-                              ({req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name})
-                            </span>
-                          )}
-                        </span>
-                        {req.status === 'matched' && req.gig?.art_model_availability && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="p-0 text-nowrap"
-                            onClick={() => handleFindNewModel(req)}
-                          >
-                            Find New Model
-                          </Button>
-                        )}
-                        {req.status === 'pending' && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="p-0 text-nowrap"
-                            onClick={() => navigate(`/gigs/new/${req.id}`)}
-                          >
-                            Find Match
-                          </Button>
-                        )}
-                      </div>
-                    ))}
+                    {displayRequests.map(renderDateRow)}
                   </td>
                   <td>
                     <div className="fw-bold">{s.class_name}</div>
@@ -390,30 +358,7 @@ function AllRequests() {
                   </td>
                   <td>
                     <div className="d-flex flex-column gap-2">
-                      {showAction && matchedCount === 0 && (
-                        <Button size="sm" variant="outline-primary" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
-                          Find Match
-                        </Button>
-                      )}
-                      {matchedCount > 0 && (
-                        <Button
-                          size="sm"
-                          variant="outline-warning"
-                          onClick={() => handleReleaseRemaining(s.id)}
-                        >
-                          Release Model for Rematch
-                        </Button>
-                      )}
-                      {s.status !== 'archived' && (
-                        <Button size="sm" variant="outline-secondary" onClick={() => openEditSeriesModal(s)}>
-                          {(s.faculty_requests?.filter(r => r.status !== 'archived').length || 0) <= 1 ? "Edit Gig" : "Edit Series"}
-                        </Button>
-                      )}
-                      {s.status !== 'archived' && (
-                        <Button size="sm" variant="outline-danger" onClick={() => handleCancelSeries(s.id)}>
-                          {(s.faculty_requests?.filter(r => r.status !== 'archived').length || 0) <= 1 ? "Cancel Gig" : "Cancel Series"}
-                        </Button>
-                      )}
+                      {renderActionButtons(s, showAction, matchedCount)}
                     </div>
                   </td>
                 </tr>
