@@ -205,6 +205,25 @@ function AllRequests() {
     }));
   };
 
+  const handleRemoveExistingDate = async (d) => {
+    const isMatched = d.status === 'matched';
+    const message = isMatched
+      ? "Remove this matched date? The model will be released and the gig marked cancelled (billable if same-day). This cannot be undone."
+      : "Remove this pending date? This cannot be undone.";
+    if (!confirm(message)) return;
+
+    try {
+      await api.delete(`/faculty_requests/${d.id}`);
+      setSeriesForm(prev => ({
+        ...prev,
+        dates: prev.dates.filter(date => date.id !== d.id)
+      }));
+      api.get("/request_series").then(res => setAllSeries(res.data));
+    } catch (err) {
+      alert("Failed to remove this date.");
+    }
+  };
+
   const getSeriesMeta = (s) => {
     const allRequests = s.faculty_requests || [];
     const displayRequests = (s.status === 'archived' ? allRequests : allRequests.filter(r => r.status !== 'archived'))
@@ -599,7 +618,7 @@ function AllRequests() {
                   onBlur={e => updateSeriesDate(i, 'start', roundToNearest5(e.target.value))}
                 />
               </Col>
-              <Col xs={3} md={d.isNew ? 2 : 3}>
+              <Col xs={3} md={2}>
                 <Form.Control
                   type="time"
                   value={d.end}
@@ -607,19 +626,29 @@ function AllRequests() {
                   onBlur={e => updateSeriesDate(i, 'end', roundToNearest5(e.target.value))}
                 />
               </Col>
-              {d.isNew && (
-                <Col xs={12} md={1}>
+              <Col xs={12} md={1}>
+                {d.isNew ? (
                   <Button
                     variant="link"
                     size="sm"
                     className="text-danger p-0"
                     onClick={() => removeNewSeriesDate(d.id)}
-                    title="Remove this new date"
+                    title="Discard this unsaved date"
                   >
                     <i className="bi bi-x-lg"></i>
                   </Button>
-                </Col>
-              )}
+                ) : (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-danger p-0"
+                    onClick={() => handleRemoveExistingDate(d)}
+                    title="Remove this date"
+                  >
+                    <i className="bi bi-trash"></i>
+                  </Button>
+                )}
+              </Col>
             </Row>
           ))}
           <Button variant="outline-primary" size="sm" className="mt-2" onClick={addSeriesDate}>
