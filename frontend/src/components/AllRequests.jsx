@@ -323,7 +323,11 @@ function AllRequests() {
               <div className="fw-bold">{s.class_name}</div>
               <div className="d-flex gap-1 flex-wrap mt-1">
                 {s.department && <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{s.department}</Badge>}
-                {allRequests.length > 1 && <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>{allRequests.length} dates</Badge>}
+                {allRequests.filter(r => r.status !== 'archived').length > 1 && (
+                  <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>
+                    {allRequests.filter(r => r.status !== 'archived').length} dates
+                  </Badge>
+                )}
               </div>
               {(s.building || s.room_number) && (
                 <div className="small text-muted mt-1">
@@ -402,7 +406,11 @@ function AllRequests() {
                     <div className="fw-bold">{s.class_name}</div>
                     <div className="d-flex gap-1 flex-wrap mt-1">
                       {s.department && <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{s.department}</Badge>}
-                      {allRequests.length > 1 && <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>{allRequests.length} dates</Badge>}
+                      {allRequests.filter(r => r.status !== 'archived').length > 1 && (
+                        <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>
+                          {allRequests.filter(r => r.status !== 'archived').length} dates
+                        </Badge>
+                      )}
                     </div>
                     {s.room_number && (
                       <div className="small text-muted mt-1">
