@@ -284,24 +284,6 @@ function AllRequests() {
 
       <div className="p-3 bg-light rounded mb-4">
         <Row className="g-2 align-items-end">
-          <Col xs={6} md="auto">
-            <Form.Label className="small fw-bold mb-1">From</Form.Label>
-            <Form.Control
-              type="date"
-              value={filterStart}
-              onChange={e => { setFilterStart(e.target.value); setShowAll(false); }}
-              disabled={showAll}
-            />
-          </Col>
-          <Col xs={6} md="auto">
-            <Form.Label className="small fw-bold mb-1">To</Form.Label>
-            <Form.Control
-              type="date"
-              value={filterEnd}
-              onChange={e => { setFilterEnd(e.target.value); setShowAll(false); }}
-              disabled={showAll}
-            />
-          </Col>
           <Col xs={12} md="auto">
             <Button
               className="w-100"
@@ -311,6 +293,26 @@ function AllRequests() {
               {showAll ? "Filter by Date" : "Show All"}
             </Button>
           </Col>
+          {!showAll && (
+            <>
+              <Col xs={6} md="auto">
+                <Form.Label className="small fw-bold mb-1">From</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={filterStart}
+                  onChange={e => setFilterStart(e.target.value)}
+                />
+              </Col>
+              <Col xs={6} md="auto">
+                <Form.Label className="small fw-bold mb-1">To</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={filterEnd}
+                  onChange={e => setFilterEnd(e.target.value)}
+                />
+              </Col>
+            </>
+          )}
         </Row>
       </div>
 
