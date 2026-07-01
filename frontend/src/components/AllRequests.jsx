@@ -168,18 +168,22 @@ function AllRequests() {
     }));
   };
 
-  const renderSeriesCard = (s, showAction) => {
-    const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
+  const getSeriesMeta = (s) => {
     const allRequests = s.faculty_requests || [];
     const displayRequests = allRequests
       .filter(r => r.status !== 'archived')
       .slice()
       .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
-    const faculty = s.user;
-
     const matchedCount = allRequests.filter(r => r.status === 'matched').length;
     const pendingCount = allRequests.filter(r => r.status === 'pending').length;
     const archivedCount = allRequests.filter(r => r.status === 'archived').length;
+
+    return { allRequests, displayRequests, matchedCount, pendingCount, archivedCount };
+  };
+
+  const renderSeriesCard = (s, showAction) => {
+    const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount } = getSeriesMeta(s);
+    const faculty = s.user;
 
     return (
       <div key={s.id} className="card mb-3 shadow-sm">
@@ -235,6 +239,16 @@ function AllRequests() {
                     Find New Model
                   </Button>
                 )}
+                {req.status === 'pending' && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="p-0 text-nowrap"
+                    onClick={() => navigate(`/gigs/new/${req.id}`)}
+                  >
+                    Find Match
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -253,7 +267,7 @@ function AllRequests() {
             </div>
           )}
           <div className="d-flex flex-column gap-2">
-            {showAction && (
+            {showAction && matchedCount === 0 && (
               <Button size="sm" variant="outline-primary" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
                 Find Match
               </Button>
@@ -298,16 +312,8 @@ function AllRequests() {
             </tr>
           ) : (
             seriesList.map(s => {
-              const pendingRequests = s.faculty_requests?.filter(r => r.status === 'pending') || [];
-              const allRequests = s.faculty_requests || [];
-              const displayRequests = allRequests
-                .filter(r => r.status !== 'archived')
-                .slice()
-                .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+              const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount } = getSeriesMeta(s);
               const faculty = s.user;
-              const matchedCount = allRequests.filter(r => r.status === 'matched').length;
-              const pendingCount = allRequests.filter(r => r.status === 'pending').length;
-              const archivedCount = allRequests.filter(r => r.status === 'archived').length;
 
               return (
                 <tr key={s.id}>
@@ -334,6 +340,16 @@ function AllRequests() {
                             onClick={() => handleFindNewModel(req)}
                           >
                             Find New Model
+                          </Button>
+                        )}
+                        {req.status === 'pending' && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="p-0 text-nowrap"
+                            onClick={() => navigate(`/gigs/new/${req.id}`)}
+                          >
+                            Find Match
                           </Button>
                         )}
                       </div>
@@ -374,12 +390,8 @@ function AllRequests() {
                   </td>
                   <td>
                     <div className="d-flex flex-column gap-2">
-                      {showAction && (
-                        <Button
-                          size="sm"
-                          variant="outline-primary"
-                          onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}
-                        >
+                      {showAction && matchedCount === 0 && (
+                        <Button size="sm" variant="outline-primary" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
                           Find Match
                         </Button>
                       )}
