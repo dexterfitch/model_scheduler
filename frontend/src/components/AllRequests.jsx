@@ -509,7 +509,7 @@ function AllRequests() {
           {seriesForm.dates.some(d => d.status === 'matched') && (
             <Alert variant="warning" className="small">
               <strong>⚠️ This series includes confirmed gigs.</strong><br />
-              Only edit confirmed modeling gigs by faculty request, and only for unusual circumstances (campus closures, emergencies, etc.). Make sure you've informed the model of the change and they've agreed to it before saving. If a new time conflicts with another confirmed gig for that model, saving will be blocked.
+              Only edit confirmed modeling gigs by request, and only for unusual circumstances (campus closures, emergencies, etc.). Make sure you've informed the model of the change and they've agreed to it before saving. If a new time conflicts with another confirmed gig for that model, saving will be blocked.
             </Alert>
           )}
           {editError && (

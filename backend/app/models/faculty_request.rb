@@ -19,7 +19,7 @@ class FacultyRequest < ApplicationRecord
 
   validates :starts_at, :ends_at, :class_name, :model_mode, presence: true
   validate :end_after_start
-  validate :must_be_faculty_role, on: :create
+  validate :must_be_faculty_role, on: :create, unless: -> { request_series_id.present? }
   validate :must_be_within_business_hours
   validates :department, presence: true, inclusion: { in: DEPARTMENTS }
   validates :building, presence: true, inclusion: { in: BUILDINGS }
