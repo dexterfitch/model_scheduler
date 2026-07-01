@@ -182,9 +182,15 @@ function AllRequests() {
 
   const renderDateRow = (req) => (
     <div key={req.id} className="small text-muted mb-1">
-      {req.status === 'matched'
-        ? <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
-        : <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>}
+      {req.status === 'matched' && (
+        <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
+      )}
+      {req.status === 'pending' && (
+        <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>
+      )}
+      {req.status === 'archived' && (
+        <Badge bg="secondary" className="me-2" style={{ fontSize: '0.65em' }}>Cancelled</Badge>
+      )}
       <i className="bi bi-calendar3 me-1"></i>
       {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
       {req.status === 'matched' && req.gig?.art_model_availability?.user && (
