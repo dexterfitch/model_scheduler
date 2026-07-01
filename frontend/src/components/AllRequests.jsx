@@ -596,6 +596,7 @@ function AllRequests() {
                   type="time"
                   value={d.start}
                   onChange={e => updateSeriesDate(i, 'start', e.target.value)}
+                  onBlur={e => updateSeriesDate(i, 'start', roundToNearest5(e.target.value))}
                 />
               </Col>
               <Col xs={3} md={d.isNew ? 2 : 3}>
@@ -603,6 +604,7 @@ function AllRequests() {
                   type="time"
                   value={d.end}
                   onChange={e => updateSeriesDate(i, 'end', e.target.value)}
+                  onBlur={e => updateSeriesDate(i, 'end', roundToNearest5(e.target.value))}
                 />
               </Col>
               {d.isNew && (
