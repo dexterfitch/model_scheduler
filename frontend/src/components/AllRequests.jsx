@@ -180,7 +180,7 @@ function AllRequests() {
     return { allRequests, displayRequests, matchedCount, pendingCount, archivedCount };
   };
 
-  const renderDateRow = (req, showBadge) => (
+  const renderDateRow = (req, showBadge, isSingle) => (
     <div key={req.id} className="small text-muted mb-1">
       {showBadge && req.status === 'matched' && (
         <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
@@ -198,12 +198,14 @@ function AllRequests() {
           {' ('}
           {req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name}
           {') '}
-          <i
-            role="button"
-            className="bi bi-arrow-repeat text-primary ms-1"
-            title="Find a different model for this date"
-            onClick={() => handleFindNewModel(req)}
-          ></i>
+          {!isSingle && (
+            <i
+              role="button"
+              className="bi bi-arrow-repeat text-primary ms-1"
+              title="Find a different model for this date"
+              onClick={() => handleFindNewModel(req)}
+            ></i>
+          )}
         </>
       )}
       {req.status === 'pending' && (
@@ -255,6 +257,7 @@ function AllRequests() {
   const renderSeriesCard = (s, showAction) => {
     const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount } = getSeriesMeta(s);
     const faculty = s.user;
+    const isSingle = allRequests.filter(r => r.status !== 'archived').length <= 1;
 
     return (
       <div key={s.id} className="card mb-3 shadow-sm">
@@ -286,7 +289,7 @@ function AllRequests() {
           </div>
 
           <div className="mb-2">
-            {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0))}
+            {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0, isSingle))}
           </div>
 
           <div className="small text-muted mb-1">
@@ -331,11 +334,12 @@ function AllRequests() {
             seriesList.map(s => {
               const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount } = getSeriesMeta(s);
               const faculty = s.user;
+              const isSingle = allRequests.filter(r => r.status !== 'archived').length <= 1;
 
               return (
                 <tr key={s.id}>
                   <td>
-                    {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0))}
+                    {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0, isSingle))}
                   </td>
                   <td>
                     <div className="fw-bold">{s.class_name}</div>
