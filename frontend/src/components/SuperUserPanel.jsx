@@ -39,7 +39,9 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const fetchModelAvailability = async (userId) => {
     try {
       const res = await api.get(`/art_model_availabilities?user_id=${userId}`);
-      setModelAvailability(res.data.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)));
+      const now = new Date();
+      const upcoming = res.data.filter(a => new Date(a.ends_at) >= now);
+      setModelAvailability(upcoming.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)));
     } catch (err) {
       console.error("Failed to fetch availability", err);
     }
@@ -310,7 +312,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
       </div>
 
       <div className="card shadow mb-4 border-info">
-        <div className="card-header bg-info text-white fw-bold">
+        <div className="card-header bg-primary text-white fw-bold">
           Create Sock Account (Offline Model)
         </div>
         <div className="card-body">
@@ -376,7 +378,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
               </Col>
             </Row>
             <div className="mt-4">
-              <button type="submit" className="btn btn-info text-white w-100">Create Sock Account</button>
+              <button type="submit" className="btn btn-primary text-white w-100">Create Sock Account</button>
             </div>
           </form>
         </div>
@@ -384,7 +386,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
 
       <div className="card shadow mb-4 border-success">
         <div className="card-header bg-success text-white fw-bold">
-          Manage Model Availability
+          Manage Offline Model Availability
         </div>
         <div className="card-body">
           <div className="mb-4">
