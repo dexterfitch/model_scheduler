@@ -171,7 +171,13 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     setSockErrors([]);
     setSockSuccess(false);
     try {
-      await api.post('/users', { user: { ...sockForm, role: 'model' } });
+      await api.post('/users', {
+        user: {
+          ...sockForm,
+          first_name: `🧦 ${sockForm.first_name}`,
+          role: 'model'
+        }
+      });
       setSockSuccess(true);
       setSockForm({
         first_name: "", last_name: "", email: "", phone: "",
