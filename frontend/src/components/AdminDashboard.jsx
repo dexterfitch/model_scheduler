@@ -113,7 +113,7 @@ function AdminDashboard() {
 
                           <div className="mb-2">
                             {pendingRequests.map((req) => (
-                              <div key={req.id} className="d-flex align-items-center small mb-1">
+                              <div key={req.id} className="d-flex align-items-center small mb-1 w-100">
                                 <span className="text-nowrap">
                                   <i className="bi bi-calendar3 me-1"></i>
                                   {formatDate(req.starts_at)} &nbsp;{formatTime(req.starts_at)} - {formatTime(req.ends_at)}
@@ -129,8 +129,8 @@ function AdminDashboard() {
                                 ></span>
                                 <Button
                                   variant="outline-danger"
-                                  size="sm"
-                                  className="text-nowrap"
+                                  className="text-nowrap flex-shrink-0"
+                                  style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem", lineHeight: 1.4 }}
                                   onClick={() => handleDropDate(req.id)}
                                 >
                                   Drop This Date
