@@ -190,14 +190,14 @@ function AllRequests() {
       {req.status === 'matched' && req.gig?.art_model_availability?.user && (
         <>
           {' ('}
-          <span
+          {req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name}
+          {') '}
+          <i
             role="button"
-            className="text-primary text-decoration-underline"
+            className="bi bi-arrow-repeat text-primary ms-1"
+            title="Find a different model for this date"
             onClick={() => handleFindNewModel(req)}
-          >
-            {req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name}
-          </span>
-          {')'}
+          ></i>
         </>
       )}
       {req.status === 'pending' && (
