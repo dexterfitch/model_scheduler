@@ -27,8 +27,31 @@ class FacultyRequest < ApplicationRecord
   validates :pref_skin_tone, inclusion: { in: User::SKIN_TONES + ["Any"] }, allow_nil: true
   validate :must_be_future_date, on: :create
   validate :must_be_within_four_months, on: :create
-
+  validate :validate_matched_reschedule, on: :update, if: -> { matched? && gig.present? && (starts_at_changed? || ends_at_changed?) }
+  after_save :sync_matched_gig_availability, if: -> { matched? && gig.present? && (saved_change_to_starts_at? || saved_change_to_ends_at?) }
+  
   private
+
+  def validate_matched_reschedule
+    model_user = gig.art_model_availability.user
+    conflict = Gig.where(status: 'confirmed')
+      .joins(:art_model_availability)
+      .where(art_model_availabilities: { user_id: model_user.id })
+      .where.not(id: gig.id)
+      .any? do |other_gig|
+        other_start = other_gig.faculty_request.starts_at
+        other_end = other_gig.faculty_request.ends_at
+        other_start < ends_at && other_end > starts_at
+      end
+
+    if conflict
+      errors.add(:base, "This model already has another confirmed gig that overlaps with the new time. Coordinate with the model before rescheduling.")
+    end
+  end
+
+  def sync_matched_gig_availability
+    gig.art_model_availability.update_columns(starts_at: starts_at, ends_at: ends_at)
+  end
 
   def must_be_future_date
     return unless starts_at

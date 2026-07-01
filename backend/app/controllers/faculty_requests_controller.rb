@@ -30,7 +30,7 @@ class FacultyRequestsController < ApplicationController
       return render json: { error: "Not authorized" }, status: :forbidden
     end
 
-    unless @request.status == 'pending'
+    if @request.status != 'pending' && !current_user.role_admin?
       return render json: { error: "This request can no longer be edited because it has already been matched or archived" }, status: :forbidden
     end
 

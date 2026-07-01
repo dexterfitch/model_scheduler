@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Table, Badge, Form, InputGroup, Button, Row, Col } from "react-bootstrap";
+import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert } from "react-bootstrap";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
 
@@ -58,6 +58,10 @@ function AllRequests() {
   const matched = filterSeries('matched');
   const archived = filterSeries('archived').reverse();
 
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [editForm, setEditForm] = useState({ date: '', start: '', end: '', building: '', room_number: '' });
+  const [editError, setEditError] = useState('');
+
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const formatDateShort = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -68,6 +72,43 @@ function AllRequests() {
       api.get("/request_series").then(res => setAllSeries(res.data));
     } catch (err) {
       alert("Failed to release remaining dates.");
+    }
+  };
+
+  const openEditModal = (req) => {
+    const startDate = new Date(req.starts_at);
+    const endDate = new Date(req.ends_at);
+    const pad = (n) => String(n).padStart(2, '0');
+    setEditForm({
+      date: `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}`,
+      start: `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`,
+      end: `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`,
+      building: req.building || '',
+      room_number: req.room_number || ''
+    });
+    setEditError('');
+    setEditingRequest(req);
+  };
+
+  const handleSaveEdit = async () => {
+    setEditError('');
+    const starts_at = new Date(`${editForm.date}T${editForm.start}`);
+    const ends_at = new Date(`${editForm.date}T${editForm.end}`);
+
+    try {
+      await api.patch(`/faculty_requests/${editingRequest.id}`, {
+        faculty_request: {
+          starts_at,
+          ends_at,
+          building: editForm.building,
+          room_number: editForm.room_number
+        }
+      });
+      setEditingRequest(null);
+      api.get("/request_series").then(res => setAllSeries(res.data));
+    } catch (err) {
+      const messages = err.response?.data?.errors || [err.response?.data?.error] || ["Failed to save changes."];
+      setEditError(Array.isArray(messages) ? messages.join(" ") : messages);
     }
   };
 
@@ -112,9 +153,14 @@ function AllRequests() {
 
           <div className="mb-2">
             {displayRequests.map(req => (
-              <div key={req.id} className="small text-muted">
-                <i className="bi bi-calendar3 me-1"></i>
-                {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
+              <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center">
+                <span>
+                  <i className="bi bi-calendar3 me-1"></i>
+                  {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
+                </span>
+                <Button variant="link" size="sm" className="p-0 ms-2" onClick={() => openEditModal(req)}>
+                  Edit
+                </Button>
               </div>
             ))}
           </div>
@@ -188,9 +234,14 @@ function AllRequests() {
                 <tr key={s.id}>
                   <td>
                     {displayRequests.map(req => (
-                      <div key={req.id} className="small">
-                        {formatDateShort(req.starts_at)}<br />
-                        <span className="text-muted">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</span>
+                      <div key={req.id} className="small text-muted d-flex justify-content-between align-items-center">
+                        <span>
+                          <i className="bi bi-calendar3 me-1"></i>
+                          {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
+                        </span>
+                        <Button variant="link" size="sm" className="p-0 ms-2" onClick={() => openEditModal(req)}>
+                          Edit
+                        </Button>
                       </div>
                     ))}
                   </td>
@@ -330,7 +381,83 @@ function AllRequests() {
         <h5 className="fw-bold text-secondary mb-2">Cancelled ({archived.length})</h5>
         {renderSection(archived, false)}
       </div>
+
+      <Modal show={!!editingRequest} onHide={() => setEditingRequest(null)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Request</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {editingRequest?.status === 'matched' && (
+            <Alert variant="warning" className="small">
+              <strong>⚠️ Editing a Confirmed Gig</strong><br />
+              Only edit confirmed modeling gigs by faculty request, and only for unusual circumstances (campus closures, emergencies, etc.). Make sure you've informed the model of the change and they've agreed to it before saving. If the new time conflicts with another confirmed gig for this model, the edit will be blocked.
+            </Alert>
+          )}
+          {editError && (
+            <Alert variant="danger" dismissible onClose={() => setEditError('')}>
+              {editError}
+            </Alert>
+          )}
+          <Form.Group className="mb-3">
+            <Form.Label>Date</Form.Label>
+            <Form.Control
+              type="date"
+              value={editForm.date}
+              onChange={e => setEditForm(prev => ({ ...prev, date: e.target.value }))}
+            />
+          </Form.Group>
+          <Row>
+            <Col>
+              <Form.Group className="mb-3">
+                <Form.Label>Start Time</Form.Label>
+                <Form.Control
+                  type="time"
+                  value={editForm.start}
+                  onChange={e => setEditForm(prev => ({ ...prev, start: e.target.value }))}
+                />
+              </Form.Group>
+            </Col>
+            <Col>
+              <Form.Group className="mb-3">
+                <Form.Label>End Time</Form.Label>
+                <Form.Control
+                  type="time"
+                  value={editForm.end}
+                  onChange={e => setEditForm(prev => ({ ...prev, end: e.target.value }))}
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+          <Form.Group className="mb-3">
+            <Form.Label>Building</Form.Label>
+            <Form.Select
+              value={editForm.building}
+              onChange={e => setEditForm(prev => ({ ...prev, building: e.target.value }))}
+            >
+              <option value="">Select building...</option>
+              <option value="Main">Main</option>
+              <option value="Fox">Fox</option>
+              <option value="Lazarus">Lazarus</option>
+              <option value="Station">Station</option>
+            </Form.Select>
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>Room Number</Form.Label>
+            <Form.Control
+              type="text"
+              value={editForm.room_number}
+              onChange={e => setEditForm(prev => ({ ...prev, room_number: e.target.value }))}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setEditingRequest(null)}>Cancel</Button>
+          <Button variant="primary" onClick={handleSaveEdit}>Save Changes</Button>
+        </Modal.Footer>
+      </Modal>
+
     </Container>
+
   );
 }
 
