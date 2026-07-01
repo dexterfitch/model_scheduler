@@ -93,11 +93,9 @@ function AllRequests() {
 
   const handleFindNewModel = async (req) => {
     const modelName = `${req.gig?.art_model_availability?.user?.first_name} ${req.gig?.art_model_availability?.user?.last_name}`;
-    if (!confirm(`Release ${modelName} from this date and reopen it for rematching? This date will move back to Pending.`)) return;
+    if (!confirm(`Release ${modelName} from this date and reopen it for rematching? Their availability for this time slot will remain intact.`)) return;
     try {
-      await api.post(`/art_model_availabilities/${req.gig.art_model_availability.id}/cancel`, {
-        cancel_remaining_series: false
-      });
+      await api.delete(`/gigs/${req.gig.id}`);
       api.get("/request_series").then(res => setAllSeries(res.data));
     } catch (err) {
       alert("Failed to release this date for rematching.");
