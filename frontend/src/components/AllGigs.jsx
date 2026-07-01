@@ -51,6 +51,27 @@ function AllGigs() {
     return gigDate >= new Date(filterStart + "T00:00:00") && gigDate <= new Date(filterEnd + "T23:59:59");
   });
 
+  const groupedGigs = (() => {
+    const groups = [];
+    const seriesMap = {};
+
+    filteredGigs.forEach(gig => {
+      const seriesId = gig.faculty_request?.request_series_id;
+      if (!seriesId) {
+        groups.push({ key: `gig-${gig.id}`, gigs: [gig] });
+        return;
+      }
+      if (!seriesMap[seriesId]) {
+        const group = { key: `series-${seriesId}`, gigs: [] };
+        seriesMap[seriesId] = group;
+        groups.push(group);
+      }
+      seriesMap[seriesId].gigs.push(gig);
+    });
+
+    return groups;
+  })();
+
   const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const renderStatusBadge = (gig) => {
@@ -124,101 +145,134 @@ function AllGigs() {
             </tr>
           </thead>
           <tbody>
-            {filteredGigs.length === 0 ? (
+            {groupedGigs.length === 0 ? (
               <tr>
                 <td colSpan="6" className="text-center py-4 text-muted">
                   No gigs found matching your search.
                 </td>
               </tr>
             ) : (
-              filteredGigs.map(gig => (
-                <tr key={gig.id}>
-                  <td className="align-middle">
-                    <div className="fw-bold">{new Date(gig.faculty_request?.starts_at).toLocaleDateString()}</div>
-                    <div className="small text-muted">
-                      {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
-                    </div>
-                  </td>
-                  <td className="align-middle">
-                    {gig.faculty_request?.class_name}
-                    {gig.faculty_request?.model_mode === 'nude' && (
-                      <Badge bg="danger" className="ms-2" style={{ fontSize: '0.6em' }}>NUDE</Badge>
-                    )}
-                    {gig.faculty_request?.department && (
-                      <div><Badge bg="secondary" style={{ fontSize: '0.6em' }}>{gig.faculty_request.department}</Badge></div>
-                    )}
-                  </td>
-                  <td className="align-middle">
-                    {gig.faculty_request?.user?.first_name} {gig.faculty_request?.user?.last_name}
-                  </td>
-                  <td className="align-middle">
-                    <Badge bg="success" text="light" className="p-2">
-                      {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-                    </Badge>
-                  </td>
-                  <td className="align-middle">{renderStatusBadge(gig)}</td>
-                  <td className="align-middle text-end">
-                    {gig.status === 'confirmed' && (
-                      <Button variant="outline-danger" size="sm" onClick={() => handleDelete(gig.id)}>
-                        Cancel
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))
+              groupedGigs.map(group => {
+                const first = group.gigs[0];
+                return (
+                  <tr key={group.key}>
+                    <td className="align-middle">
+                      {group.gigs.map(gig => (
+                        <div key={gig.id} className="mb-1">
+                          <div className="fw-bold">{new Date(gig.faculty_request?.starts_at).toLocaleDateString()}</div>
+                          <div className="small text-muted">
+                            {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
+                          </div>
+                        </div>
+                      ))}
+                    </td>
+                    <td className="align-middle">
+                      {first.faculty_request?.class_name}
+                      {group.gigs.length > 1 && (
+                        <Badge bg="info" text="dark" className="ms-2" style={{ fontSize: '0.6em' }}>{group.gigs.length} dates</Badge>
+                      )}
+                      {first.faculty_request?.model_mode === 'nude' && (
+                        <Badge bg="danger" className="ms-2" style={{ fontSize: '0.6em' }}>NUDE</Badge>
+                      )}
+                      {first.faculty_request?.department && (
+                        <div><Badge bg="secondary" style={{ fontSize: '0.6em' }}>{first.faculty_request.department}</Badge></div>
+                      )}
+                    </td>
+                    <td className="align-middle">
+                      {first.faculty_request?.user?.first_name} {first.faculty_request?.user?.last_name}
+                    </td>
+                    <td className="align-middle">
+                      {group.gigs.map(gig => (
+                        <div key={gig.id} className="mb-1">
+                          <Badge bg="success" text="light" className="p-2">
+                            {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
+                          </Badge>
+                        </div>
+                      ))}
+                    </td>
+                    <td className="align-middle">
+                      {group.gigs.map(gig => (
+                        <div key={gig.id} className="mb-1">{renderStatusBadge(gig)}</div>
+                      ))}
+                    </td>
+                    <td className="align-middle text-end">
+                      {group.gigs.map(gig => (
+                        <div key={gig.id} className="mb-1">
+                          {gig.status === 'confirmed' && (
+                            <Button variant="outline-danger" size="sm" onClick={() => handleDelete(gig.id)}>
+                              Cancel
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </Table>
       </div>
 
       <div className="d-md-none">
-        {filteredGigs.length === 0 ? (
+        {groupedGigs.length === 0 ? (
           <p className="text-center text-muted py-3">No gigs found matching your search.</p>
         ) : (
-          filteredGigs.map(gig => (
-            <div key={gig.id} className="card mb-3 shadow-sm">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-start mb-2">
-                  <div>
-                    <div className="fw-bold">{gig.faculty_request?.class_name}</div>
-                    {gig.faculty_request?.model_mode === 'nude' && (
-                      <Badge bg="danger" style={{ fontSize: '0.65em' }}>NUDE</Badge>
-                    )}
-                    {gig.faculty_request?.department && (
-                      <Badge bg="secondary" className="ms-1" style={{ fontSize: '0.65em' }}>
-                        {gig.faculty_request.department}
-                      </Badge>
-                    )}
+          groupedGigs.map(group => {
+            const first = group.gigs[0];
+            return (
+              <div key={group.key} className="card mb-3 shadow-sm">
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <div className="fw-bold">
+                        {first.faculty_request?.class_name}
+                        {group.gigs.length > 1 && (
+                          <Badge bg="info" text="dark" className="ms-2" style={{ fontSize: '0.65em' }}>{group.gigs.length} dates</Badge>
+                        )}
+                      </div>
+                      {first.faculty_request?.model_mode === 'nude' && (
+                        <Badge bg="danger" style={{ fontSize: '0.65em' }}>NUDE</Badge>
+                      )}
+                      {first.faculty_request?.department && (
+                        <Badge bg="secondary" className="ms-1" style={{ fontSize: '0.65em' }}>
+                          {first.faculty_request.department}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  {renderStatusBadge(gig)}
+                  <div className="small text-muted mb-2">
+                    <i className="bi bi-person me-1"></i>
+                    Faculty: {first.faculty_request?.user?.first_name} {first.faculty_request?.user?.last_name}
+                  </div>
+                  {group.gigs.map(gig => (
+                    <div key={gig.id} className="border-top pt-2 mt-2">
+                      <div className="small text-muted mb-1">
+                        <i className="bi bi-calendar3 me-1"></i>
+                        {new Date(gig.faculty_request?.starts_at).toLocaleDateString()} &bull; {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <Badge bg="success" text="light" className="p-1">
+                          {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
+                        </Badge>
+                        {renderStatusBadge(gig)}
+                      </div>
+                      {gig.status === 'confirmed' && (
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          className="w-100 mt-1"
+                          onClick={() => handleDelete(gig.id)}
+                        >
+                          Cancel Gig
+                        </Button>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div className="small text-muted mb-1">
-                  <i className="bi bi-calendar3 me-1"></i>
-                  {new Date(gig.faculty_request?.starts_at).toLocaleDateString()} &bull; {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
-                </div>
-                <div className="small text-muted mb-1">
-                  <i className="bi bi-person me-1"></i>
-                  Faculty: {gig.faculty_request?.user?.first_name} {gig.faculty_request?.user?.last_name}
-                </div>
-                <div className="small mb-2">
-                  <i className="bi bi-easel me-1"></i>
-                  Model: <Badge bg="success" text="light" className="p-1">
-                    {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-                  </Badge>
-                </div>
-                {gig.status === 'confirmed' && (
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    className="w-100 mt-1"
-                    onClick={() => handleDelete(gig.id)}
-                  >
-                    Cancel Gig
-                  </Button>
-                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
