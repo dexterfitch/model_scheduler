@@ -78,3 +78,16 @@ body {
   --bs-nav-link-color: var(--brand-yellow);
   --bs-nav-link-hover-color: var(--brand-green);
 }
+
+/* View-Specific Styles */
+
+/* AllGigs and AllRequests Date Filters */
+.date-filter-box {
+  min-height: auto;
+}
+
+@media (min-width: 768px) {
+  .date-filter-box {
+    min-height: 100px;
+  }
+}
