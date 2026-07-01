@@ -335,7 +335,6 @@ function AllRequests() {
                 <div className="small text-muted mt-1">
                   Series: {matchedCount > 0 && <Badge bg="success" className="me-1">{matchedCount} Matched</Badge>}
                   {pendingCount > 0 && <Badge bg="warning" text="dark" className="me-1">{pendingCount} Pending</Badge>}
-                  {archivedCount > 0 && <Badge bg="secondary" className="me-1">{archivedCount} Cancelled</Badge>}
                 </div>
               )}
             </div>
@@ -414,7 +413,6 @@ function AllRequests() {
                       <div className="small text-muted mt-1">
                         Series: {matchedCount > 0 && <Badge bg="success" className="me-1">{matchedCount} Matched</Badge>}
                         {pendingCount > 0 && <Badge bg="warning" text="dark" className="me-1">{pendingCount} Pending</Badge>}
-                        {archivedCount > 0 && <Badge bg="secondary" className="me-1">{archivedCount} Cancelled</Badge>}
                       </div>
                     )}
                   </td>
