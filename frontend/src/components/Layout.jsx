@@ -102,7 +102,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
                 size="sm"
                 onClick={() => { setNavExpanded(false); setShowBugModal(true); }}
               >
-                <i className="bi bi-bug me-1"></i>
+                <i className="bi bi-bug"></i>
               </Button>
               <Button variant="outline-light" size="sm" onClick={() => { setNavExpanded(false); onLogout(); }}>
                 Logout
@@ -116,7 +116,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
       <Container>
         <Outlet />
       </Container>
-      
+
       <Modal show={showBugModal} onHide={() => setShowBugModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Report a Bug</Modal.Title>
