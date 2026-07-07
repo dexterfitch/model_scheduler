@@ -476,10 +476,11 @@ function AllRequests() {
         </InputGroup>
       </div>
 
-      <div className="p-3 border-bottom border-info mb-4 d-flex align-items-end date-filter-box">
+      <div className="py-3 border-bottom border-info mb-4 d-flex align-items-end date-filter-box">
         <Row className="g-2 align-items-end w-100">
           <Col xs={12} md="auto">
             <Button
+              size="sm"
               className="w-100"
               variant={showAll ? "secondary" : "outline-secondary"}
               onClick={() => setShowAll(!showAll)}
