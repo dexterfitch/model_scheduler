@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from "re
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
-import { roundToNearest5 } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateWithWeekday } from "../utils/time";
 
 const DEPARTMENTS = [
   "Painting", "Drawing", "Illustration", "FYE", "Sculpture", "Open Studies"
@@ -27,6 +27,9 @@ function FacultyDashboard({ user }) {
     starts_at: "", starts_time: "", ends_time: ""
   });
   const [editError, setEditError] = useState('');
+  const [addingDateSeriesId, setAddingDateSeriesId] = useState(null);
+  const [newDateForm, setNewDateForm] = useState({ date: '', start_time: '', end_time: '' });
+  const [addDateError, setAddDateError] = useState(''); 
 
   const [formData, setFormData] = useState({
     class_name: "",
@@ -263,8 +266,58 @@ function FacultyDashboard({ user }) {
       });
   };
 
-  const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-  const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const openAddDateForm = (seriesId) => {
+    setAddingDateSeriesId(seriesId);
+    setNewDateForm({ date: '', start_time: '', end_time: '' });
+    setAddDateError('');
+  };
+
+  const handleAddDateChange = (field, value) => {
+    setNewDateForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddDateBlur = (field, value) => {
+    if (field === 'start_time' || field === 'end_time') {
+      setNewDateForm(prev => ({ ...prev, [field]: roundToNearest5(value) }));
+    }
+  };
+
+  const handleAddDateSubmit = async (series) => {
+    setAddDateError('');
+    const { date, start_time, end_time } = newDateForm;
+    if (!date || !start_time || !end_time) {
+      setAddDateError("All fields are required.");
+      return;
+    }
+
+    const starts_at = new Date(`${date}T${start_time}`);
+    const ends_at = new Date(`${date}T${end_time}`);
+
+    try {
+      await api.post('/faculty_requests', {
+        faculty_request: {
+          request_series_id: series.id,
+          class_name: series.class_name,
+          department: series.department,
+          building: series.building,
+          room_number: series.room_number,
+          model_mode: series.model_mode,
+          pref_skin_tone: series.pref_skin_tone,
+          pref_gender: series.pref_gender,
+          notes: series.notes,
+          starts_at,
+          ends_at
+        }
+      });
+      setAddingDateSeriesId(null);
+      setSubmitSuccess("Date added!");
+      setTimeout(() => setSubmitSuccess(''), 3000);
+      fetchSeries();
+    } catch (err) {
+      const messages = err.response?.data?.errors || [err.response?.data?.error] || ["Failed to add date."];
+      setAddDateError(Array.isArray(messages) ? messages.join(" ") : messages);
+    }
+  };
 
   return (
     <Container className={`py-4 ${styles.container}`}>
@@ -323,7 +376,7 @@ function FacultyDashboard({ user }) {
                       <div key={req.id} className={idx > 0 ? "mt-1 pt-1 border-top" : ""}>
                         <div className="d-flex justify-content-between align-items-center">
                           <div>
-                            <div className="fw-bold">{formatDate(req.starts_at)}</div>
+                            <div className="fw-bold">{formatDateWithWeekday(req.starts_at)}</div>
                             <div className="text-muted small">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
                             {req.status === 'matched' && (
                               <Badge bg="success" className="mt-1">Model Confirmed</Badge>
@@ -344,7 +397,59 @@ function FacultyDashboard({ user }) {
                         </div>
                       </div>
                     ))}
-
+                    
+                    {s.status === 'pending' && (
+                      <div className="mt-2 pt-2 border-top">
+                        {addingDateSeriesId === s.id ? (
+                          <div className="p-2 bg-light rounded border">
+                            {addDateError && (
+                              <Alert variant="danger" dismissible onClose={() => setAddDateError('')} className="py-2 small">
+                                {addDateError}
+                              </Alert>
+                            )}
+                            <Row className="g-2">
+                              <Col xs={12} sm={4}>
+                                <Form.Label className="small mb-1">Date</Form.Label>
+                                <Form.Control
+                                  type="date"
+                                  size="sm"
+                                  value={newDateForm.date}
+                                  onChange={e => handleAddDateChange('date', e.target.value)}
+                                />
+                              </Col>
+                              <Col xs={6} sm={4}>
+                                <Form.Label className="small mb-1">Start</Form.Label>
+                                <Form.Control
+                                  type="time"
+                                  size="sm"
+                                  value={newDateForm.start_time}
+                                  onChange={e => handleAddDateChange('start_time', e.target.value)}
+                                  onBlur={e => handleAddDateBlur('start_time', e.target.value)}
+                                />
+                              </Col>
+                              <Col xs={6} sm={4}>
+                                <Form.Label className="small mb-1">End</Form.Label>
+                                <Form.Control
+                                  type="time"
+                                  size="sm"
+                                  value={newDateForm.end_time}
+                                  onChange={e => handleAddDateChange('end_time', e.target.value)}
+                                  onBlur={e => handleAddDateBlur('end_time', e.target.value)}
+                                />
+                              </Col>
+                            </Row>
+                            <div className="d-flex justify-content-end gap-2 mt-2">
+                              <Button variant="secondary" size="sm" onClick={() => setAddingDateSeriesId(null)}>Cancel</Button>
+                              <Button variant="primary" size="sm" onClick={() => handleAddDateSubmit(s)}>Add</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button variant="outline-primary" size="sm" onClick={() => openAddDateForm(s.id)}>
+                            <i className="bi bi-plus-circle me-1"></i> Add Date
+                          </Button>
+                        )}
+                      </div>
+                    )}
                     {(s.building || s.room_number) && (
                       <div className="text-muted small mt-1">
                         <i className="bi bi-door-open me-1"></i>
