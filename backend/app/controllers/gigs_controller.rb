@@ -1,6 +1,6 @@
 class GigsController < ApplicationController
   before_action -> { require_role(:admin, :model) }, only: [:index]
-  before_action -> { require_role(:admin) }, only: [:create, :update, :destroy]
+  before_action -> { require_role(:admin) }, only: [:create, :destroy]
 
   def index
     gigs = if current_user.role_admin?
@@ -25,15 +25,6 @@ class GigsController < ApplicationController
       gig.faculty_request&.update(status: 'matched', needs_attention: false)
       gig.faculty_request&.request_series&.update_status!
       render json: gig, status: :created
-    else
-      render json: { errors: gig.errors.full_messages }, status: :unprocessable_entity
-    end
-  end
-
-  def update
-    gig = Gig.find(params[:id])
-    if gig.update(gig_params)
-      render json: gig
     else
       render json: { errors: gig.errors.full_messages }, status: :unprocessable_entity
     end

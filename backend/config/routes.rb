@@ -13,7 +13,7 @@ Rails.application.routes.draw do
   end
 
   resources :faculty_requests, only: [:index, :create, :update, :destroy]
-  resources :gigs, only: [:index, :create, :destroy, :update]
+  resources :gigs, only: [:index, :create, :destroy]
 
   resources :request_series, only: [:index, :create, :destroy, :update] do
     collection do

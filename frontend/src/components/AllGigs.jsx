@@ -30,13 +30,6 @@ function AllGigs() {
       .catch(err => console.error(err));
   };
 
-  const handleDelete = (id) => {
-    if (!confirm("Are you sure you want to cancel this Gig? The Faculty Request will be re-opened.")) return;
-    api.delete(`/gigs/${id}`)
-      .then(() => fetchGigs())
-      .catch(err => console.error("Error deleting gig", err));
-  };
-
   const filteredGigs = gigs.filter(gig => {
     const term = search.toLowerCase();
     const modelName = `${gig.art_model_availability.user.first_name} ${gig.art_model_availability.user.last_name}`.toLowerCase();
@@ -84,6 +77,23 @@ function AllGigs() {
     if (gig.status === 'completed') return <Badge bg="success">Completed</Badge>;
     return null;
   };
+
+  const renderGigRow = (gig) => (
+    <div key={gig.id} className="mb-2 pb-2 border-bottom">
+      <div className="small">
+        <span className="fw-bold">{new Date(gig.faculty_request?.starts_at).toLocaleDateString()}</span>
+        <span className="text-muted ms-1">
+          {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
+        </span>
+      </div>
+      <div className="d-flex justify-content-between align-items-center mt-1">
+        <Badge bg="success" text="light" className="p-1">
+          {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
+        </Badge>
+        {renderStatusBadge(gig)}
+      </div>
+    </div>
+  );
 
   return (
     <Container className="py-4">
@@ -138,18 +148,15 @@ function AllGigs() {
         <Table hover responsive className="mb-0">
           <thead className="bg-light">
             <tr>
-              <th>Date &amp; Time</th>
+              <th>Date(s)</th>
               <th>Class Name</th>
               <th>Faculty</th>
-              <th>Model</th>
-              <th>Status</th>
-              <th className="text-end">Actions</th>
             </tr>
           </thead>
           <tbody>
             {groupedGigs.length === 0 ? (
               <tr>
-                <td colSpan="6" className="text-center py-4 text-muted">
+                <td colSpan="3" className="text-center py-4 text-muted">
                   No gigs found matching your search.
                 </td>
               </tr>
@@ -159,14 +166,7 @@ function AllGigs() {
                 return (
                   <tr key={group.key}>
                     <td className="align-middle">
-                      {group.gigs.map(gig => (
-                        <div key={gig.id} className="mb-1">
-                          <div className="fw-bold">{new Date(gig.faculty_request?.starts_at).toLocaleDateString()}</div>
-                          <div className="small text-muted">
-                            {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
-                          </div>
-                        </div>
-                      ))}
+                      {group.gigs.map(renderGigRow)}
                     </td>
                     <td className="align-middle">
                       {first.faculty_request?.class_name}
@@ -182,31 +182,6 @@ function AllGigs() {
                     </td>
                     <td className="align-middle">
                       {first.faculty_request?.user?.first_name} {first.faculty_request?.user?.last_name}
-                    </td>
-                    <td className="align-middle">
-                      {group.gigs.map(gig => (
-                        <div key={gig.id} className="mb-1">
-                          <Badge bg="success" text="light" className="p-2">
-                            {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-                          </Badge>
-                        </div>
-                      ))}
-                    </td>
-                    <td className="align-middle">
-                      {group.gigs.map(gig => (
-                        <div key={gig.id} className="mb-1">{renderStatusBadge(gig)}</div>
-                      ))}
-                    </td>
-                    <td className="align-middle text-end">
-                      {group.gigs.map(gig => (
-                        <div key={gig.id} className="mb-1">
-                          {gig.status === 'confirmed' && (
-                            <Button variant="outline-danger" size="sm" onClick={() => handleDelete(gig.id)}>
-                              Cancel
-                            </Button>
-                          )}
-                        </div>
-                      ))}
                     </td>
                   </tr>
                 );
@@ -247,30 +222,7 @@ function AllGigs() {
                     <i className="bi bi-person me-1"></i>
                     Faculty: {first.faculty_request?.user?.first_name} {first.faculty_request?.user?.last_name}
                   </div>
-                  {group.gigs.map(gig => (
-                    <div key={gig.id} className="border-top pt-2 mt-2">
-                      <div className="small text-muted mb-1">
-                        <i className="bi bi-calendar3 me-1"></i>
-                        {new Date(gig.faculty_request?.starts_at).toLocaleDateString()} &bull; {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center mb-1">
-                        <Badge bg="success" text="light" className="p-1">
-                          {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-                        </Badge>
-                        {renderStatusBadge(gig)}
-                      </div>
-                      {gig.status === 'confirmed' && (
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          className="w-100 mt-1"
-                          onClick={() => handleDelete(gig.id)}
-                        >
-                          Cancel Gig
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+                  {group.gigs.map(renderGigRow)}
                 </div>
               </div>
             );

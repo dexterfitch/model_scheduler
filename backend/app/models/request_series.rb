@@ -66,6 +66,8 @@ class RequestSeries < ApplicationRecord
           request.update!(status: :archived)
           gig.update!(status: :cancelled, billable: is_late_cancel)
           gig.art_model_availability.update!(status: :active)
+        elsif Gig.where(faculty_request_id: request.id).exists?
+          request.update!(status: :archived)
         else
           request.destroy!
         end
