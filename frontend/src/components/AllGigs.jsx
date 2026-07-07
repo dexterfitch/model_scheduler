@@ -5,7 +5,6 @@ import api from "../services/api";
 function AllGigs() {
   const [gigs, setGigs] = useState([]);
   const [search, setSearch] = useState("");
-
   const today = new Date();
   const [filterStart, setFilterStart] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
@@ -14,6 +13,7 @@ function AllGigs() {
     new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
   );
   const [showAll, setShowAll] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     fetchGigs();
@@ -38,6 +38,7 @@ function AllGigs() {
     const matchesSearch = modelName.includes(term) || facultyName.includes(term) || className.includes(term);
 
     if (!matchesSearch) return false;
+    if (statusFilter !== 'all' && gig.status !== statusFilter) return false;
     if (showAll) return true;
 
     const gigDate = new Date(gig.faculty_request.starts_at);
@@ -79,17 +80,13 @@ function AllGigs() {
   };
 
   const renderGigRow = (gig) => (
-    <div key={gig.id} className="d-flex flex-wrap align-items-center gap-2 py-2 border-bottom">
-      <span className="small text-nowrap">
-        <span className="fw-bold">{new Date(gig.faculty_request?.starts_at).toLocaleDateString()}</span>
-        <span className="text-muted ms-1">
-          {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
-        </span>
+    <div key={gig.id} className="small py-1">
+      {new Date(gig.faculty_request?.starts_at).toLocaleDateString()}{' '}
+      {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)},{' '}
+      Model: {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name},{' '}
+      Status: <span className={gig.status === 'confirmed' ? 'text-primary fw-bold' : 'text-muted'}>
+        {gig.status === 'cancelled' ? (gig.billable ? 'Cancelled (Billable)' : 'Cancelled') : gig.status === 'confirmed' ? 'Confirmed' : 'Completed'}
       </span>
-      <Badge bg="success" text="light" className="p-1">
-        {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-      </Badge>
-      {renderStatusBadge(gig)}
     </div>
   );
 
@@ -108,6 +105,30 @@ function AllGigs() {
         </InputGroup>
       </div>
 
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        <Button
+          size="sm"
+          variant={statusFilter === 'confirmed' ? 'primary' : 'outline-primary'}
+          onClick={() => setStatusFilter('confirmed')}
+        >
+          Confirmed
+        </Button>
+        <Button
+          size="sm"
+          variant={statusFilter === 'cancelled' ? 'secondary' : 'outline-secondary'}
+          onClick={() => setStatusFilter('cancelled')}
+        >
+          Cancelled
+        </Button>
+        <Button
+          size="sm"
+          variant={statusFilter === 'all' ? 'dark' : 'outline-dark'}
+          onClick={() => setStatusFilter('all')}
+        >
+          All
+        </Button>
+      </div>
+      
       <div className="p-3 border-bottom border-info mb-4 d-flex align-items-end date-filter-box">
         <Row className="g-2 align-items-end w-100">
           <Col xs={12} md="auto">
