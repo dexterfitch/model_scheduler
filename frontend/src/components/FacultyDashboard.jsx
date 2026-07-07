@@ -381,6 +381,7 @@ function FacultyDashboard({ user }) {
                             {req.status === 'matched' && (
                               <div>
                                 <Badge bg="success">Model Confirmed</Badge>
+                                <br />
                                 {req.gig?.confirmed_by?.email && (
                                   <a
                                     href={`mailto:${req.gig.confirmed_by.email}?subject=${encodeURIComponent(`Edit request: ${s.class_name} (${formatDateWithWeekday(req.starts_at)})`)}&body=${encodeURIComponent(`Hi ${req.gig.confirmed_by.first_name},\n\nI need to make a change to my confirmed request for ${s.class_name} on ${formatDateWithWeekday(req.starts_at)} at ${formatTime(req.starts_at)}.\n\nDetails:\n`)}`}
