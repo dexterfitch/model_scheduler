@@ -81,9 +81,11 @@ function AllGigs() {
 
   const renderGigRow = (gig) => (
     <div key={gig.id} className="small py-1">
-      {new Date(gig.faculty_request?.starts_at).toLocaleDateString()}{' '}
-      {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)},{' '}
-      Model: {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name},{' '}
+      <b>
+        {new Date(gig.faculty_request?.starts_at).toLocaleDateString()}{' | '}
+        {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)},{' | '}
+      </b>
+      Model: {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name},{' |'}
       Status: <span className={gig.status === 'confirmed' ? 'text-primary fw-bold' : 'text-muted'}>
         {gig.status === 'cancelled' ? (gig.billable ? 'Cancelled (Billable)' : 'Cancelled') : gig.status === 'confirmed' ? 'Confirmed' : 'Completed'}
       </span>
