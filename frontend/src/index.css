@@ -83,6 +83,10 @@ body {
   --bs-nav-link-hover-color: var(--brand-green);
 }
 
+.badge {
+  --bs-badge-font-weight: 400;
+}
+
 /* View-Specific Styles */
 
 /* AllGigs and AllRequests Date Filters */

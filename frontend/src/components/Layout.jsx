@@ -40,27 +40,27 @@ function Layout({ currentUser, onLogout, refreshUser }) {
               
               {currentUser.role === 'admin' && (
                 <>
-                  <Nav.Link as={Link} to="/" className={`mb-1 ${styles.navLink}`} onClick={() => setNavExpanded(false)}>Dashboard</Nav.Link>
-                  <Nav.Link as={Link} to="/calendar" className={`mb-1 ${styles.navLink}`} onClick={() => setNavExpanded(false)}>Calendar</Nav.Link>
-                  <Nav.Link as={Link} to="/requests" className={`mb-1 ${styles.navLink}`} onClick={() => setNavExpanded(false)}>Requests</Nav.Link>
-                  <Nav.Link as={Link} to="/gigs" className={`mb-1 ${styles.navLink}`} onClick={() => setNavExpanded(false)}>Gigs</Nav.Link>
-                  <Nav.Link as={Link} to="/directory" className={`mb-1 ${styles.navLink}`} onClick={() => setNavExpanded(false)}>Directory</Nav.Link>
-                  <Nav.Link as={Link} to="/reports" className={`mb-1 ${styles.navLink}`} onClick={() => setNavExpanded(false)}>Reports</Nav.Link>
+                  <Nav.Link as={Link} to="/" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Dashboard</Nav.Link>
+                  <Nav.Link as={Link} to="/calendar" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Calendar</Nav.Link>
+                  <Nav.Link as={Link} to="/requests" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Requests</Nav.Link>
+                  <Nav.Link as={Link} to="/gigs" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Gigs</Nav.Link>
+                  <Nav.Link as={Link} to="/directory" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Directory</Nav.Link>
+                  <Nav.Link as={Link} to="/reports" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Reports</Nav.Link>
                   {currentUser.superuser && (
-                    <Nav.Link as={Link} to="/superuser" className={`mb-1 ${styles.navLink}`} onClick={() => setNavExpanded(false)}>SuperUser Panel</Nav.Link>
+                    <Nav.Link as={Link} to="/superuser" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>SuperUser Panel</Nav.Link>
                   )}
                 </>
               )}
 
               {currentUser.role === 'faculty' && (
                 <>
-                  <Nav.Link as={Link} to="/" className={`mb-1 ${styles.navLink}`} onClick={() => setNavExpanded(false)}>My Classes</Nav.Link>
+                  <Nav.Link as={Link} to="/" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>My Classes</Nav.Link>
                 </>
               )}
 
               {currentUser.role === 'model' && (
                 <>
-                  <Nav.Link as={Link} to="/" className={`mb-1 ${styles.navLink}`} onClick={() => setNavExpanded(false)}>My Schedule</Nav.Link>
+                  <Nav.Link as={Link} to="/" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>My Schedule</Nav.Link>
                 </>
               )}
 
