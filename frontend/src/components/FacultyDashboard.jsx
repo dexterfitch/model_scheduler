@@ -330,7 +330,7 @@ function FacultyDashboard({ user }) {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2>My Classes</h2>
-          <p className="text-muted">Manage your model needs</p>
+          <p className="text-muted">Manage your model needs. Note: Confirmed gigs (matched requests) can only be changed by an admin.</p>
         </div>
         <Button
           className={styles.requestButton}
@@ -383,12 +383,12 @@ function FacultyDashboard({ user }) {
                                 <Badge bg="success">Model Confirmed</Badge>
                                 {req.gig?.confirmed_by?.email && (
                                   <a
-                                    href={`mailto:${req.gig.confirmed_by.email}?subject=${encodeURIComponent(`Change request: ${s.class_name} (${formatDateWithWeekday(req.starts_at)})`)}&body=${encodeURIComponent(`Hi ${req.gig.confirmed_by.first_name},\n\nI need to make a change to my confirmed request for ${s.class_name} on ${formatDateWithWeekday(req.starts_at)} at ${formatTime(req.starts_at)}.\n\nDetails:\n`)}`}
+                                    href={`mailto:${req.gig.confirmed_by.email}?subject=${encodeURIComponent(`Edit request: ${s.class_name} (${formatDateWithWeekday(req.starts_at)})`)}&body=${encodeURIComponent(`Hi ${req.gig.confirmed_by.first_name},\n\nI need to make a change to my confirmed request for ${s.class_name} on ${formatDateWithWeekday(req.starts_at)} at ${formatTime(req.starts_at)}.\n\nDetails:\n`)}`}
                                     className="small text-nowrap"
-                                    title={`Email ${req.gig.confirmed_by.first_name} about this date`}
+                                    title={`Email ${req.gig.confirmed_by.first_name} (${req.gig.confirmed_by.email}) about this date`}
                                   >
                                     <i className="bi bi-envelope me-1"></i>
-                                    Request Change
+                                    Request Admin Edit
                                   </a>
                                 )}
                               </div>
