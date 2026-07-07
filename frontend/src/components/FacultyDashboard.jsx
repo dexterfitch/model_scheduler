@@ -388,7 +388,7 @@ function FacultyDashboard({ user }) {
                                     title={`Email ${req.gig.confirmed_by.first_name} about this date`}
                                   >
                                     <i className="bi bi-envelope me-1"></i>
-                                    Request Edit (${req.gig.confirmed_by.email})
+                                    Admin: {req.gig.confirmed_by.email}
                                   </a>
                                 )}
                               </div>
