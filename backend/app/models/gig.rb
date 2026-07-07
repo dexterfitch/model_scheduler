@@ -1,6 +1,7 @@
 class Gig < ApplicationRecord
   belongs_to :faculty_request
   belongs_to :art_model_availability
+  belongs_to :confirmed_by, class_name: 'User', optional: true
 
   enum :status, { confirmed: 0, completed: 1, cancelled: 2 }
 

@@ -1,7 +1,6 @@
 class GigsController < ApplicationController
   before_action -> { require_role(:admin, :model) }, only: [:index]
   before_action -> { require_role(:admin) }, only: [:create, :destroy]
-  belongs_to :confirmed_by, class_name: 'User', optional: true
 
   def index
     gigs = if current_user.role_admin?
