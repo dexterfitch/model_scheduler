@@ -371,7 +371,7 @@ function FacultyDashboard({ user }) {
                     {s.department && <Badge bg="secondary" className="small">{s.department}</Badge>}
                   </div>
 
-                  <div className="mb-3">
+                  <div className="mb-2">
                     {requests.map((req, idx) => (
                       <div key={req.id} className={idx > 0 ? "mt-1 pt-1 border-top" : ""}>
                         <div className="d-flex justify-content-between align-items-center">
@@ -385,10 +385,10 @@ function FacultyDashboard({ user }) {
                                   <a
                                     href={`mailto:${req.gig.confirmed_by.email}?subject=${encodeURIComponent(`Edit request: ${s.class_name} (${formatDateWithWeekday(req.starts_at)})`)}&body=${encodeURIComponent(`Hi ${req.gig.confirmed_by.first_name},\n\nI need to make a change to my confirmed request for ${s.class_name} on ${formatDateWithWeekday(req.starts_at)} at ${formatTime(req.starts_at)}.\n\nDetails:\n`)}`}
                                     className="small text-nowrap"
-                                    title={`Email ${req.gig.confirmed_by.first_name} (${req.gig.confirmed_by.email}) about this date`}
+                                    title={`Email ${req.gig.confirmed_by.first_name} about this date`}
                                   >
                                     <i className="bi bi-envelope me-1"></i>
-                                    Request Admin Edit
+                                    Request Edit (${req.gig.confirmed_by.email})
                                   </a>
                                 )}
                               </div>
@@ -463,7 +463,7 @@ function FacultyDashboard({ user }) {
                       </div>
                     )}
                     {(s.building || s.room_number) && (
-                      <div className="text-muted small mt-1">
+                      <div className="text-muted small mt-1 pt-1 border-top">
                         <i className="bi bi-door-open me-1"></i>
                         {s.building}{s.building && s.room_number && " "}{s.room_number}
                       </div>
