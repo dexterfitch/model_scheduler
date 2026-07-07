@@ -1,27 +1,27 @@
 /* Font Imports */
 @font-face {
-  font-family: 'Theinhardt-Regular';
-  src: url('./assets/fonts/Theinhardt-Regular.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Theinhardt-Thin';
+  font-family: 'Theinhardt';
   src: url('./assets/fonts/Theinhardt-Thin.otf') format('opentype');
   font-weight: 100;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'Theinhardt-Bold';
-  src: url('./assets/fonts/Theinhardt-Bold.otf') format('opentype');
-  font-weight: bold;
+  font-family: 'Theinhardt';
+  src: url('./assets/fonts/Theinhardt-Regular.otf') format('opentype');
+  font-weight: 400;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'Theinhardt-Black';
+  font-family: 'Theinhardt';
+  src: url('./assets/fonts/Theinhardt-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Theinhardt';
   src: url('./assets/fonts/Theinhardt-Black.otf') format('opentype');
   font-weight: 900;
   font-style: normal;
@@ -41,32 +41,36 @@
   --brand-black: #000000;
 
   /* Font Weights */
-  --font-thin: 'Theinhardt-Thin', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --font-regular: 'Theinhardt-Regular', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --font-bold: 'Theinhardt-Bold', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --font-black: 'Theinhardt-Black', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-thin: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-regular: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-bold: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-black: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 /* Global Font Variant Classes */
 .font-thin {
-  font-family: 'Theinhardt-Thin', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-weight: 100;
 }
 
 .font-regular {
-  font-family: 'Theinhardt-Regular', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-weight: 400;
 }
 
 .font-bold {
-  font-family: 'Theinhardt-Bold', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-weight: 700;
 }
 
 .font-black {
-  font-family: 'Theinhardt-Black', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-weight: 900;
 }
 
 /* Sitewide Styles */
 body {
-  font-family: 'Theinhardt-Regular', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

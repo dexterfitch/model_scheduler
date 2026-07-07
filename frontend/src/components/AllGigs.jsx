@@ -81,7 +81,7 @@ function AllGigs() {
 
   const renderGigRow = (gig) => (
     <div key={gig.id} className="small py-1">
-      <span className="fw-bold">
+      <span className="font-bold">
         {new Date(gig.faculty_request?.starts_at).toLocaleDateString()}{'  |  '}
         {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}{'  |  '}
       </span>
