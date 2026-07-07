@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, ListGroup, Badge, Alert } from "react-bootstrap";
 import api from "../services/api";
+import { formatDateWithWeekday, formatTime } from "../utils/time";
 import SharedCalendar from "./SharedCalendar";
 
 function AdminCalendar() {
@@ -100,11 +101,10 @@ function AdminCalendar() {
                       {avail.user.willing_to_model_nude ? <Badge bg="danger">Nude OK</Badge> : <Badge bg="success">Clothed</Badge>}
                     </div>
                     <div className="small text-muted">
-                      {new Date(avail.starts_at).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'})}
+                      {formatDateWithWeekday(avail.starts_at)}
                     </div>
                     <div className="small fw-bold">
-                       {new Date(avail.starts_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - 
-                       {new Date(avail.ends_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                      {formatTime(avail.starts_at)} - {formatTime(avail.ends_at)}
                     </div>
                   </ListGroup.Item>
                 ))}

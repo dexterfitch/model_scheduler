@@ -4,6 +4,7 @@ import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Ale
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateShort } from "../utils/time";
+import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
 
 function AllRequests() {
   const navigate = useNavigate();
@@ -64,9 +65,6 @@ function AllRequests() {
     class_name: '', department: '', building: '', room_number: '', notes: '', dates: []
   });
   const [editError, setEditError] = useState('');
-
-  const DEPARTMENTS = ["Painting", "Drawing", "Illustration", "FYE", "Sculpture", "Open Studies"];
-  const BUILDINGS = ["Main", "Fox", "Lazarus", "Station"];
 
   const handleReleaseRemaining = async (seriesId) => {
     if (!confirm("Release all remaining matched dates in this series back to pending? This will cancel those gigs and let you rematch the whole remaining series to a new model.")) return;

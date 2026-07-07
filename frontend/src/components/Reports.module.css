@@ -1,10 +1,10 @@
 @media print {
-  .navbar, 
-  .report-header-card {
+  :global(.navbar),
+  .reportHeaderCard {
     display: none !important;
   }
 
-  .container {
+  :global(.container) {
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;

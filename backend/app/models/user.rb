@@ -3,7 +3,7 @@ class User < ApplicationRecord
   has_many :faculty_requests, dependent: :destroy
   has_many :request_series, dependent: :destroy
 
-  GENDER_IDENTITIES = ["Woman", "Man", "Non-binary", "Agender", "Prefer not to say"].freeze
+  GENDER_IDENTITIES = ["Woman", "Man", "Non-binary", "Prefer not to say"].freeze
   SKIN_TONES = ["Light", "Medium", "Dark"].freeze
 
   enum :role, { admin: 0, faculty: 1, model: 2 }, prefix: true

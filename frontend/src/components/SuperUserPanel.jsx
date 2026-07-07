@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Container, Badge, Row, Col } from 'react-bootstrap';
-import { formatDateTime, roundToNearest5 } from "../utils/time";
+import { formatDateTime, formatTime, roundToNearest5, findActiveGigForAvailability } from "../utils/time";
+import { GENDER_IDENTITIES, SKIN_TONES } from "../utils/constants";
 
 const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [users, setUsers] = useState([]);
@@ -58,9 +59,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
-  const getActiveGigForSlot = (slotId) => {
-    return modelGigs.find(g => g.art_model_availability.id === slotId);
-  };
+  const getActiveGigForSlot = (slotId) => findActiveGigForAvailability(modelGigs, slotId);
 
   const handleModelSelect = (e) => {
     const id = e.target.value;
@@ -371,11 +370,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                 <label className="form-label fw-bold">Gender Identity</label>
                 <select className="form-select" name="gender_identity" value={sockForm.gender_identity} onChange={handleSockFormChange} required>
                   <option value="">Select...</option>
-                  <option value="Woman">Woman</option>
-                  <option value="Man">Man</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Agender">Agender</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
+                  {GENDER_IDENTITIES.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </Col>
             </Row>
@@ -383,9 +378,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
               <Col xs={12} md={6} className="mb-3 mb-md-0">
                 <label className="form-label fw-bold">Skin Tone</label>
                 <select required className="form-select" name="skin_tone" value={sockForm.skin_tone} onChange={handleSockFormChange}>
-                  <option value="Light">Light</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Dark">Dark</option>
+                  {SKIN_TONES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </Col>
               <Col xs={12} md={6} className="d-flex align-items-end pb-1">
@@ -432,7 +425,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                     return (
                       <div key={slot.id} className="d-flex justify-content-between align-items-center py-2 border-bottom">
                         <span className="small">
-                          {formatDateTime(slot.starts_at)} &mdash; {new Date(slot.ends_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {formatDateTime(slot.starts_at)} &mdash; {formatTime(slot.ends_at)}
                           {activeGig && <Badge bg="info" text="dark" className="ms-2">{activeGig.faculty_request.class_name}</Badge>}
                         </span>
                         <button

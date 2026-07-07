@@ -3,13 +3,8 @@ import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from "re
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateWithWeekday } from "../utils/time";
-
-const DEPARTMENTS = [
-  "Painting", "Drawing", "Illustration", "FYE", "Sculpture", "Open Studies"
-];
-
-const BUILDINGS = ["Main", "Fox", "Lazarus", "Station"];
+import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours } from "../utils/time";
+import { DEPARTMENTS, BUILDINGS, GENDER_PREFERENCE_OPTIONS, SKIN_TONES } from "../utils/constants";
 
 const emptyDate = () => ({ date: "", start_time: "", end_time: "" });
 
@@ -111,15 +106,9 @@ function FacultyDashboard({ user }) {
 
       const startDateTime = new Date(`${d.date}T${d.start_time}`);
       const endDateTime = new Date(`${d.date}T${d.end_time}`);
-      const startHour = parseInt(d.start_time.split(':')[0]);
-      const endHour = parseInt(d.end_time.split(':')[0]);
-
-      if (startHour < 8 || startHour >= 22) {
-        setSubmitError(`Date ${i + 1}: Classes must start between 8:00 AM and 10:00 PM.`);
-        return;
-      }
-      if (endHour > 22 || (endHour === 22 && d.end_time.split(':')[1] !== "00")) {
-        setSubmitError(`Date ${i + 1}: Classes must end by 10:00 PM.`);
+      const hoursError = validateBusinessHours(d.start_time, d.end_time);
+      if (hoursError) {
+        setSubmitError(`Date ${i + 1}: Classes ${hoursError.charAt(0).toLowerCase()}${hoursError.slice(1)}`);
         return;
       }
       if (endDateTime <= startDateTime) {
@@ -229,14 +218,9 @@ function FacultyDashboard({ user }) {
       return;
     }
 
-    const startHour = parseInt(editFormData.starts_time.split(':')[0]);
-    const endHour = parseInt(editFormData.ends_time.split(':')[0]);
-    if (startHour < 8 || startHour >= 22) {
-      setEditError("Classes must start between 8:00 AM and 10:00 PM.");
-      return;
-    }
-    if (endHour > 22 || (endHour === 22 && editFormData.ends_time.split(':')[1] !== "00")) {
-      setEditError("Classes must end by 10:00 PM.");
+    const hoursError = validateBusinessHours(editFormData.starts_time, editFormData.ends_time);
+    if (hoursError) {
+      setEditError(`Classes ${hoursError.charAt(0).toLowerCase()}${hoursError.slice(1)}`);
       return;
     }
 
@@ -608,19 +592,13 @@ function FacultyDashboard({ user }) {
                 <Form.Label>Skin Tone</Form.Label>
                 <Form.Select name="pref_skin_tone" value={formData.pref_skin_tone} onChange={handleInputChange}>
                   <option value="Any">Any</option>
-                  <option value="Light">Light</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Dark">Dark</option>
+                  {SKIN_TONES.map(t => <option key={t} value={t}>{t}</option>)}
                 </Form.Select>
               </Col>
               <Col md={4} className="mb-3">
                 <Form.Label>Gender Presentation</Form.Label>
                 <Form.Select name="pref_gender" value={formData.pref_gender} onChange={handleInputChange}>
-                  <option value="Any">Any</option>
-                  <option value="Woman">Woman</option>
-                  <option value="Man">Man</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Agender">Agender</option>
+                  {GENDER_PREFERENCE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
                 </Form.Select>
               </Col>
             </Row>
@@ -713,19 +691,13 @@ function FacultyDashboard({ user }) {
                 <Form.Label>Skin Tone</Form.Label>
                 <Form.Select name="pref_skin_tone" value={editFormData.pref_skin_tone} onChange={handleEditInputChange}>
                   <option value="Any">Any</option>
-                  <option value="Light">Light</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Dark">Dark</option>
+                  {SKIN_TONES.map(t => <option key={t} value={t}>{t}</option>)}
                 </Form.Select>
               </Col>
               <Col md={4} className="mb-3">
                 <Form.Label>Gender Presentation</Form.Label>
                 <Form.Select name="pref_gender" value={editFormData.pref_gender} onChange={handleEditInputChange}>
-                  <option value="Any">Any</option>
-                  <option value="Woman">Woman</option>
-                  <option value="Man">Man</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Agender">Agender</option>
+                  {GENDER_PREFERENCE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
                 </Form.Select>
               </Col>
             </Row>

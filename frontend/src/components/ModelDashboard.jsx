@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Badge, Tab, Tabs, Button, Modal, Form, Alert
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { formatSkinTone } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateWithWeekday } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability } from "../utils/time";
 
 function ModelDashboard({ user }) {
   const [myGigs, setMyGigs] = useState([]);
@@ -72,31 +72,17 @@ function ModelDashboard({ user }) {
 
   const isAvailableForSeries = (series) => {
     const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
-    return pendingRequests.every(req => {
-      const reqStart = new Date(req.starts_at);
-      const reqEnd = new Date(req.ends_at);
-      return myAvailabilities.some(avail => {
-        if (avail.status !== 'active') return false;
-        const availStart = new Date(avail.starts_at);
-        const availEnd = new Date(avail.ends_at);
-        return availStart <= reqStart && availEnd >= reqEnd;
-      });
-    });
+    return pendingRequests.every(req =>
+      myAvailabilities.some(avail => avail.status === 'active' && availabilityCoversRequest(avail, req))
+    );
   };
 
   const handleMarkAvailable = async (series) => {
     const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
 
-    const missingRequests = pendingRequests.filter(req => {
-      const reqStart = new Date(req.starts_at);
-      const reqEnd = new Date(req.ends_at);
-      return !myAvailabilities.some(avail => {
-        if (avail.status !== 'active') return false;
-        const availStart = new Date(avail.starts_at);
-        const availEnd = new Date(avail.ends_at);
-        return availStart <= reqStart && availEnd >= reqEnd;
-      });
-    });
+    const missingRequests = pendingRequests.filter(req =>
+      !myAvailabilities.some(avail => avail.status === 'active' && availabilityCoversRequest(avail, req))
+    );
 
     if (missingRequests.length === 0) return;
 
@@ -145,8 +131,7 @@ function ModelDashboard({ user }) {
     const startObj = new Date(props.starts_at);
     const endObj = new Date(props.ends_at);
     setSelectedDate(props.starts_at.split('T')[0]);
-    const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    setTimes({ start: formatTime(startObj), end: formatTime(endObj) });
+    setTimes({ start: formatTimeForInput(startObj), end: formatTimeForInput(endObj) });
     setModalError('');
     setActiveGig(getActiveGigForAvailability(Number(info.event.id)));
     setShowModal(true);
@@ -169,10 +154,8 @@ function ModelDashboard({ user }) {
     const endsAt = new Date(`${selectedDate}T${times.end}`);
     const now = new Date();
     if (startsAt < now) { setModalError("You cannot set availability in the past."); return; }
-    const startHour = parseInt(times.start.split(':')[0]);
-    const endHour = parseInt(times.end.split(':')[0]);
-    if (startHour < 8 || startHour >= 22) { setModalError("Availability must start between 8:00 AM and 10:00 PM."); return; }
-    if (endHour > 22 || (endHour === 22 && times.end.split(':')[1] !== "00")) { setModalError("Availability must end by 10:00 PM."); return; }
+    const hoursError = validateBusinessHours(times.start, times.end);
+    if (hoursError) { setModalError(`Availability ${hoursError.charAt(0).toLowerCase()}${hoursError.slice(1)}`); return; }
     if (endsAt <= startsAt) { setModalError("End time must be after start time"); return; }
     const payload = { starts_at: startsAt, ends_at: endsAt };
     if (editingId) {
@@ -216,11 +199,7 @@ function ModelDashboard({ user }) {
       .catch(() => setModalError("Error cancelling. Please try again."));
   };
 
-  const getActiveGigForAvailability = (availabilityId) => {
-    return myGigs.find(g =>
-      g.art_model_availability.id === availabilityId && g.status === 'confirmed'
-    );
-  };
+  const getActiveGigForAvailability = (availabilityId) => findActiveGigForAvailability(myGigs, availabilityId);
 
   const renderGigStatusBadge = (gig) => {
     if (gig.status === 'confirmed') {

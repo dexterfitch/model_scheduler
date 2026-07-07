@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Container, Card, Button, ListGroup, Badge, Spinner, Alert } from "react-bootstrap";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
-import { formatTime } from "../utils/time";
+import { formatTime, formatDateWithWeekday, formatDateTime, availabilityCoversRequest, hasSchedulingConflict } from "../utils/time";
 
 function GigCreator() {
   const { requestId } = useParams();
@@ -42,13 +42,10 @@ function GigCreator() {
         const confirmedGigs = gigsRes.data.filter(g => g.status === 'confirmed');
         const pendingRequestIds = new Set(pendingRequests.map(r => r.id));
 
-        const hasConflict = (userId, reqStart, reqEnd) => confirmedGigs.some(g => {
-          if (g.art_model_availability.user.id !== userId) return false;
-          if (pendingRequestIds.has(g.faculty_request.id)) return false;
-          const gigStart = new Date(g.faculty_request.starts_at);
-          const gigEnd = new Date(g.faculty_request.ends_at);
-          return gigStart < reqEnd && gigEnd > reqStart;
-        });
+        const hasConflict = (userId, reqStart, reqEnd) =>
+          hasSchedulingConflict(confirmedGigs, userId, reqStart, reqEnd, g => 
+            pendingRequestIds.has(g.faculty_request.id)
+          );
 
         const availsByUser = {};
         availRes.data.forEach(avail => {
@@ -63,11 +60,7 @@ function GigCreator() {
           return pendingRequests.every(req => {
             const reqStart = new Date(req.starts_at);
             const reqEnd = new Date(req.ends_at);
-            const timeMatch = avails.some(avail => {
-              const availStart = new Date(avail.starts_at);
-              const availEnd = new Date(avail.ends_at);
-              return availStart <= reqStart && availEnd >= reqEnd;
-            });
+            const timeMatch = avails.some(avail => availabilityCoversRequest(avail, req));
             return timeMatch && !hasConflict(user.id, reqStart, reqEnd);
           });
         }).map(({ user, avails }) => {
@@ -104,18 +97,13 @@ function GigCreator() {
 
         const confirmedGigs = gigsRes.data.filter(g => g.status === 'confirmed');
 
-        const hasConflict = (userId) => confirmedGigs.some(g => {
-          if (g.art_model_availability.user.id !== userId) return false;
-          if (g.faculty_request.id === targetReq.id) return false;
-          const gigStart = new Date(g.faculty_request.starts_at);
-          const gigEnd = new Date(g.faculty_request.ends_at);
-          return gigStart < reqEnd && gigEnd > reqStart;
-        });
+        const hasConflict = (userId) =>
+          hasSchedulingConflict(confirmedGigs, userId, reqStart, reqEnd, g => 
+            g.faculty_request.id === targetReq.id
+          );
 
         const candidates = availRes.data.filter(avail => {
-          const availStart = new Date(avail.starts_at);
-          const availEnd = new Date(avail.ends_at);
-          const timeMatch = availStart <= reqStart && availEnd >= reqEnd;
+          const timeMatch = availabilityCoversRequest(avail, targetReq);
           const nudityMatch = !isNudeReq || avail.user.willing_to_model_nude;
           const statusMatch = avail.status === 'active';
           const noConflict = !hasConflict(avail.user.id);
@@ -150,11 +138,7 @@ function GigCreator() {
         pendingRequests.map(req => {
           const reqStart = new Date(req.starts_at);
           const reqEnd = new Date(req.ends_at);
-          const matchingAvail = model.avails.find(avail => {
-            const availStart = new Date(avail.starts_at);
-            const availEnd = new Date(avail.ends_at);
-            return availStart <= reqStart && availEnd >= reqEnd;
-          });
+          const matchingAvail = model.avails.find(avail => availabilityCoversRequest(avail, req));
           return api.post("/gigs", {
             gig: {
               faculty_request_id: req.id,
@@ -196,15 +180,6 @@ function GigCreator() {
       <Alert variant="danger">Request not found.</Alert>
     </Container>
   );
-
-  const formatDateOnly = (d) => new Date(d).toLocaleDateString(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric'
-  });
-
-  const formatDate = (d) => new Date(d).toLocaleString([], {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
 
   const displayData = isSeries ? series : request;
   const pendingRequests = isSeries
@@ -250,7 +225,7 @@ function GigCreator() {
             {pendingRequests.map((req) => (
               <div key={req.id} className="small">
                 <i className="bi bi-calendar3 me-1"></i>
-                {formatDateOnly(req.starts_at)} &nbsp; {formatTime(req.starts_at)} - {formatTime(req.ends_at)}
+                {formatDateWithWeekday(req.starts_at)} &nbsp; {formatTime(req.starts_at)} - {formatTime(req.ends_at)}
               </div>
             ))}
           </div>
@@ -300,7 +275,7 @@ function GigCreator() {
                 </div>
                 {!isSeries && (
                   <div className="text-success small">
-                    Available: {formatDate(model.starts_at)} - {formatDate(model.ends_at)}
+                    Available: {formatDateTime(model.starts_at)} - {formatDateTime(model.ends_at)}
                   </div>
                 )}
               </div>

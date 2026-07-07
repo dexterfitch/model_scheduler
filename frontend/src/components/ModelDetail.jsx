@@ -4,6 +4,7 @@ import { Container, Row, Col, Card, Badge, Button, Alert, Spinner, Modal, Form }
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { formatSkinTone } from "../utils/formatters";
+import { formatTimeForInput, findActiveGigForAvailability } from "../utils/time";
 
 function ModelDetail() {
   const { id } = useParams();
@@ -64,12 +65,10 @@ function ModelDetail() {
   const handleEventClick = (info) => {
     const props = info.event.extendedProps;
     setEditingId(info.event.id);
+    const startObj = new Date(props.starts_at);
+    const endObj = new Date(props.ends_at);
     setSelectedDate(props.starts_at.split('T')[0]);
-    const formatTime = (date) => new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    setTimes({
-      start: formatTime(props.starts_at),
-      end: formatTime(props.ends_at)
-    });
+    setTimes({ start: formatTimeForInput(startObj), end: formatTimeForInput(endObj) });
     setModalError('');
     setActiveGig(getActiveGigForAvailability(Number(info.event.id)));
     setShowModal(true);
@@ -130,11 +129,7 @@ function ModelDetail() {
       .catch(() => setModalError("Error cancelling. Please try again."));
   };
 
-  const getActiveGigForAvailability = (availabilityId) => {
-    return gigs.find(g =>
-      g.art_model_availability.id === availabilityId && g.status === 'confirmed'
-    );
-  };
+  const getActiveGigForAvailability = (availabilityId) => findActiveGigForAvailability(gigs, availabilityId);
 
   if (!user && !error) return (
     <Container className="py-5 text-center">

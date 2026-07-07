@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Form, Button, Card, Badge, Alert } from "react-bootstrap";
 import api from "../services/api";
-import "./Reports.css";
+import { formatTimeShort, formatDateNumeric } from "../utils/time";
+import styles from "./Reports.module.css";
 
 function Reports() {
   const [gigs, setGigs] = useState([]);
@@ -16,17 +17,6 @@ function Reports() {
   const calculateHours = (startsAt, endsAt) => {
     const ms = new Date(endsAt) - new Date(startsAt);
     return Math.round((ms / 36e5) * 4) / 4;
-  };
-
-  const formatTime = (isoString) => {
-    return new Date(isoString).toLocaleTimeString([], {
-      hour: 'numeric',
-      minute: '2-digit'
-    });
-  };
-
-  const formatDate = (isoString) => {
-    return new Date(isoString).toLocaleDateString();
   };
 
   const generateReport = () => {
@@ -75,8 +65,8 @@ function Reports() {
       const deptData = byModel[modelKey].departments[department];
       const shiftInfo = {
         facultyName,
-        date: formatDate(gig.faculty_request.starts_at),
-        timeRange: `${formatTime(gig.faculty_request.starts_at)} - ${formatTime(gig.faculty_request.ends_at)}`,
+        date: formatDateNumeric(gig.faculty_request.starts_at),
+        timeRange: `${formatTimeShort(gig.faculty_request.starts_at)} - ${formatTimeShort(gig.faculty_request.ends_at)}`,
         hours
       };
 
@@ -95,7 +85,7 @@ function Reports() {
     <Container className="py-4">
       <h2 className="mb-4">Reports</h2>
 
-      <Card className="shadow-sm mb-4 report-header-card">
+      <Card className={`shadow-sm mb-4 ${styles.reportHeaderCard}`}>
         <Card.Header className="bg-primary text-white fw-bold">Model Hours Report</Card.Header>
         <Card.Body>
           <Row className="g-2 align-items-end">

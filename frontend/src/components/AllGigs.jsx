@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Table, Container, Badge, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import api from "../services/api";
-import { formatTime } from "../utils/time";
+import { formatTime, formatDateNumeric } from "../utils/time";
 
 function AllGigs() {
   const [gigs, setGigs] = useState([]);
@@ -67,21 +67,10 @@ function AllGigs() {
     return groups;
   })();
 
-  const renderStatusBadge = (gig) => {
-    if (gig.status === 'confirmed') return <Badge bg="primary">Confirmed</Badge>;
-    if (gig.status === 'cancelled') return (
-      <Badge bg={gig.billable ? "warning" : "secondary"} text={gig.billable ? "dark" : undefined}>
-        {gig.billable ? "⚠️ Cancelled (Billable)" : "Cancelled"}
-      </Badge>
-    );
-    if (gig.status === 'completed') return <Badge bg="success">Completed</Badge>;
-    return null;
-  };
-
   const renderGigRow = (gig) => (
     <div key={gig.id} className="small py-1">
       <span className="font-bold">
-        {new Date(gig.faculty_request?.starts_at).toLocaleDateString()}{'  |  '}
+        {formatDateNumeric(gig.faculty_request?.starts_at)}{'  |  '}
         {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}{'  |  '}
       </span>
       Model: {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}

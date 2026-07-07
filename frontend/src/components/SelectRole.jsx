@@ -2,12 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Container, Card, Button, Form, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import api from '../services/api';
-
-const SKIN_TONE_OPTIONS = [
-  { label: 'Light', color: '#F3CFB3' },
-  { label: 'Medium', color: '#C58C65' },
-  { label: 'Dark', color: '#593C2B' }
-];
+import { GENDER_IDENTITIES, SKIN_TONE_OPTIONS } from "../utils/constants";
 
 const SelectRole = ({ onLogin, userId: propUserId }) => {
   const location = useLocation();
@@ -169,11 +164,7 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
                     required
                   >
                     <option value="">Select...</option>
-                    <option value="Woman">Woman</option>
-                    <option value="Man">Man</option>
-                    <option value="Non-binary">Non-binary</option>
-                    <option value="Agender">Agender</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
+                    {GENDER_IDENTITIES.map(g => <option key={g} value={g}>{g}</option>)}
                   </Form.Select>
                 </Col>
 
