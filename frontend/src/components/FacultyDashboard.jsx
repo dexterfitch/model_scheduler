@@ -379,16 +379,15 @@ function FacultyDashboard({ user }) {
                             <div className="fw-bold">{formatDateWithWeekday(req.starts_at)}</div>
                             <div className="text-muted small">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
                             {req.status === 'matched' && (
-                              <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                              <div>
                                 <Badge bg="success">Model Confirmed</Badge>
                                 {req.gig?.confirmed_by?.email && (
                                   <a
                                     href={`mailto:${req.gig.confirmed_by.email}?subject=${encodeURIComponent(`Edit request: ${s.class_name} (${formatDateWithWeekday(req.starts_at)})`)}&body=${encodeURIComponent(`Hi ${req.gig.confirmed_by.first_name},\n\nI need to make a change to my confirmed request for ${s.class_name} on ${formatDateWithWeekday(req.starts_at)} at ${formatTime(req.starts_at)}.\n\nDetails:\n`)}`}
-                                    className="small text-nowrap"
+                                    className="small"
                                     title={`Email ${req.gig.confirmed_by.first_name} about this date`}
                                   >
-                                    <i className="bi bi-envelope me-1"></i>
-                                    Admin: {req.gig.confirmed_by.email}
+                                    <small>Need to edit? Contact {req.gig.confirmed_by.email}</small>
                                   </a>
                                 )}
                               </div>
