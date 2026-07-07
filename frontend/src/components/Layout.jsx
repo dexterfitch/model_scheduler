@@ -60,9 +60,9 @@ function Layout({ currentUser, onLogout, refreshUser }) {
               {currentUser.role === 'admin' && (
                 <>
                   <Nav.Link as={Link} to="/" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Dashboard</Nav.Link>
-                  <Nav.Link as={Link} to="/calendar" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Calendar</Nav.Link>
                   <Nav.Link as={Link} to="/requests" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Requests</Nav.Link>
                   <Nav.Link as={Link} to="/gigs" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Gigs</Nav.Link>
+                  <Nav.Link as={Link} to="/calendar" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Calendar</Nav.Link>
                   <Nav.Link as={Link} to="/directory" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Directory</Nav.Link>
                   <Nav.Link as={Link} to="/reports" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Reports</Nav.Link>
                   {currentUser.superuser && (
@@ -108,7 +108,6 @@ function Layout({ currentUser, onLogout, refreshUser }) {
                 Logout
               </Button>
             </div>
-
           </Navbar.Collapse>
         </Container>
       </Navbar>
