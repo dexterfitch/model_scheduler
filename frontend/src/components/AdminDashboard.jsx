@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { Row, Col, Card, Badge, Button } from "react-bootstrap";
+import { formatDateWithWeekday, formatTime } from "../utils/time";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -33,9 +34,6 @@ function AdminDashboard() {
   useEffect(() => {
     fetchDashboardData();
   }, []);
-
-  const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-  const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
     <div>
@@ -77,7 +75,7 @@ function AdminDashboard() {
                             )}
                           </div>
                           <div className="small text-muted">
-                            {series.user?.first_name} {series.user?.last_name} &bull; Next: {formatDate(firstReq.starts_at)} {formatTime(firstReq.starts_at)}
+                            {series.user?.first_name} {series.user?.last_name} &bull; Next: {formatDateWithWeekday(firstReq.starts_at)} {formatTime(firstReq.starts_at)}
                           </div>
                         </div>
                         <Button

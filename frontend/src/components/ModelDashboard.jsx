@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Badge, Tab, Tabs, Button, Modal, Form, Alert
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { formatSkinTone } from "../utils/formatters";
-import { roundToNearest5 } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateWithWeekday } from "../utils/time";
 
 function ModelDashboard({ user }) {
   const [myGigs, setMyGigs] = useState([]);
@@ -256,9 +256,6 @@ function ModelDashboard({ user }) {
 
   const otherSeriesCount = activeGig ? otherFutureSeriesGigsCount(activeGig) : 0;
 
-  const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-  const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
   return (
     <Container className="py-4">
       {pageSuccess && <Alert variant="success" dismissible onClose={() => setPageSuccess('')}>{pageSuccess}</Alert>}
@@ -321,7 +318,7 @@ function ModelDashboard({ user }) {
                       {renderGigStatusBadge(gig)}
                       <Card.Title>{gig.faculty_request.class_name}</Card.Title>
                       <div className="mb-3">
-                        <div className="fw-bold fs-5">{formatDate(gig.faculty_request.starts_at)}</div>
+                        <div className="fw-bold fs-5">{formatDateWithWeekday(gig.faculty_request.starts_at)}</div>
                         <div className="text-muted">{formatTime(gig.faculty_request.starts_at)} - {formatTime(gig.faculty_request.ends_at)}</div>
                       </div>
                       {(gig.faculty_request.building || gig.faculty_request.room_number) && (
@@ -363,7 +360,7 @@ function ModelDashboard({ user }) {
                           {pendingRequests.map(req => (
                             <div key={req.id} className="small text-muted">
                               <i className="bi bi-calendar3 me-1"></i>
-                              {formatDate(req.starts_at)}<br />
+                              {formatDateWithWeekday(req.starts_at)}<br />
                               <span className="ms-3">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</span>
                             </div>
                           ))}
@@ -407,7 +404,7 @@ function ModelDashboard({ user }) {
                     {upcomingGigs.map(gig => (
                       <ListGroup.Item key={gig.id} className="bg-transparent px-0 py-2">
                         <div className="fw-bold small">{gig.faculty_request.class_name}</div>
-                        <div className="small text-muted">{formatDate(gig.faculty_request.starts_at)}</div>
+                        <div className="small text-muted">{formatDateWithWeekday(gig.faculty_request.starts_at)}</div>
                         <div className="small text-muted">{formatTime(gig.faculty_request.starts_at)} - {formatTime(gig.faculty_request.ends_at)}</div>
                         {(gig.faculty_request.building || gig.faculty_request.room_number) && (
                           <div className="small text-muted">

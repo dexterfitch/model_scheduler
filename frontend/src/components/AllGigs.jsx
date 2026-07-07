@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Table, Container, Badge, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import api from "../services/api";
+import { formatTime } from "../utils/time";
 
 function AllGigs() {
   const [gigs, setGigs] = useState([]);
@@ -65,8 +66,6 @@ function AllGigs() {
 
     return groups;
   })();
-
-  const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const renderStatusBadge = (gig) => {
     if (gig.status === 'confirmed') return <Badge bg="primary">Confirmed</Badge>;

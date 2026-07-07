@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert } from "react-bootstrap";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
-import { roundToNearest5 } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateShort } from "../utils/time";
 
 function AllRequests() {
   const navigate = useNavigate();
@@ -64,9 +64,6 @@ function AllRequests() {
     class_name: '', department: '', building: '', room_number: '', notes: '', dates: []
   });
   const [editError, setEditError] = useState('');
-
-  const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const formatDateShort = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
   const DEPARTMENTS = ["Painting", "Drawing", "Illustration", "FYE", "Sculpture", "Open Studies"];
   const BUILDINGS = ["Main", "Fox", "Lazarus", "Station"];

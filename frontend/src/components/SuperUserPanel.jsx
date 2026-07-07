@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Container, Badge, Row, Col } from 'react-bootstrap';
+import { formatDateTime, roundToNearest5 } from "../utils/time";
 
 const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [users, setUsers] = useState([]);
@@ -202,11 +203,6 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     const aName = `${a.first_name} ${a.last_name}`.toLowerCase();
     const bName = `${b.first_name} ${b.last_name}`.toLowerCase();
     return aName.localeCompare(bName);
-  });
-
-  const formatDateTime = (iso) => new Date(iso).toLocaleString([], {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit'
   });
 
   if (!currentUser?.superuser) return null;
@@ -481,12 +477,14 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                       <Col xs={5} sm={3}>
                         <label className="form-label small mb-1">Start</label>
                         <input type="time" className="form-control form-control-sm" value={slot.start}
-                          onChange={e => updateNewSlot(i, 'start', e.target.value)} />
+                          onChange={e => updateNewSlot(i, 'start', e.target.value)}
+                          onBlur={e => updateNewSlot(i, 'start', roundToNearest5(e.target.value))} />
                       </Col>
                       <Col xs={5} sm={3}>
                         <label className="form-label small mb-1">End</label>
                         <input type="time" className="form-control form-control-sm" value={slot.end}
-                          onChange={e => updateNewSlot(i, 'end', e.target.value)} />
+                          onChange={e => updateNewSlot(i, 'end', e.target.value)}
+                          onBlur={e => updateNewSlot(i, 'end', roundToNearest5(e.target.value))} />
                       </Col>
                       <Col xs={2} sm={2} className="d-flex align-items-end">
                         <button type="button" className="btn btn-sm btn-outline-danger w-100" onClick={() => removeNewSlot(i)}>✕</button>

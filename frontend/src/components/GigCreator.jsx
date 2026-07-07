@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Container, Card, Button, ListGroup, Badge, Spinner, Alert } from "react-bootstrap";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
+import { formatTime } from "../utils/time";
 
 function GigCreator() {
   const { requestId } = useParams();
@@ -198,10 +199,6 @@ function GigCreator() {
 
   const formatDateOnly = (d) => new Date(d).toLocaleDateString(undefined, {
     weekday: 'short', month: 'short', day: 'numeric'
-  });
-
-  const formatTime = (d) => new Date(d).toLocaleTimeString([], {
-    hour: '2-digit', minute: '2-digit'
   });
 
   const formatDate = (d) => new Date(d).toLocaleString([], {
