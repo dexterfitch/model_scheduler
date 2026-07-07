@@ -480,7 +480,6 @@ function AllRequests() {
         <Row className="g-2 align-items-end w-100">
           <Col xs={12} md="auto">
             <Button
-              size="sm"
               className="w-100"
               variant={showAll ? "secondary" : "outline-secondary"}
               onClick={() => setShowAll(!showAll)}
