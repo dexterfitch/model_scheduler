@@ -105,31 +105,7 @@ function AllGigs() {
         </InputGroup>
       </div>
 
-      <div className="d-flex flex-wrap gap-2 mb-3">
-        <Button
-          size="sm"
-          variant={statusFilter === 'confirmed' ? 'primary' : 'outline-primary'}
-          onClick={() => setStatusFilter('confirmed')}
-        >
-          Confirmed
-        </Button>
-        <Button
-          size="sm"
-          variant={statusFilter === 'cancelled' ? 'secondary' : 'outline-secondary'}
-          onClick={() => setStatusFilter('cancelled')}
-        >
-          Cancelled
-        </Button>
-        <Button
-          size="sm"
-          variant={statusFilter === 'all' ? 'dark' : 'outline-dark'}
-          onClick={() => setStatusFilter('all')}
-        >
-          All
-        </Button>
-      </div>
-      
-      <div className="p-3 border-bottom border-info mb-4 d-flex align-items-end date-filter-box">
+      <div className="p-3 bg-light rounded mb-4 d-flex align-items-end date-filter-box">
         <Row className="g-2 align-items-end w-100">
           <Col xs={12} md="auto">
             <Button
@@ -140,23 +116,28 @@ function AllGigs() {
               {showAll ? "Filter by Date" : "Show All"}
             </Button>
           </Col>
+          <Col xs={12} md="auto">
+            <div className="d-flex flex-wrap gap-2">
+              <Button size="sm" variant={statusFilter === 'all' ? 'dark' : 'outline-dark'} onClick={() => setStatusFilter('all')}>
+                All
+              </Button>
+              <Button size="sm" variant={statusFilter === 'confirmed' ? 'primary' : 'outline-primary'} onClick={() => setStatusFilter('confirmed')}>
+                Confirmed
+              </Button>
+              <Button size="sm" variant={statusFilter === 'cancelled' ? 'secondary' : 'outline-secondary'} onClick={() => setStatusFilter('cancelled')}>
+                Cancelled
+              </Button>
+            </div>
+          </Col>
           {!showAll && (
             <>
               <Col xs={6} md="auto">
                 <Form.Label className="small fw-bold mb-1">From</Form.Label>
-                <Form.Control
-                  type="date"
-                  value={filterStart}
-                  onChange={e => setFilterStart(e.target.value)}
-                />
+                <Form.Control type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
               </Col>
               <Col xs={6} md="auto">
                 <Form.Label className="small fw-bold mb-1">To</Form.Label>
-                <Form.Control
-                  type="date"
-                  value={filterEnd}
-                  onChange={e => setFilterEnd(e.target.value)}
-                />
+                <Form.Control type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
               </Col>
             </>
           )}
