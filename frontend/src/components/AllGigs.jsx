@@ -79,19 +79,17 @@ function AllGigs() {
   };
 
   const renderGigRow = (gig) => (
-    <div key={gig.id} className="mb-2 pb-2 border-bottom">
-      <div className="small">
+    <div key={gig.id} className="d-flex flex-wrap align-items-center gap-2 py-2 border-bottom">
+      <span className="small text-nowrap">
         <span className="fw-bold">{new Date(gig.faculty_request?.starts_at).toLocaleDateString()}</span>
         <span className="text-muted ms-1">
           {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}
         </span>
-      </div>
-      <div className="d-flex justify-content-between align-items-center mt-1">
-        <Badge bg="success" text="light" className="p-1">
-          {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-        </Badge>
-        {renderStatusBadge(gig)}
-      </div>
+      </span>
+      <Badge bg="success" text="light" className="p-1">
+        {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
+      </Badge>
+      {renderStatusBadge(gig)}
     </div>
   );
 
