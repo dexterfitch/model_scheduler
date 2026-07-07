@@ -17,7 +17,10 @@ class RequestSeriesController < ApplicationController
           gig: current_user.role_admin? ? {
             include: { art_model_availability: { include: :user } }
           } : {
-            only: [:id, :status]
+            only: [:id, :status],
+            include: {
+              confirmed_by: { only: [:id, :first_name, :last_name, :email] }
+            }
           }
         }
       }

@@ -1,6 +1,7 @@
 class GigsController < ApplicationController
   before_action -> { require_role(:admin, :model) }, only: [:index]
   before_action -> { require_role(:admin) }, only: [:create, :destroy]
+  belongs_to :confirmed_by, class_name: 'User', optional: true
 
   def index
     gigs = if current_user.role_admin?
@@ -20,6 +21,7 @@ class GigsController < ApplicationController
 
   def create
     gig = Gig.new(gig_params)
+    gig.confirmed_by = current_user
     if gig.save
       gig.art_model_availability&.update(status: 'active')
       gig.faculty_request&.update(status: 'matched', needs_attention: false)

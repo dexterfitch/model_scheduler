@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_30_183048) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_07_143826) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -54,7 +54,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_30_183048) do
     t.boolean "billable"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "confirmed_by_id"
     t.index ["art_model_availability_id"], name: "index_gigs_on_art_model_availability_id"
+    t.index ["confirmed_by_id"], name: "index_gigs_on_confirmed_by_id"
     t.index ["faculty_request_id"], name: "index_gigs_on_faculty_request_id"
   end
 
@@ -97,5 +99,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_30_183048) do
   add_foreign_key "faculty_requests", "users"
   add_foreign_key "gigs", "art_model_availabilities"
   add_foreign_key "gigs", "faculty_requests"
+  add_foreign_key "gigs", "users", column: "confirmed_by_id"
   add_foreign_key "request_series", "users"
 end
