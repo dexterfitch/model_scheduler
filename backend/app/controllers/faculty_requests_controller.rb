@@ -26,9 +26,7 @@ class FacultyRequestsController < ApplicationController
   def update
     @request = FacultyRequest.find(params[:id])
 
-    unless current_user.role_admin? || @request.user_id == current_user.id
-      return render json: { error: "Not authorized" }, status: :forbidden
-    end
+    require_admin_or_owner(@request)
 
     if @request.status != 'pending' && !current_user.role_admin?
       return render json: { error: "This request can no longer be edited because it has already been matched or archived" }, status: :forbidden
@@ -54,9 +52,7 @@ class FacultyRequestsController < ApplicationController
   def destroy
     @request = FacultyRequest.find(params[:id])
 
-    unless current_user.role_admin? || @request.user_id == current_user.id
-      return render json: { error: "Not authorized" }, status: :forbidden
-    end
+    require_admin_or_owner(@request)
 
     if @request.status == 'pending'
       if Gig.where(faculty_request_id: @request.id).exists?

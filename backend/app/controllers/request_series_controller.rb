@@ -85,9 +85,7 @@ class RequestSeriesController < ApplicationController
   def update
     @series = RequestSeries.find(params[:id])
 
-    unless current_user.role_admin? || @series.user_id == current_user.id
-      return render json: { error: "Not authorized" }, status: :forbidden
-    end
+    require_admin_or_owner(@series)
 
     ActiveRecord::Base.transaction do
       @series.update!(series_params)
@@ -113,9 +111,7 @@ class RequestSeriesController < ApplicationController
   def destroy
     @series = RequestSeries.find(params[:id])
 
-    unless current_user.role_admin? || @series.user_id == current_user.id
-      return render json: { error: "Not authorized" }, status: :forbidden
-    end
+    require_admin_or_owner(@series)
 
     @series.cancel_entire_series!
     head :no_content

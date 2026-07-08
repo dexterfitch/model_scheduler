@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert } from "react-bootstrap";
 import api from "../services/api";
-import { formatSkinTone } from "../utils/formatters";
+import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateShort } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
 
@@ -171,8 +171,7 @@ function AllRequests() {
       setEditingSeries(null);
       api.get("/request_series").then(res => setAllSeries(res.data));
     } catch (err) {
-      const messages = err.response?.data?.errors || [err.response?.data?.error] || ["Failed to save changes."];
-      setEditError(Array.isArray(messages) ? messages.join(" ") : messages);
+      setEditError(extractErrorMessages(err, "Failed to save changes."));
       api.get("/request_series").then(res => setAllSeries(res.data));
     }
   };

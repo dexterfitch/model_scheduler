@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from "react-bootstrap";
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
-import { formatSkinTone } from "../utils/formatters";
+import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS, GENDER_PREFERENCE_OPTIONS, SKIN_TONES } from "../utils/constants";
 
@@ -246,7 +246,7 @@ function FacultyDashboard({ user }) {
       })
       .catch((err) => {
         console.error(err);
-        setEditError(err.response?.data?.error || "Error updating request. Please try again.");
+        setEditError(extractErrorMessages(err, "Error updating request. Please try again."));
       });
   };
 
@@ -298,8 +298,7 @@ function FacultyDashboard({ user }) {
       setTimeout(() => setSubmitSuccess(''), 3000);
       fetchSeries();
     } catch (err) {
-      const messages = err.response?.data?.errors || [err.response?.data?.error] || ["Failed to add date."];
-      setAddDateError(Array.isArray(messages) ? messages.join(" ") : messages);
+      setAddDateError(extractErrorMessages(err, "Failed to add date."));
     }
   };
 

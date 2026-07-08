@@ -24,9 +24,7 @@ class ArtModelAvailabilitiesController < ApplicationController
   def update
     availability = ArtModelAvailability.find(params[:id])
 
-    unless current_user.role_admin? || availability.user_id == current_user.id
-      return render json: { error: "Not authorized" }, status: :forbidden
-    end
+    require_admin_or_owner(availability)
 
     if availability.update(availability_params)
       render json: availability
@@ -38,9 +36,7 @@ class ArtModelAvailabilitiesController < ApplicationController
   def destroy
     availability = ArtModelAvailability.find(params[:id])
 
-    unless current_user.role_admin? || availability.user_id == current_user.id
-      return render json: { error: "Not authorized" }, status: :forbidden
-    end
+    require_admin_or_owner(availability)
 
     if availability.destroy
       head :no_content
@@ -52,9 +48,7 @@ class ArtModelAvailabilitiesController < ApplicationController
   def cancel
     availability = ArtModelAvailability.find(params[:id])
 
-    unless current_user.role_admin? || availability.user_id == current_user.id
-      return render json: { error: "Not authorized" }, status: :forbidden
-    end
+    require_admin_or_owner(availability)
 
     cancel_remaining_series = ActiveModel::Type::Boolean.new.cast(params[:cancel_remaining_series])
 

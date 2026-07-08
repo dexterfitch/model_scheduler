@@ -43,11 +43,7 @@ class UsersController < ApplicationController
     user = User.find(params[:id])
     user.role = target_role
 
-    if user.role_model?
-      user.skin_tone ||= User::SKIN_TONES.first
-      user.gender_identity ||= User::GENDER_IDENTITIES.last
-      user.willing_to_model_nude = false if user.willing_to_model_nude.nil?
-    end
+    apply_model_defaults(user) if user.role_model?
     
     if user.save
       render json: user
@@ -85,11 +81,7 @@ class UsersController < ApplicationController
 
     current_user.role = target_role
 
-    if current_user.role_model?
-      current_user.skin_tone ||= User::SKIN_TONES.first
-      current_user.gender_identity ||= User::GENDER_IDENTITIES.last
-      current_user.willing_to_model_nude = false if current_user.willing_to_model_nude.nil?
-    end
+    apply_model_defaults(current_user) if current_user.role_model?
 
     if current_user.save
       render json: current_user
@@ -111,5 +103,11 @@ class UsersController < ApplicationController
       :first_name, :last_name, :email, :phone, :bio,
       :stage_name, :pronouns, :gender_identity, :skin_tone, :willing_to_model_nude
     )
+  end
+
+  def apply_model_defaults(user)
+    user.skin_tone ||= User::SKIN_TONES.first
+    user.gender_identity ||= User::GENDER_IDENTITIES.last
+    user.willing_to_model_nude = false if user.willing_to_model_nude.nil?
   end
 end

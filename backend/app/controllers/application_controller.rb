@@ -26,6 +26,11 @@ class ApplicationController < ActionController::API
     end
   end
 
+  def require_admin_or_owner(record)
+    return if current_user.role_admin? || record.user_id == current_user.id
+    raise NotAuthorizedError
+  end
+
   def render_forbidden
     render json: { error: "Not authorized" }, status: :forbidden
   end

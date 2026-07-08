@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Container, Card, Button, ListGroup, Badge, Spinner, Alert } from "react-bootstrap";
 import api from "../services/api";
-import { formatSkinTone } from "../utils/formatters";
+import { formatSkinTone, calculateMatchScore } from "../utils/formatters";
 import { formatTime, formatDateWithWeekday, formatDateTime, availabilityCoversRequest, hasSchedulingConflict } from "../utils/time";
 
 function GigCreator() {
@@ -63,12 +63,7 @@ function GigCreator() {
             const timeMatch = avails.some(avail => availabilityCoversRequest(avail, req));
             return timeMatch && !hasConflict(user.id, reqStart, reqEnd);
           });
-        }).map(({ user, avails }) => {
-          let score = 0;
-          if (user.skin_tone === targetSeries.pref_skin_tone) score++;
-          if (user.gender_identity === targetSeries.pref_gender) score++;
-          return { user, avails, score };
-        });
+        }).map(({ user, avails }) => ({ user, avails, score: calculateMatchScore(user, targetSeries) }));
 
         candidates.sort((a, b) => b.score - a.score);
         setMatches(candidates);
@@ -110,12 +105,7 @@ function GigCreator() {
           return timeMatch && nudityMatch && statusMatch && noConflict;
         });
 
-        const scored = candidates.map(c => {
-          let score = 0;
-          if (c.user.skin_tone === targetReq.pref_skin_tone) score++;
-          if (c.user.gender_identity === targetReq.pref_gender) score++;
-          return { ...c, score };
-        });
+        const scored = candidates.map(c => ({ ...c, score: calculateMatchScore(c.user, targetReq) }));
 
         scored.sort((a, b) => b.score - a.score);
         setMatches(scored);
