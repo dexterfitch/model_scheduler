@@ -2,8 +2,24 @@
   border: 1px solid var(--brand-grey) !important;
 }
 
+.requestBtnWrap {
+  width: auto;
+}
+
 @media (max-width: 991px) {
-  .requestButton {
+  .requestBtn {
     font-size: 1rem;
+  }
+}
+
+@media (max-width: 991px) and (min-width: 768px) {
+  .requestBtn {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 767px) {
+  .requestBtnWrap {
+    width: 100%;
   }
 }

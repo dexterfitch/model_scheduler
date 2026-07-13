@@ -12,6 +12,7 @@ function ModelDetail() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [availabilities, setAvailabilities] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState([]);
   const [error, setError] = useState('');
   const [pageSuccess, setPageSuccess] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -26,24 +27,32 @@ function ModelDetail() {
     fetchData();
   }, [id]);
 
+  useEffect(() => {
+    const events = availabilities.map(a => {
+      const gig = gigs.find(g => g.art_model_availability.id === a.id && g.status === 'confirmed');
+      const label = a.status !== 'active' ? 'Cancelled' : gig ? 'Confirmed Gig' : 'Available';
+      const color = a.status !== 'active' ? CALENDAR_COLORS.grey : gig ? CALENDAR_COLORS.blue : CALENDAR_COLORS.green;
+
+      return {
+        id: a.id,
+        title: label,
+        start: a.starts_at,
+        end: a.ends_at,
+        backgroundColor: color,
+        display: 'block',
+        extendedProps: { ...a }
+      };
+    });
+    setCalendarEvents(events);
+  }, [availabilities, gigs]);
+
   const fetchData = () => {
     api.get(`/users/${id}`)
       .then(res => setUser(res.data))
       .catch(() => setError("Failed to load model profile. Please try again."));
 
     api.get(`/art_model_availabilities?user_id=${id}`)
-      .then(res => {
-        const events = res.data.map(a => ({
-          id: a.id,
-          title: a.status === 'active' ? 'Available' : 'Cancelled',
-          start: a.starts_at,
-          end: a.ends_at,
-          backgroundColor: a.status === 'active' ? CALENDAR_COLORS.green : CALENDAR_COLORS.grey,
-          display: 'block',
-          extendedProps: { ...a }
-        }));
-        setAvailabilities(events);
-      })
+      .then(res => setAvailabilities(res.data))
       .catch(() => setError("Failed to load availability. Please try again."));
 
     api.get(`/gigs`)
@@ -185,7 +194,7 @@ function ModelDetail() {
         As admin you can add, edit, or delete this model's availability. Click a date to add time. Click a block to edit or delete.
       </Alert>
       <SharedCalendar
-        events={availabilities}
+        events={calendarEvents}
         editable={true}
         onDateSelect={handleDateSelect}
         onEventClick={handleEventClick}

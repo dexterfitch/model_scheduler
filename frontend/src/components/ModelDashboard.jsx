@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Badge, Tab, Tabs, Button, Modal, Form, Alert, ListGroup } from "react-bootstrap";
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
-import { formatSkinTone } from "../utils/formatters";
+import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability } from "../utils/time";
 import { CALENDAR_COLORS } from "../utils/constants";
 
@@ -38,7 +38,8 @@ function ModelDashboard({ user }) {
         const gig = myGigs.find(g =>
           g.art_model_availability.id === a.id && g.status === 'confirmed'
         );
-        const label = gig ? 'Confirmed Gig' : 'Free';
+        const location = gig && [gig.faculty_request.building, gig.faculty_request.room_number].filter(Boolean).join(' ');
+        const label = gig ? `Confirmed Gig${location ? ` — ${location}` : ''}` : 'Free';
         const color = gig ? CALENDAR_COLORS.blue : CALENDAR_COLORS.green;
 
         return {
@@ -177,18 +178,18 @@ function ModelDashboard({ user }) {
       .catch(() => setModalError("Error deleting. Please try again."));
   };
 
-  const handleCancelGig = (cancelRemainingSeries = false) => {
-    if (!editingId) return;
+  const cancelGig = (availabilityId, gig, cancelRemainingSeries = false) => {
+    const seriesCount = otherFutureSeriesGigsCount(gig);
 
     const message = cancelRemainingSeries
       ? "Cancel your participation in this AND all remaining future dates in this series? The faculty member's requests will go back to pending so an admin can find a replacement. You will not be paid for these slots since you are cancelling."
-      : otherSeriesCount > 0
+      : seriesCount > 0
         ? "Cancel your participation in this single date? The faculty member's request for this date will go back to pending. Note: since this class wants the same model across all sessions, cancelling even one date may put your place in the rest of the series at risk. An admin may decide to rematch the remaining dates to a different model. You will not be paid for this slot since you are cancelling."
         : "Cancel your participation in this date? The faculty member's request will go back to pending so an admin can find a replacement. You will not be paid for this slot since you are cancelling.";
 
     if (!confirm(message)) return;
 
-    api.post(`/art_model_availabilities/${editingId}/cancel`, {
+    api.post(`/art_model_availabilities/${availabilityId}/cancel`, {
       cancel_remaining_series: cancelRemainingSeries
     })
       .then(() => {
@@ -197,7 +198,15 @@ function ModelDashboard({ user }) {
         setShowModal(false);
         fetchData();
       })
-      .catch(() => setModalError("Error cancelling. Please try again."));
+      .catch((err) => {
+        const msg = extractErrorMessages(err, "Error cancelling. Please try again.");
+        if (showModal) setModalError(msg); else alert(msg);
+      });
+  };
+
+  const handleCancelGig = (cancelRemainingSeries = false) => {
+    if (!editingId || !activeGig) return;
+    cancelGig(editingId, activeGig, cancelRemainingSeries);
   };
 
   const getActiveGigForAvailability = (availabilityId) => findActiveGigForAvailability(myGigs, availabilityId);
@@ -243,7 +252,6 @@ function ModelDashboard({ user }) {
         <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
           <div>
             <h2 className="mb-1">Hello, {user.stage_name || user.first_name}</h2>
-            <div className="text-muted">{formatSkinTone(user.skin_tone)} • {user.gender_identity} Presentation</div>
           </div>
           <div className="text-end">
             {user.willing_to_model_nude
@@ -251,6 +259,7 @@ function ModelDashboard({ user }) {
               : <Badge bg="success" className="p-2">Clothed Only</Badge>}
           </div>
         </Card.Body>
+        <div class="rainbow-bar"></div>
       </Card>
 
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
@@ -307,11 +316,21 @@ function ModelDashboard({ user }) {
                           {gig.faculty_request.building}{gig.faculty_request.building && gig.faculty_request.room_number && " "}{gig.faculty_request.room_number}
                         </div>
                       )}
-                      <div className="p-2 bg-light rounded small">
+                      <div className="p-2 bg-light rounded small mb-2">
                         <strong>Mode:</strong> {gig.faculty_request.model_mode === 'nude'
                           ? <span className="text-danger fw-bold">NUDE</span>
                           : "Clothed"}
                       </div>
+                      {gig.status === 'confirmed' && (
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          className="w-100"
+                          onClick={() => cancelGig(gig.art_model_availability.id, gig)}
+                        >
+                          Cancel
+                        </Button>
+                      )}
                     </Card.Body>
                   </Card>
                 </Col>
@@ -433,6 +452,17 @@ function ModelDashboard({ user }) {
                 <i className="bi bi-info-circle-fill me-2"></i>
                 You're confirmed for <strong>{activeGig.faculty_request.class_name}</strong> from{' '}
                 {times.start} to {times.end}. Your availability can't be edited while a gig is scheduled.
+                <div className="small mt-2">
+                  {activeGig.faculty_request.department && <div>Department: {activeGig.faculty_request.department}</div>}
+                  {(activeGig.faculty_request.building || activeGig.faculty_request.room_number) && (
+                    <div>
+                      Location: {activeGig.faculty_request.building}
+                      {activeGig.faculty_request.building && activeGig.faculty_request.room_number && " "}
+                      {activeGig.faculty_request.room_number}
+                    </div>
+                  )}
+                  <div>Mode: {activeGig.faculty_request.model_mode === 'nude' ? 'Nude' : 'Clothed'}</div>
+                </div>
               </Alert>
               <div className="d-flex justify-content-end gap-2">
                 <Button variant="outline-danger" onClick={() => handleCancelGig(false)}>

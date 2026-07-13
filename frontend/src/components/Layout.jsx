@@ -87,7 +87,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
             
             <div className={`d-flex flex-column flex-lg-row align-items-start align-items-lg-center gap-2 ${styles.userSection}`}>
               <div className="text-white">
-                {currentUser.first_name}
+                {currentUser.stage_name || currentUser.first_name}
                 {currentUser.superuser ? " (SuperUser)" : ` (${currentUser.role})`}
               </div>
               {currentUser.role === 'model' && (

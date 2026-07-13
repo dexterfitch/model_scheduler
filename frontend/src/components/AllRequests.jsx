@@ -77,8 +77,11 @@ function AllRequests() {
     }
   };
 
-  const handleCancelSeries = async (seriesId) => {
-    if (!confirm("Cancel this entire request? All matched dates will be released and marked cancelled (billable if same-day), and any pending dates will be removed.")) return;
+  const handleCancelSeries = async (seriesId, isSingle) => {
+    const message = isSingle
+      ? "Cancel this gig? If matched, the model will be released and the gig marked cancelled (billable if same-day)."
+      : "Cancel this entire request? All matched dates will be released and marked cancelled (billable if same-day), and any pending dates will be removed.";
+    if (!confirm(message)) return;
     try {
       await api.delete(`/request_series/${seriesId}`);
       api.get("/request_series").then(res => setAllSeries(res.data));
@@ -294,7 +297,7 @@ function AllRequests() {
             <Button size="sm" variant="outline-secondary" className="flex-fill" onClick={() => openEditSeriesModal(s)}>
               {isSingle ? "Edit Gig" : "Edit Series"}
             </Button>
-            <Button size="sm" variant="outline-danger" className="flex-fill" onClick={() => handleCancelSeries(s.id)}>
+            <Button size="sm" variant="outline-danger" className="flex-fill" onClick={() => handleCancelSeries(s.id, isSingle)}>
               {isSingle ? "Cancel Gig" : "Cancel Series"}
             </Button>
           </div>

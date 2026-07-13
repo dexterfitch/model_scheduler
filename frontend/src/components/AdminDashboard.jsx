@@ -38,8 +38,15 @@ function AdminDashboard() {
 
   return (
     <div>
-      <h2 className="mb-4">Admin Dashboard</h2>
-
+      <Card className="mb-4 bg-light border-0 shadow-sm">
+        <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+          <div>
+            <h2 className="mb-1">Admin Dashboard</h2>
+          </div>
+        </Card.Body>
+        <div class="rainbow-bar"></div>
+      </Card>
+      
       <Row>
         <Col md={7} className="order-2 order-md-1 my-4 my-md-0">
           <Card className="shadow-sm">

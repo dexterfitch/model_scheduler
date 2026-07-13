@@ -1,12 +1,66 @@
+.printTable {
+  display: none;
+}
+
+.printOnly {
+  display: none;
+}
+
 @media print {
   :global(.navbar),
-  .reportHeaderCard {
+  .reportHeaderCard,
+  .printHide {
     display: none !important;
+  }
+  
+  .printOnly {
+    display: block !important;
   }
 
   :global(.container) {
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+  }
+
+  :global(.badge) {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .modelCard {
+    display: none !important;
+  }
+
+  .printTable {
+    display: table !important;
+    font-size: 10pt;
+  }
+
+  .printTable th,
+  .printTable td {
+    padding: 4px 6px !important;
+  }
+
+  .newModelRow td {
+    border-top: 3px solid #000 !important;
+  }
+}
+
+.shiftLineDesktop {
+  display: none;
+}
+
+.shiftLineMobile {
+  display: block;
+}
+
+@media (min-width: 576px) {
+  .shiftLineDesktop {
+    display: flex;
+  }
+
+  .shiftLineMobile {
+    display: none;
   }
 }

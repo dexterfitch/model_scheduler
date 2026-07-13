@@ -6,12 +6,15 @@ import styles from "./Reports.module.css";
 
 function Reports() {
   const [gigs, setGigs] = useState([]);
+  const [fetchError, setFetchError] = useState('');
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [report, setReport] = useState(null);
 
   useEffect(() => {
-    api.get("/gigs").then(res => setGigs(res.data));
+    api.get("/gigs")
+      .then(res => setGigs(res.data))
+      .catch(() => setFetchError("Failed to load gig data. Please try again."));
   }, []);
 
   const calculateHours = (startsAt, endsAt) => {
@@ -48,7 +51,7 @@ function Reports() {
       const isCancelled = gig.status === "cancelled";
 
       if (!byModel[modelKey]) {
-        byModel[modelKey] = { name: modelName, departments: {} };
+        byModel[modelKey] = { id: modelKey, name: modelName, departments: {} };
       }
 
       if (!byModel[modelKey].departments[department]) {
@@ -65,6 +68,7 @@ function Reports() {
       const deptData = byModel[modelKey].departments[department];
       const shiftInfo = {
         facultyName,
+        className: gig.faculty_request.class_name,
         date: formatDateNumeric(gig.faculty_request.starts_at),
         timeRange: `${formatTimeShort(gig.faculty_request.starts_at)} - ${formatTimeShort(gig.faculty_request.ends_at)}`,
         hours
@@ -78,14 +82,123 @@ function Reports() {
       }
     });
 
+    Object.values(byModel).forEach(modelData => {
+      Object.values(modelData.departments).forEach(dept => {
+        dept.confirmed.clothed.shifts.sort((a, b) => new Date(a.date) - new Date(b.date));
+        dept.confirmed.nude.shifts.sort((a, b) => new Date(a.date) - new Date(b.date));
+        dept.cancelled.sort((a, b) => new Date(a.date) - new Date(b.date));
+      });
+    });
+
     setReport(byModel);
   };
 
+  const deptHasContent = (dept) =>
+    dept.confirmed.clothed.total > 0 || dept.confirmed.nude.total > 0 || dept.cancelled.length > 0;
+
+  const modelHasContent = (modelData) =>
+    Object.values(modelData.departments).some(deptHasContent);
+
+  const modelTotalHours = (modelData) =>
+    Object.values(modelData.departments).reduce((sum, dept) => {
+      const cancelledHours = dept.cancelled.reduce((s, c) => s + c.hours, 0);
+      return sum + dept.confirmed.clothed.total + dept.confirmed.nude.total + cancelledHours;
+    }, 0);
+
+  const flattenReportRows = () => {
+    const rows = [];
+    Object.values(report)
+      .filter(modelHasContent)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(modelData => {
+        Object.values(modelData.departments)
+          .filter(deptHasContent)
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .forEach(dept => {
+            const deptRows = [];
+
+            dept.confirmed.clothed.shifts.forEach(s => deptRows.push({
+              modelName: modelData.name, department: dept.name, className: s.className,
+              facultyName: s.facultyName, date: s.date, timeRange: s.timeRange,
+              mode: "Clothed", status: "Confirmed", hours: s.hours
+            }));
+            dept.confirmed.nude.shifts.forEach(s => deptRows.push({
+              modelName: modelData.name, department: dept.name, className: s.className,
+              facultyName: s.facultyName, date: s.date, timeRange: s.timeRange,
+              mode: "Nude", status: "Confirmed", hours: s.hours
+            }));
+            dept.cancelled.forEach(c => deptRows.push({
+              modelName: modelData.name, department: dept.name, className: c.className,
+              facultyName: c.facultyName, date: c.date, timeRange: c.timeRange,
+              mode: c.mode === 'nude' ? "Nude" : "Clothed", status: "Cancelled (Billable)", hours: c.hours
+            }));
+
+            deptRows.sort((a, b) => new Date(a.date) - new Date(b.date) || a.mode.localeCompare(b.mode));
+            rows.push(...deptRows);
+          });
+      });
+    return rows;
+  };
+
+  const renderShiftLine = (shift) => (
+    <div className={`py-1 border-bottom border-light ${styles.shiftLine}`}>
+      <div className={`d-flex justify-content-between ${styles.shiftLineDesktop}`}>
+        <span>{shift.facultyName}, {shift.date}, {shift.timeRange}</span>
+        <span className="ms-2 fw-bold">{shift.hours} hrs</span>
+      </div>
+      <div className={styles.shiftLineMobile}>
+        <div>{shift.facultyName}</div>
+        <div className="d-flex justify-content-between">
+          <span>{shift.date}, {shift.timeRange}</span>
+          <span className="fw-bold">{shift.hours} hrs</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderConfirmedSection = (modeData, label, badgeVariant) => {
+    if (modeData.total <= 0) return null;
+    return (
+      <div className="mb-3">
+        <div className="d-flex justify-content-between align-items-center py-1">
+          <span><Badge bg={badgeVariant} className="me-2">{label}</Badge></span>
+          <span className="fw-bold">{modeData.total} hrs</span>
+        </div>
+        <div className="ms-2 ms-md-4 small text-muted">
+          {modeData.shifts.map((s, idx) => <React.Fragment key={idx}>{renderShiftLine(s)}</React.Fragment>)}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCancelledEntry = (can, idx) => (
+    <div key={idx} className="mb-3">
+      <div className="d-flex justify-content-between align-items-center py-1">
+        <span>
+          <Badge bg={can.mode === 'nude' ? 'danger' : 'success'} className="me-2">
+            {can.mode === 'nude' ? 'Nude' : 'Clothed'}
+          </Badge>
+          <Badge bg="warning" text="dark">⚠️ Late Cancel — Billable</Badge>
+        </span>
+        <span className="fw-bold">{can.hours} hrs</span>
+      </div>
+      <div className="ms-2 ms-md-4 small text-muted">
+        {renderShiftLine(can)}
+      </div>
+    </div>
+  );
+
   return (
     <Container className="py-4">
-      <h2 className="mb-4">Reports</h2>
+      <h2 className={`mb-4 ${styles.printHide}`}>Reports</h2>
 
-      <Card className={`shadow-sm mb-4 ${styles.reportHeaderCard}`}>
+      {fetchError && (
+        <Alert variant="danger" dismissible onClose={() => setFetchError('')}>
+          {fetchError}
+        </Alert>
+      )}
+
+      <Card className={`shadow-sm mb-4 ${styles.reportHeaderCard} ${styles.printHide}`}>
         <Card.Header className="bg-primary text-white fw-bold">Model Hours Report</Card.Header>
         <Card.Body>
           <Row className="g-2 align-items-end">
@@ -112,114 +225,69 @@ function Reports() {
       </Card>
 
       {report && (
-        Object.keys(report).length === 0 ? (
+        Object.values(report).every(modelData => !modelHasContent(modelData)) ? (
           <Alert variant="info">No gigs found in this date range.</Alert>
         ) : (
-          Object.values(report).map(modelData => (
-            <Card key={modelData.name} className="shadow-sm mb-4">
-              <Card.Header className="fw-bold fs-5 bg-light">{modelData.name}</Card.Header>
-              <Card.Body>
-                {Object.values(modelData.departments).map((dept, i) => (
-                  <div key={i} className="mb-4">
-                    <div className="fw-bold text-primary border-bottom mb-2 pb-1">
-                      {dept.name}
-                    </div>
-
-                    {dept.confirmed.clothed.total > 0 && (
-                      <div className="mb-3">
-                        <div className="d-flex justify-content-between align-items-center py-1">
-                          <span><Badge bg="success" className="me-2">Clothed</Badge> Confirmed Work</span>
-                          <span className="fw-bold">{dept.confirmed.clothed.total} hrs</span>
+          Object.values(report)
+            .filter(modelHasContent)
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(modelData => (
+              <Card key={modelData.id} className={`shadow-sm mb-4 ${styles.modelCard}`}>
+                <Card.Header className="fw-bold fs-5 bg-light d-flex justify-content-between align-items-center">
+                  {modelData.name}
+                  <span className="small fw-normal text-muted">Payable Total: {modelTotalHours(modelData)} hrs</span>
+                </Card.Header>
+                <Card.Body>
+                  {Object.values(modelData.departments)
+                    .filter(deptHasContent)
+                    .map((dept, i) => (
+                      <div key={i} className={`mb-4 ${styles.deptSection}`}>
+                        <div className="fw-bold text-primary border-bottom mb-2 pb-1">
+                          {dept.name}
                         </div>
-                        <div className="ms-2 ms-md-4 small text-muted">
-                          {dept.confirmed.clothed.shifts.map((s, idx) => (
-                            <div key={idx} className="py-1 border-bottom border-light">
-                              <div className="d-none d-sm-flex justify-content-between">
-                                <span>{s.facultyName}, {s.date}, {s.timeRange}</span>
-                                <span className="ms-2 fw-bold">{s.hours} hrs</span>
-                              </div>
-                              <div className="d-sm-none">
-                                <div>{s.facultyName}</div>
-                                <div className="d-flex justify-content-between">
-                                  <span>{s.date}, {s.timeRange}</span>
-                                  <span className="fw-bold">{s.hours} hrs</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        {renderConfirmedSection(dept.confirmed.clothed, "Clothed", "success")}
+                        {renderConfirmedSection(dept.confirmed.nude, "Nude", "danger")}
+                        {dept.cancelled.map((can, j) => renderCancelledEntry(can, j))}
                       </div>
-                    )}
-
-                    {dept.confirmed.nude.total > 0 && (
-                      <div className="mb-3">
-                        <div className="d-flex justify-content-between align-items-center py-1">
-                          <span><Badge bg="danger" className="me-2">Nude</Badge> Confirmed Work</span>
-                          <span className="fw-bold">{dept.confirmed.nude.total} hrs</span>
-                        </div>
-                        <div className="ms-2 ms-md-4 small text-muted">
-                          {dept.confirmed.nude.shifts.map((s, idx) => (
-                            <div key={idx} className="py-1 border-bottom border-light">
-                              <div className="d-none d-sm-flex justify-content-between">
-                                <span>{s.facultyName}, {s.date}, {s.timeRange}</span>
-                                <span className="ms-2 fw-bold">{s.hours} hrs</span>
-                              </div>
-                              <div className="d-sm-none">
-                                <div>{s.facultyName}</div>
-                                <div className="d-flex justify-content-between">
-                                  <span>{s.date}, {s.timeRange}</span>
-                                  <span className="fw-bold">{s.hours} hrs</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {dept.cancelled.map((can, j) => (
-                      <div key={j} className="mb-2">
-                        <div className="d-none d-sm-flex justify-content-between align-items-center py-1 text-muted fst-italic">
-                          <span>
-                            <Badge bg="secondary" className="me-2">Cancelled</Badge>
-                            {can.mode === 'nude' ? 'Nude' : 'Clothed'}
-                            <Badge bg="warning" text="dark" className="ms-2">⚠️ Late Cancel — Billable</Badge>
-                          </span>
-                          <span className="fw-bold ms-2">{can.hours} hrs</span>
-                        </div>
-                        <div className="d-sm-none py-1 text-muted fst-italic">
-                          <div className="d-flex justify-content-between align-items-center mb-1">
-                            <span>
-                              <Badge bg="secondary" className="me-1">Cancelled</Badge>
-                              {can.mode === 'nude' ? 'Nude' : 'Clothed'}
-                            </span>
-                            <span className="fw-bold">{can.hours} hrs</span>
-                          </div>
-                          <Badge bg="warning" text="dark">⚠️ Late Cancel — Billable</Badge>
-                        </div>
-                        <div className="ms-2 ms-md-4 small text-muted">
-                          <div className="py-1 border-bottom border-light">
-                            <div className="d-none d-sm-flex justify-content-between">
-                              <span>{can.facultyName}, {can.date}, {can.timeRange}</span>
-                              <span>{can.hours} hrs</span>
-                            </div>
-                            <div className="d-sm-none">
-                              <div>{can.facultyName}</div>
-                              <div className="d-flex justify-content-between">
-                                <span>{can.date}, {can.timeRange}</span>
-                                <span>{can.hours} hrs</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </Card.Body>
-            </Card>
+                  ))}
+                </Card.Body>
+              </Card>
           ))
         )
+      )}
+      {report && !Object.values(report).every(modelData => !modelHasContent(modelData)) && (
+        <>
+          <div className={`${styles.printOnly} mb-2`}>
+            <strong>Report Period:</strong> {startDate} – {endDate}
+          </div>
+          <table className={`table table-sm table-bordered ${styles.printTable}`}>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Department</th>
+                <th>Mode</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th className="text-end">Hours</th>
+              </tr>
+            </thead>
+            <tbody>
+              {flattenReportRows().map((row, i, arr) => {
+                const isNewModel = i === 0 || arr[i - 1].modelName !== row.modelName;
+                return (
+                  <tr key={i} className={isNewModel ? styles.newModelRow : undefined}>
+                    <td>{row.modelName}</td>
+                    <td>{row.department}</td>
+                    <td>{row.date}</td>
+                    <td>{row.timeRange}</td>
+                    <td>{row.mode}</td>
+                    <td className="text-end">{row.hours}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </>
       )}
     </Container>
   );

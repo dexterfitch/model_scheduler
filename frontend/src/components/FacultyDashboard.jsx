@@ -310,22 +310,25 @@ function FacultyDashboard({ user }) {
         </Alert>
       )}
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
           <h2>My Classes</h2>
-          <p className="text-muted">Manage your model needs. Note: Confirmed gigs (matched requests) can only be changed by an admin.</p>
+          <p className="text-muted mb-0">Manage your model needs. Note: Confirmed gigs (matched requests) can only be changed by an admin.</p>
         </div>
-        <Button
-          className={styles.requestButton}
-          variant="primary" size="lg"
-          onClick={() => {
-            setShowModal(true);
-            setSubmitError('');
-            setSubmitSuccess('');
-          }}>
-          + New Request
-        </Button>
+        <div className={`d-grid d-md-block {styles.requestBtn}`}>
+          <Button
+            className={styles.requestBtn}
+            variant="primary" size="lg"
+            onClick={() => {
+              setShowModal(true);
+              setSubmitError('');
+              setSubmitSuccess('');
+            }}>
+            + New Request
+          </Button>
+        </div>
       </div>
+      <div className="rainbow-bar mb-4"></div>
 
       {series.length === 0 && !loading && (
         <Alert variant="info">You haven't requested any models yet. Click "New Request" to start.</Alert>
