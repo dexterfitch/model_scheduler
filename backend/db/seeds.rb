@@ -1,460 +1,289 @@
 puts "🌱 Seeding Database..."
 
-Gig.destroy_all
-FacultyRequest.destroy_all
-RequestSeries.destroy_all
-ArtModelAvailability.destroy_all
-User.where.not(email: "dfitch@mica.edu").destroy_all
+Gig.delete_all
+FacultyRequest.delete_all
+RequestSeries.delete_all
+ArtModelAvailability.delete_all
+User.where.not(email: "dfitch@mica.edu").delete_all
 
 puts "🧹 Old data wiped."
 
-# def create_past_request(attrs)
-#   r = FacultyRequest.new(attrs)
-#   r.save(validate: false)
-#   r
-# end
+puts "Creating users..."
 
-# def create_past_availability(attrs)
-#   a = ArtModelAvailability.new(attrs)
-#   a.save(validate: false)
-#   a
-# end
+# --- Admins ---
+superadmin = User.find_or_create_by(email: "dfitch@mica.edu") do |u|
+  u.first_name = "Dexter"
+  u.last_name = "Fitch"
+  u.role = :admin
+  u.superuser = true
+end
+superadmin.update!(role: :admin, superuser: true)
 
-# frank = User.create!(
-#   first_name: "Frank", last_name: "Faculty",
-#   email: "frank@mica.edu", role: "faculty"
-# )
+admin2 = User.create!(
+  first_name: "Pat", last_name: "Reyes", email: "preyes@mica.edu",
+  role: :admin
+)
 
-# sarah = User.create!(
-#   first_name: "Sarah", last_name: "Sketch",
-#   email: "sarah@mica.edu", role: "faculty"
-# )
+# --- Faculty ---
+faculty1 = User.create!(
+  first_name: "Alice", last_name: "Chen", email: "achen@mica.edu", role: :faculty
+)
+faculty2 = User.create!(
+  first_name: "Marcus", last_name: "Bell", email: "mbell@mica.edu", role: :faculty
+)
+faculty3 = User.create!(
+  first_name: "Priya", last_name: "Nair", email: "pnair@mica.edu", role: :faculty
+)
 
-# bob = User.create!(
-#   first_name: "Bob", last_name: "Brushwork",
-#   email: "bob@mica.edu", role: "faculty"
-# )
+# --- Models ---
+model1 = User.create!(
+  first_name: "Jordan", last_name: "Ellis", email: "jellis@mica.edu", role: :model,
+  skin_tone: "Medium", gender_identity: "Non-binary", willing_to_model_nude: true,
+  stage_name: "Jae", pronouns: "they/them"
+)
+model2 = User.create!(
+  first_name: "Sofia", last_name: "Marsh", email: "smarsh@mica.edu", role: :model,
+  skin_tone: "Light", gender_identity: "Woman", willing_to_model_nude: false,
+  pronouns: "she/her"
+)
+model3 = User.create!(
+  first_name: "Devon", last_name: "Price", email: "dprice@mica.edu", role: :model,
+  skin_tone: "Dark", gender_identity: "Man", willing_to_model_nude: true,
+  pronouns: "he/him"
+)
+model4 = User.create!(
+  first_name: "Riley", last_name: "Okafor", email: "rokafor@mica.edu", role: :model,
+  skin_tone: "Medium", gender_identity: "Prefer not to say", willing_to_model_nude: false
+)
+model5 = User.create!(
+  first_name: "Sam", last_name: "Woods", email: "swoods@mica.edu", role: :model,
+  skin_tone: "Light", gender_identity: "Man", willing_to_model_nude: true,
+  pronouns: "he/him"
+)
+sock_model = User.create!(
+  first_name: "🧦 Test", last_name: "Tester", email: "socktester@mica.edu", role: :model,
+  skin_tone: "Medium", gender_identity: "Woman", willing_to_model_nude: false,
+  stage_name: "Offline Test Account"
+)
 
-# ruth = User.create!(
-#   first_name: "Ruth", last_name: "Model",
-#   email: "ruth@mica.edu", role: "model",
-#   pronouns: "she/her",
-#   skin_tone: "Dark", gender_identity: "Female", willing_to_model_nude: true,
-#   phone: "555-123-4567", stage_name: "Ruthie"
-# )
+puts "Building scenarios..."
 
-# mike = User.create!(
-#   first_name: "Mike", last_name: "Muscle",
-#   email: "mike@mica.edu", role: "model",
-#   pronouns: "he/him",
-#   skin_tone: "Light", gender_identity: "Male", willing_to_model_nude: false,
-#   phone: "555-987-6543"
-# )
+# Helper to create a matched gig cleanly (mirrors gigs_controller#create side effects)
+def book!(faculty_request, availability, confirmed_by:)
+  gig = Gig.create!(faculty_request: faculty_request, art_model_availability: availability, confirmed_by: confirmed_by)
+  faculty_request.update!(status: :matched, needs_attention: false)
+  faculty_request.request_series&.update_status!
+  gig
+end
 
-# alex = User.create!(
-#   first_name: "Alex", last_name: "Andro",
-#   email: "alex@mica.edu", role: "model",
-#   pronouns: "they/them",
-#   skin_tone: "Medium", gender_identity: "Non-Binary", willing_to_model_nude: true,
-#   phone: "555-555-5555", stage_name: "Alexis"
-# )
+# ============================================================
+# SCENARIO A: Fresh pending single-date request (standalone, no series)
+# ============================================================
+FacultyRequest.create!(
+  user: faculty1, class_name: "Figure Drawing 101", department: "Drawing",
+  building: "Fox", room_number: "201", model_mode: :clothed,
+  pref_skin_tone: "Any", pref_gender: "Any",
+  starts_at: 5.days.from_now.change(hour: 10, min: 0),
+  ends_at: 5.days.from_now.change(hour: 12, min: 0),
+  status: :pending
+)
 
-# puts "👥 Users created."
+# ============================================================
+# SCENARIO B: Fresh pending multi-date series (3 dates, all pending)
+# ============================================================
+series_b = RequestSeries.create!(
+  user: faculty2, class_name: "Painting II", department: "Painting",
+  building: "Main", room_number: "412", model_mode: :nude,
+  pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+)
+[7, 9, 11].each do |days_out|
+  FacultyRequest.create!(
+    request_series: series_b, user: faculty2, class_name: series_b.class_name,
+    department: series_b.department, building: series_b.building, room_number: series_b.room_number,
+    model_mode: series_b.model_mode, pref_skin_tone: series_b.pref_skin_tone, pref_gender: series_b.pref_gender,
+    starts_at: days_out.days.from_now.change(hour: 9, min: 0),
+    ends_at: days_out.days.from_now.change(hour: 12, min: 0),
+    status: :pending
+  )
+end
 
-# two_weeks_ago = 2.weeks.ago
+# ============================================================
+# SCENARIO C: Fully matched single-date request (isSingle labels test)
+# ============================================================
+fr_c = FacultyRequest.create!(
+  user: faculty3, class_name: "Sculpture Studio", department: "Sculpture",
+  building: "Station", room_number: "5", model_mode: :clothed,
+  pref_skin_tone: "Any", pref_gender: "Any",
+  starts_at: 6.days.from_now.change(hour: 13, min: 0),
+  ends_at: 6.days.from_now.change(hour: 16, min: 0),
+  status: :pending
+)
+avail_c = ArtModelAvailability.create!(
+  user: model3, starts_at: fr_c.starts_at, ends_at: fr_c.ends_at, status: :active
+)
+book!(fr_c, avail_c, confirmed_by: superadmin)
 
-# # Ruth: Confirmed - Painting Clothed (3 hrs)
-# req1 = create_past_request(
-#   user: frank, class_name: "Portrait Painting I", department: "Painting",
-#   starts_at: two_weeks_ago.change(hour: 10, min: 0),
-#   ends_at: two_weeks_ago.change(hour: 13, min: 0),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail1 = create_past_availability(
-#   user: ruth,
-#   starts_at: two_weeks_ago.change(hour: 9, min: 0),
-#   ends_at: two_weeks_ago.change(hour: 14, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req1, art_model_availability: avail1, status: "confirmed")
+# ============================================================
+# SCENARIO D: Fully matched multi-date series (Edit/Cancel Series plural labels)
+# ============================================================
+series_d = RequestSeries.create!(
+  user: faculty1, class_name: "Illustration Portfolio", department: "Illustration",
+  building: "Lazarus", room_number: "300", model_mode: :clothed,
+  pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+)
+[8, 10].each do |days_out|
+  fr = FacultyRequest.create!(
+    request_series: series_d, user: faculty1, class_name: series_d.class_name,
+    department: series_d.department, building: series_d.building, room_number: series_d.room_number,
+    model_mode: series_d.model_mode, pref_skin_tone: series_d.pref_skin_tone, pref_gender: series_d.pref_gender,
+    starts_at: days_out.days.from_now.change(hour: 9, min: 0),
+    ends_at: days_out.days.from_now.change(hour: 11, min: 0),
+    status: :pending
+  )
+  avail = ArtModelAvailability.create!(user: model2, starts_at: fr.starts_at, ends_at: fr.ends_at, status: :active)
+  book!(fr, avail, confirmed_by: admin2)
+end
 
-# # Ruth: Confirmed - Drawing Nude (2 hrs)
-# req2 = create_past_request(
-#   user: sarah, class_name: "Figure Drawing 101", department: "Drawing",
-#   starts_at: (two_weeks_ago + 1.day).change(hour: 9, min: 0),
-#   ends_at: (two_weeks_ago + 1.day).change(hour: 11, min: 0),
-#   model_mode: "nude", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail2 = create_past_availability(
-#   user: ruth,
-#   starts_at: (two_weeks_ago + 1.day).change(hour: 8, min: 0),
-#   ends_at: (two_weeks_ago + 1.day).change(hour: 12, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req2, art_model_availability: avail2, status: "confirmed")
+# ============================================================
+# SCENARIO E: Mixed series (some matched, some pending) — badges + "Release Model and Rematch"
+# ============================================================
+series_e = RequestSeries.create!(
+  user: faculty2, class_name: "Open Studies Life Drawing", department: "Open Studies",
+  building: "Main", room_number: "110", model_mode: :nude,
+  pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+)
+fr_e_matched = FacultyRequest.create!(
+  request_series: series_e, user: faculty2, class_name: series_e.class_name,
+  department: series_e.department, building: series_e.building, room_number: series_e.room_number,
+  model_mode: series_e.model_mode, pref_skin_tone: series_e.pref_skin_tone, pref_gender: series_e.pref_gender,
+  starts_at: 4.days.from_now.change(hour: 9, min: 0), ends_at: 4.days.from_now.change(hour: 12, min: 0),
+  status: :pending
+)
+avail_e = ArtModelAvailability.create!(user: model1, starts_at: fr_e_matched.starts_at, ends_at: fr_e_matched.ends_at, status: :active)
+book!(fr_e_matched, avail_e, confirmed_by: superadmin)
 
-# # Ruth: Confirmed - Painting Nude (1.5 hrs)
-# req3 = create_past_request(
-#   user: bob, class_name: "Advanced Figure", department: "Painting",
-#   starts_at: (two_weeks_ago + 2.days).change(hour: 14, min: 0),
-#   ends_at: (two_weeks_ago + 2.days).change(hour: 15, min: 30),
-#   model_mode: "nude", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail3 = create_past_availability(
-#   user: ruth,
-#   starts_at: (two_weeks_ago + 2.days).change(hour: 13, min: 0),
-#   ends_at: (two_weeks_ago + 2.days).change(hour: 17, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req3, art_model_availability: avail3, status: "confirmed")
+FacultyRequest.create!(
+  request_series: series_e, user: faculty2, class_name: series_e.class_name,
+  department: series_e.department, building: series_e.building, room_number: series_e.room_number,
+  model_mode: series_e.model_mode, pref_skin_tone: series_e.pref_skin_tone, pref_gender: series_e.pref_gender,
+  starts_at: 6.days.from_now.change(hour: 9, min: 0), ends_at: 6.days.from_now.change(hour: 12, min: 0),
+  status: :pending
+)
+series_e.update_status!
 
-# # Ruth: Confirmed - Drawing Clothed (1.75 hrs)
-# req_round = create_past_request(
-#   user: frank, class_name: "Quick Sketch Session", department: "Drawing",
-#   starts_at: (two_weeks_ago + 3.days).change(hour: 9, min: 0),
-#   ends_at: (two_weeks_ago + 3.days).change(hour: 10, min: 45),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail_round = create_past_availability(
-#   user: ruth,
-#   starts_at: (two_weeks_ago + 3.days).change(hour: 8, min: 0),
-#   ends_at: (two_weeks_ago + 3.days).change(hour: 12, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req_round, art_model_availability: avail_round, status: "confirmed")
+# ============================================================
+# SCENARIO F: needs_attention flagged pending date (simulates a model cancellation)
+# ============================================================
+series_f = RequestSeries.create!(
+  user: faculty3, class_name: "Anatomy for Artists", department: "Drawing",
+  building: "Fox", room_number: "150", model_mode: :clothed,
+  pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+)
+FacultyRequest.create!(
+  request_series: series_f, user: faculty3, class_name: series_f.class_name,
+  department: series_f.department, building: series_f.building, room_number: series_f.room_number,
+  model_mode: series_f.model_mode, pref_skin_tone: series_f.pref_skin_tone, pref_gender: series_f.pref_gender,
+  starts_at: 3.days.from_now.change(hour: 10, min: 0), ends_at: 3.days.from_now.change(hour: 12, min: 0),
+  status: :pending, needs_attention: true
+)
 
-# # Ruth: Confirmed - Illustration Clothed
-# req_weird = create_past_request(
-#   user: sarah, class_name: "Oddly Timed Session", department: "Illustration",
-#   starts_at: (two_weeks_ago + 3.days).change(hour: 13, min: 7),
-#   ends_at: (two_weeks_ago + 3.days).change(hour: 14, min: 30),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail_weird = create_past_availability(
-#   user: ruth,
-#   starts_at: (two_weeks_ago + 3.days).change(hour: 12, min: 0),
-#   ends_at: (two_weeks_ago + 3.days).change(hour: 16, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req_weird, art_model_availability: avail_weird, status: "confirmed")
+# ============================================================
+# SCENARIO G: Cancelled/archived series, non-billable (cancelled well ahead of time)
+# ============================================================
+series_g = RequestSeries.create!(
+  user: faculty1, class_name: "Ceramics Fundamentals", department: "Sculpture",
+  building: "Station", room_number: "12", model_mode: :clothed,
+  pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+)
+fr_g = FacultyRequest.create!(
+  request_series: series_g, user: faculty1, class_name: series_g.class_name,
+  department: series_g.department, building: series_g.building, room_number: series_g.room_number,
+  model_mode: series_g.model_mode, pref_skin_tone: series_g.pref_skin_tone, pref_gender: series_g.pref_gender,
+  starts_at: 9.days.from_now.change(hour: 9, min: 0), ends_at: 9.days.from_now.change(hour: 11, min: 0),
+  status: :pending
+)
+avail_g = ArtModelAvailability.create!(user: model4, starts_at: fr_g.starts_at, ends_at: fr_g.ends_at, status: :active)
+gig_g = book!(fr_g, avail_g, confirmed_by: admin2)
+fr_g.update!(status: :archived)
+gig_g.update!(status: :cancelled, billable: false)
+avail_g.update!(status: :active)
+series_g.update_status!
 
-# # Ruth: Confirmed - Painting Clothed
-# req_accum = create_past_request(
-#   user: bob, class_name: "Portrait Painting II", department: "Painting",
-#   starts_at: (two_weeks_ago + 4.days).change(hour: 13, min: 0),
-#   ends_at: (two_weeks_ago + 4.days).change(hour: 16, min: 0),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail_accum = create_past_availability(
-#   user: ruth,
-#   starts_at: (two_weeks_ago + 4.days).change(hour: 12, min: 0),
-#   ends_at: (two_weeks_ago + 4.days).change(hour: 17, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req_accum, art_model_availability: avail_accum, status: "confirmed")
+# ============================================================
+# SCENARIO H: Cancelled gig, billable (same-day late cancellation) — for Reports testing
+# ============================================================
+fr_h = FacultyRequest.create!(
+  user: faculty2, class_name: "Portrait Painting", department: "Painting",
+  building: "Main", room_number: "220", model_mode: :clothed,
+  pref_skin_tone: "Any", pref_gender: "Any",
+  starts_at: 3.days.from_now.change(hour: 9, min: 0),
+  ends_at: 3.days.from_now.change(hour: 12, min: 0),
+  status: :pending
+)
+avail_h = ArtModelAvailability.create!(user: model5, starts_at: fr_h.starts_at, ends_at: fr_h.ends_at, status: :active)
+gig_h = book!(fr_h, avail_h, confirmed_by: superadmin)
+# Backdate to "today" to simulate a same-day cancellation, bypassing create-time future-date validation
+today_start = Time.current.change(hour: 14, min: 0)
+today_end = today_start + 2.hours
+fr_h.update_columns(starts_at: today_start, ends_at: today_end)
+avail_h.update_columns(starts_at: today_start, ends_at: today_end)
+gig_h.update_columns(status: Gig.statuses[:cancelled], billable: true)
+fr_h.update_columns(status: FacultyRequest.statuses[:archived])
+avail_h.update_columns(status: ArtModelAvailability.statuses[:active])
 
-# # Mike: Confirmed - Sculpture Clothed (2.5 hrs)
-# req4 = create_past_request(
-#   user: frank, class_name: "Sculpture I", department: "Sculpture",
-#   starts_at: two_weeks_ago.change(hour: 13, min: 0),
-#   ends_at: two_weeks_ago.change(hour: 15, min: 30),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail4 = create_past_availability(
-#   user: mike,
-#   starts_at: two_weeks_ago.change(hour: 12, min: 0),
-#   ends_at: two_weeks_ago.change(hour: 17, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req4, art_model_availability: avail4, status: "confirmed")
+# ============================================================
+# SCENARIO I: Standalone pending request with lingering cancelled-gig history
+# (tests the FK-safe archive-instead-of-destroy path on FacultyRequestsController#destroy)
+# ============================================================
+fr_i = FacultyRequest.create!(
+  user: faculty3, class_name: "Intro to Figure Modeling", department: "FYE",
+  building: "Lazarus", room_number: "101", model_mode: :clothed,
+  pref_skin_tone: "Any", pref_gender: "Any",
+  starts_at: 7.days.from_now.change(hour: 9, min: 0),
+  ends_at: 7.days.from_now.change(hour: 11, min: 0),
+  status: :pending
+)
+avail_i = ArtModelAvailability.create!(user: model1, starts_at: fr_i.starts_at, ends_at: fr_i.ends_at, status: :active)
+gig_i = book!(fr_i, avail_i, confirmed_by: admin2)
+# Release it the same way gigs_controller#destroy does — preserves the gig, request returns to pending
+gig_i.update!(status: :cancelled, billable: false)
+fr_i.update!(status: :pending)
+avail_i.update!(status: :active)
+# fr_i is now pending again, but Gig id=gig_i.id still references it — exactly the scenario that used to crash
 
-# # Mike: Confirmed - Illustration Clothed (3 hrs)
-# req5 = create_past_request(
-#   user: sarah, class_name: "Costume Drawing", department: "Illustration",
-#   starts_at: (two_weeks_ago + 3.days).change(hour: 10, min: 0),
-#   ends_at: (two_weeks_ago + 3.days).change(hour: 13, min: 0),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail5 = create_past_availability(
-#   user: mike,
-#   starts_at: (two_weeks_ago + 3.days).change(hour: 9, min: 0),
-#   ends_at: (two_weeks_ago + 3.days).change(hour: 14, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req5, art_model_availability: avail5, status: "confirmed")
+# ============================================================
+# SCENARIO J: Free/unbooked availability slots on a model's calendar
+# ============================================================
+[2, 4, 6, 8].each do |days_out|
+  ArtModelAvailability.create!(
+    user: model2, starts_at: days_out.days.from_now.change(hour: 9, min: 0),
+    ends_at: days_out.days.from_now.change(hour: 17, min: 0), status: :active
+  )
+end
+ArtModelAvailability.create!(
+  user: model4, starts_at: 3.days.from_now.change(hour: 10, min: 0),
+  ends_at: 3.days.from_now.change(hour: 15, min: 0), status: :active
+)
 
-# # Mike: Confirmed - weird time
-# req_mike_weird = create_past_request(
-#   user: bob, class_name: "Extended Life Drawing", department: "Drawing",
-#   starts_at: (two_weeks_ago + 1.day).change(hour: 9, min: 11),
-#   ends_at: (two_weeks_ago + 1.day).change(hour: 11, min: 48),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail_mike_weird = create_past_availability(
-#   user: mike,
-#   starts_at: (two_weeks_ago + 1.day).change(hour: 8, min: 0),
-#   ends_at: (two_weeks_ago + 1.day).change(hour: 13, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req_mike_weird, art_model_availability: avail_mike_weird, status: "confirmed")
+# ============================================================
+# SCENARIO K: Sock (offline) model with admin-managed availability
+# ============================================================
+ArtModelAvailability.create!(
+  user: sock_model, starts_at: 5.days.from_now.change(hour: 9, min: 0),
+  ends_at: 5.days.from_now.change(hour: 17, min: 0), status: :active
+)
 
-# # Alex: Confirmed - Illustration Nude (2 hrs)
-# req6 = create_past_request(
-#   user: bob, class_name: "Gesture Drawing", department: "Illustration",
-#   starts_at: (two_weeks_ago + 1.day).change(hour: 14, min: 0),
-#   ends_at: (two_weeks_ago + 1.day).change(hour: 16, min: 0),
-#   model_mode: "nude", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail6 = create_past_availability(
-#   user: alex,
-#   starts_at: (two_weeks_ago + 1.day).change(hour: 13, min: 0),
-#   ends_at: (two_weeks_ago + 1.day).change(hour: 17, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req6, art_model_availability: avail6, status: "confirmed")
+puts "Done!"
+puts "-" * 60
+puts "Users created:"
+puts "  SuperUser Admin: #{superadmin.email}"
+puts "  Admin:           #{admin2.email}"
+puts "  Faculty:         #{[faculty1, faculty2, faculty3].map(&:email).join(', ')}"
+puts "  Models:          #{[model1, model2, model3, model4, model5].map(&:email).join(', ')}"
+puts "  Sock model:      #{sock_model.email}"
+puts "-" * 60
+puts "RequestSeries: #{RequestSeries.count} | FacultyRequests: #{FacultyRequest.count} | Gigs: #{Gig.count} | Availabilities: #{ArtModelAvailability.count}"
+puts "-" * 60
+puts "Log in via /test_login?email=<address> in development to become any of the above."
 
-# # Alex: Confirmed - Drawing Clothed (1.5 hrs)
-# req7 = create_past_request(
-#   user: frank, class_name: "Life Drawing", department: "Drawing",
-#   starts_at: (two_weeks_ago + 4.days).change(hour: 10, min: 0),
-#   ends_at: (two_weeks_ago + 4.days).change(hour: 11, min: 30),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail7 = create_past_availability(
-#   user: alex,
-#   starts_at: (two_weeks_ago + 4.days).change(hour: 9, min: 0),
-#   ends_at: (two_weeks_ago + 4.days).change(hour: 13, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req7, art_model_availability: avail7, status: "confirmed")
-
-# # Alex: Confirmed - weird time
-# req_alex_weird = create_past_request(
-#   user: sarah, class_name: "Experimental Figure", department: "FYE",
-#   starts_at: (two_weeks_ago + 2.days).change(hour: 10, min: 22),
-#   ends_at: (two_weeks_ago + 2.days).change(hour: 12, min: 15),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail_alex_weird = create_past_availability(
-#   user: alex,
-#   starts_at: (two_weeks_ago + 2.days).change(hour: 9, min: 0),
-#   ends_at: (two_weeks_ago + 2.days).change(hour: 14, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req_alex_weird, art_model_availability: avail_alex_weird, status: "confirmed")
-
-# puts "✅ Past confirmed gigs created."
-
-# # --- CANCELLED GIGS ---
-
-# req8 = create_past_request(
-#   user: sarah, class_name: "Watercolor Figure", department: "Painting",
-#   starts_at: (two_weeks_ago + 2.days).change(hour: 10, min: 0),
-#   ends_at: (two_weeks_ago + 2.days).change(hour: 12, min: 0),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "archived"
-# )
-# avail8 = create_past_availability(
-#   user: ruth,
-#   starts_at: (two_weeks_ago + 2.days).change(hour: 9, min: 0),
-#   ends_at: (two_weeks_ago + 2.days).change(hour: 13, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req8, art_model_availability: avail8, status: "cancelled", billable: false)
-
-# req9 = create_past_request(
-#   user: bob, class_name: "Emergency Substitute", department: "Drawing",
-#   starts_at: (two_weeks_ago + 3.days).change(hour: 14, min: 0),
-#   ends_at: (two_weeks_ago + 3.days).change(hour: 16, min: 0),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "archived"
-# )
-# avail9 = create_past_availability(
-#   user: mike,
-#   starts_at: (two_weeks_ago + 3.days).change(hour: 13, min: 0),
-#   ends_at: (two_weeks_ago + 3.days).change(hour: 17, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req9, art_model_availability: avail9, status: "cancelled", billable: true)
-
-# req10 = create_past_request(
-#   user: sarah, class_name: "Illustration Workshop", department: "Illustration",
-#   starts_at: (two_weeks_ago + 4.days).change(hour: 13, min: 0),
-#   ends_at: (two_weeks_ago + 4.days).change(hour: 15, min: 0),
-#   model_mode: "nude", pref_skin_tone: "Any", pref_gender: "Any", status: "archived"
-# )
-# avail10 = create_past_availability(
-#   user: alex,
-#   starts_at: (two_weeks_ago + 4.days).change(hour: 12, min: 0),
-#   ends_at: (two_weeks_ago + 4.days).change(hour: 16, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req10, art_model_availability: avail10, status: "cancelled", billable: true)
-
-# puts "✅ Past cancelled gigs created."
-
-# # --- SAME-DAY BILLABLE LOGIC TESTS ---
-
-# req_today = create_past_request(
-#   user: frank, class_name: "Today's Class", department: "Painting",
-#   starts_at: Time.current.change(hour: 14, min: 0),
-#   ends_at: Time.current.change(hour: 17, min: 0),
-#   model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail_today = create_past_availability(
-#   user: ruth,
-#   starts_at: Time.current.change(hour: 13, min: 0),
-#   ends_at: Time.current.change(hour: 18, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req_today, art_model_availability: avail_today, status: "confirmed")
-
-# req_tomorrow = create_past_request(
-#   user: sarah, class_name: "Tomorrow's Class", department: "Drawing",
-#   starts_at: 1.day.from_now.change(hour: 10, min: 0),
-#   ends_at: 1.day.from_now.change(hour: 13, min: 0),
-#   model_mode: "nude", pref_skin_tone: "Any", pref_gender: "Any", status: "matched"
-# )
-# avail_tomorrow = create_past_availability(
-#   user: ruth,
-#   starts_at: 1.day.from_now.change(hour: 9, min: 0),
-#   ends_at: 1.day.from_now.change(hour: 14, min: 0),
-#   status: "active"
-# )
-# Gig.create!(faculty_request: req_tomorrow, art_model_availability: avail_tomorrow, status: "confirmed")
-
-# puts "🧪 Same-day billable logic test gigs created."
-
-# # --- PENDING SERIES (future, unmatched) ---
-
-# # Single date series
-# series1 = RequestSeries.create!(
-#   user: frank,
-#   class_name: "Figure Drawing 101",
-#   department: "Drawing",
-#   model_mode: "nude",
-#   pref_skin_tone: "Any",
-#   pref_gender: "Any",
-#   status: "pending"
-# )
-# FacultyRequest.create!(
-#   request_series: series1,
-#   user: frank,
-#   class_name: "Figure Drawing 101",
-#   department: "Drawing",
-#   starts_at: DateTime.now.next_week(:monday).change(hour: 9, min: 0),
-#   ends_at: DateTime.now.next_week(:monday).change(hour: 12, min: 0),
-#   model_mode: "nude",
-#   pref_skin_tone: "Any",
-#   pref_gender: "Any",
-#   status: "pending"
-# )
-
-# # Single date series
-# series2 = RequestSeries.create!(
-#   user: sarah,
-#   class_name: "Costume Gestures",
-#   department: "Illustration",
-#   model_mode: "clothed",
-#   pref_skin_tone: "Any",
-#   pref_gender: "Any",
-#   status: "pending"
-# )
-# FacultyRequest.create!(
-#   request_series: series2,
-#   user: sarah,
-#   class_name: "Costume Gestures",
-#   department: "Illustration",
-#   starts_at: DateTime.now.next_week(:tuesday).change(hour: 14, min: 0),
-#   ends_at: DateTime.now.next_week(:tuesday).change(hour: 16, min: 0),
-#   model_mode: "clothed",
-#   pref_skin_tone: "Any",
-#   pref_gender: "Any",
-#   status: "pending"
-# )
-
-# # Multi-date series — 3 dates across 3 weeks
-# series3 = RequestSeries.create!(
-#   user: bob,
-#   class_name: "Life Drawing Series",
-#   department: "Drawing",
-#   model_mode: "clothed",
-#   pref_skin_tone: "Any",
-#   pref_gender: "Any",
-#   room_number: "Fox 320",
-#   status: "pending"
-# )
-# [
-#   [DateTime.now.next_week(:wednesday).change(hour: 9, min: 0), DateTime.now.next_week(:wednesday).change(hour: 12, min: 0)],
-#   [(DateTime.now + 2.weeks).next_week(:wednesday).change(hour: 9, min: 0), (DateTime.now + 2.weeks).next_week(:wednesday).change(hour: 12, min: 0)],
-#   [(DateTime.now + 3.weeks).next_week(:wednesday).change(hour: 9, min: 0), (DateTime.now + 3.weeks).next_week(:wednesday).change(hour: 12, min: 0)]
-# ].each do |starts, ends|
-#   FacultyRequest.create!(
-#     request_series: series3,
-#     user: bob,
-#     class_name: "Life Drawing Series",
-#     department: "Drawing",
-#     starts_at: starts,
-#     ends_at: ends,
-#     model_mode: "clothed",
-#     pref_skin_tone: "Any",
-#     pref_gender: "Any",
-#     room_number: "Fox 320",
-#     status: "pending"
-#   )
-# end
-
-# # No models available test — far future
-# series4 = RequestSeries.create!(
-#   user: bob,
-#   class_name: "No Models Available Test",
-#   department: "Sculpture",
-#   model_mode: "clothed",
-#   pref_skin_tone: "Any",
-#   pref_gender: "Any",
-#   status: "pending"
-# )
-# FacultyRequest.create!(
-#   request_series: series4,
-#   user: bob,
-#   class_name: "No Models Available Test",
-#   department: "Sculpture",
-#   starts_at: DateTime.now.next_week(:thursday).change(hour: 9, min: 0),
-#   ends_at: DateTime.now.next_week(:thursday).change(hour: 12, min: 0),
-#   model_mode: "clothed",
-#   pref_skin_tone: "Any",
-#   pref_gender: "Any",
-#   status: "pending"
-# )
-
-# puts "📝 Pending series created."
-
-# # --- FREE AVAILABILITY (future, unbooked) ---
-# ArtModelAvailability.create!(
-#   user: mike,
-#   starts_at: DateTime.now.next_week(:monday).change(hour: 8, min: 0),
-#   ends_at: DateTime.now.next_week(:monday).change(hour: 17, min: 0),
-#   status: "active"
-# )
-
-# ArtModelAvailability.create!(
-#   user: alex,
-#   starts_at: DateTime.now.next_week(:tuesday).change(hour: 13, min: 0),
-#   ends_at: DateTime.now.next_week(:tuesday).change(hour: 18, min: 0),
-#   status: "active"
-# )
-
-# # Ruth available for series1 and series2
-# ArtModelAvailability.create!(
-#   user: ruth,
-#   starts_at: DateTime.now.next_week(:monday).change(hour: 9, min: 0),
-#   ends_at: DateTime.now.next_week(:monday).change(hour: 12, min: 0),
-#   status: "active"
-# )
-# ArtModelAvailability.create!(
-#   user: ruth,
-#   starts_at: DateTime.now.next_week(:tuesday).change(hour: 14, min: 0),
-#   ends_at: DateTime.now.next_week(:tuesday).change(hour: 16, min: 0),
-#   status: "active"
-# )
-
-# puts "📅 Free availability created."
 puts "🌿 Seeding Complete!"

@@ -102,20 +102,20 @@ function AllGigs() {
         <Row className="g-2 align-items-end w-100">
           <Col xs={12} md="auto">
             <div className="d-flex flex-wrap gap-2">
-              <Button variant={statusFilter === 'all' ? 'dark' : 'outline-dark'} onClick={() => setStatusFilter('all')}>
+              <Button className="status-filter-btn" variant={statusFilter === 'all' ? 'dark' : 'outline-dark'} onClick={() => setStatusFilter('all')}>
                 All
               </Button>
-              <Button variant={statusFilter === 'confirmed' ? 'primary' : 'outline-primary'} onClick={() => setStatusFilter('confirmed')}>
+              <Button className="status-filter-btn" variant={statusFilter === 'confirmed' ? 'primary' : 'outline-primary'} onClick={() => setStatusFilter('confirmed')}>
                 Confirmed
               </Button>
-              <Button variant={statusFilter === 'cancelled' ? 'secondary' : 'outline-secondary'} onClick={() => setStatusFilter('cancelled')}>
+              <Button className="status-filter-btn" variant={statusFilter === 'cancelled' ? 'secondary' : 'outline-secondary'} onClick={() => setStatusFilter('cancelled')}>
                 Cancelled
               </Button>
             </div>
           </Col>
           <Col xs={12} md="auto">
             <Button
-              className="w-100"
+              className="w-100 status-filter-btn"
               variant={showAll ? "secondary" : "outline-secondary"}
               onClick={() => setShowAll(!showAll)}
             >

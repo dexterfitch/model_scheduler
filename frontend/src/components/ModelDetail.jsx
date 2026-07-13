@@ -5,6 +5,7 @@ import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { formatSkinTone } from "../utils/formatters";
 import { formatTimeForInput, findActiveGigForAvailability } from "../utils/time";
+import { CALENDAR_COLORS } from "../utils/constants";
 
 function ModelDetail() {
   const { id } = useParams();
@@ -37,7 +38,7 @@ function ModelDetail() {
           title: a.status === 'active' ? 'Available' : 'Cancelled',
           start: a.starts_at,
           end: a.ends_at,
-          backgroundColor: a.status === 'active' ? '#198754' : '#6c757d',
+          backgroundColor: a.status === 'active' ? CALENDAR_COLORS.green : CALENDAR_COLORS.grey,
           display: 'block',
           extendedProps: { ...a }
         }));

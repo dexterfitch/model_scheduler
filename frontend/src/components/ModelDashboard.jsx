@@ -4,6 +4,7 @@ import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { formatSkinTone } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability } from "../utils/time";
+import { CALENDAR_COLORS } from "../utils/constants";
 
 function ModelDashboard({ user }) {
   const [myGigs, setMyGigs] = useState([]);
@@ -38,7 +39,7 @@ function ModelDashboard({ user }) {
           g.art_model_availability.id === a.id && g.status === 'confirmed'
         );
         const label = gig ? 'Confirmed Gig' : 'Free';
-        const color = gig ? '#0d6efd' : '#198754';
+        const color = gig ? CALENDAR_COLORS.blue : CALENDAR_COLORS.green;
 
         return {
           id: a.id,

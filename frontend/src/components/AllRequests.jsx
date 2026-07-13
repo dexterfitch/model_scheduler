@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert } from "react-bootstrap";
 import api from "../services/api";
+import styles from "./AllRequests.module.css";
 import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateShort } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
@@ -10,7 +11,6 @@ function AllRequests() {
   const navigate = useNavigate();
   const [allSeries, setAllSeries] = useState([]);
   const [search, setSearch] = useState("");
-
   const today = new Date();
   const [filterStart, setFilterStart] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
@@ -19,6 +19,7 @@ function AllRequests() {
     new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
   );
   const [showAll, setShowAll] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     api.get("/request_series").then(res => setAllSeries(res.data));
@@ -231,13 +232,13 @@ function AllRequests() {
   const renderDateRow = (req, showBadge, isSingle) => (
     <div key={req.id} className="small text-muted mb-1">
       {showBadge && req.status === 'matched' && (
-        <Badge bg="success" className="me-2" style={{ fontSize: '0.65em' }}>Matched</Badge>
+        <Badge bg="success" className={`me-2 ${styles.badge}`}>Matched</Badge>
       )}
       {showBadge && req.status === 'pending' && (
-        <Badge bg="warning" text="dark" className="me-2" style={{ fontSize: '0.65em' }}>Pending</Badge>
+        <Badge bg="warning" text="dark" className={`me-2 ${styles.badge}`}>Pending</Badge>
       )}
       {showBadge && req.status === 'archived' && (
-        <Badge bg="secondary" className="me-2" style={{ fontSize: '0.65em' }}>Cancelled</Badge>
+        <Badge bg="secondary" className={`me-2 ${styles.badge}`}>Cancelled</Badge>
       )}
       <i className="bi bi-calendar3 me-1"></i>
       {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
@@ -250,13 +251,13 @@ function AllRequests() {
             <i
               role="button"
               className="bi bi-arrow-repeat text-primary ms-1"
-              title="Find a different model for this date"
+              title="Find a different model for only this date"
               onClick={() => handleFindNewModel(req)}
             ></i>
           )}
         </>
       )}
-      {req.status === 'pending' && (
+      {req.status === 'pending' && showBadge && (
         <>
           {' ('}
           <span
@@ -277,7 +278,7 @@ function AllRequests() {
     const isSingle = activeCount <= 1;
 
     return (
-      <>
+      <div className="d-flex flex-column gap-1">
         {showAction && matchedCount === 0 && (
           <Button size="sm" variant="outline-primary" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
             Find Match
@@ -289,14 +290,34 @@ function AllRequests() {
           </Button>
         )}
         {s.status !== 'archived' && (
-          <Button size="sm" variant="outline-secondary" onClick={() => openEditSeriesModal(s)}>
-            {isSingle ? "Edit Gig" : "Edit Series"}
-          </Button>
+          <div className="d-flex gap-1">
+            <Button size="sm" variant="outline-secondary" className="flex-fill" onClick={() => openEditSeriesModal(s)}>
+              {isSingle ? "Edit Gig" : "Edit Series"}
+            </Button>
+            <Button size="sm" variant="outline-danger" className="flex-fill" onClick={() => handleCancelSeries(s.id)}>
+              {isSingle ? "Cancel Gig" : "Cancel Series"}
+            </Button>
+          </div>
         )}
-        {s.status !== 'archived' && (
-          <Button size="sm" variant="outline-danger" onClick={() => handleCancelSeries(s.id)}>
-            {isSingle ? "Cancel Gig" : "Cancel Series"}
-          </Button>
+      </div>
+    );
+  };
+
+  const renderSeriesInfo = (s, showAction, allRequests, matchedCount, pendingCount) => {
+    const activeCount = allRequests.filter(r => r.status !== 'archived').length;
+
+    return (
+      <>
+        <div className="small text-muted mt-1">
+          <span className="fst-italic">{s.department}</span>
+          {s.department && activeCount > 1 && " · "}
+           {activeCount > 1 && `${activeCount} dates`}
+        </div>
+        {(s.building || s.room_number) && (
+          <div className="small text-muted mt-1">
+            <i className="bi bi-door-open me-1"></i>
+            {s.building}{s.building && s.room_number && " "}{s.room_number}
+          </div>
         )}
       </>
     );
@@ -313,26 +334,7 @@ function AllRequests() {
           <div className="d-flex justify-content-between align-items-start mb-2">
             <div>
               <div className="fw-bold">{s.class_name}</div>
-              <div className="d-flex gap-1 flex-wrap mt-1">
-                {s.department && <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{s.department}</Badge>}
-                {allRequests.filter(r => r.status !== 'archived').length > 1 && (
-                  <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>
-                    {allRequests.filter(r => r.status !== 'archived').length} dates
-                  </Badge>
-                )}
-              </div>
-              {(s.building || s.room_number) && (
-                <div className="small text-muted mt-1">
-                  <i className="bi bi-door-open me-1"></i>
-                  {s.building}{s.building && s.room_number && " "}{s.room_number}
-                </div>
-              )}
-              {showAction && allRequests.length > 1 && (
-                <div className="small text-muted mt-1">
-                  Series: {matchedCount > 0 && <Badge bg="success" className="me-1">{matchedCount} Matched</Badge>}
-                  {pendingCount > 0 && <Badge bg="warning" text="dark" className="me-1">{pendingCount} Pending</Badge>}
-                </div>
-              )}
+              {renderSeriesInfo(s, showAction, allRequests, matchedCount, pendingCount)}
             </div>
             {s.model_mode === 'nude'
               ? <Badge bg="danger">Nude</Badge>
@@ -344,11 +346,9 @@ function AllRequests() {
           </div>
 
           <div className="small text-muted mb-1">
-            <i className="bi bi-person me-1"></i>
-            {faculty?.first_name} {faculty?.last_name}
+            Faculty: {faculty?.first_name} {faculty?.last_name}
           </div>
           <div className="small text-muted mb-2">
-            <i className="bi bi-palette me-1"></i>
             {formatSkinTone(s.pref_skin_tone)}, {s.pref_gender} Gender Presentation
           </div>
           {s.notes && (
@@ -356,11 +356,7 @@ function AllRequests() {
               <i className="bi bi-journal-text me-1"></i>{s.notes}
             </div>
           )}
-          {showActionColumn && (
-            <div className="d-flex flex-column gap-2">
-              {renderActionButtons(s, showAction, matchedCount)}
-            </div>
-          )}
+          {showActionColumn && renderActionButtons(s, showAction, matchedCount)}
         </div>
       </div>
     );
@@ -396,33 +392,15 @@ function AllRequests() {
                   </td>
                   <td>
                     <div className="fw-bold">{s.class_name}</div>
-                    <div className="d-flex gap-1 flex-wrap mt-1">
-                      {s.department && <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{s.department}</Badge>}
-                      {allRequests.filter(r => r.status !== 'archived').length > 1 && (
-                        <Badge bg="info" text="dark" style={{ fontSize: '0.7em' }}>
-                          {allRequests.filter(r => r.status !== 'archived').length} dates
-                        </Badge>
-                      )}
-                    </div>
-                    {s.room_number && (
-                      <div className="small text-muted mt-1">
-                        <i className="bi bi-door-open me-1"></i>{s.building}{s.building && s.room_number && " "}{s.room_number}
-                      </div>
-                    )}
-                    {showAction && allRequests.length > 1 && (
-                      <div className="small text-muted mt-1">
-                        Series: {matchedCount > 0 && <Badge bg="success" className="me-1">{matchedCount} Matched</Badge>}
-                        {pendingCount > 0 && <Badge bg="warning" text="dark" className="me-1">{pendingCount} Pending</Badge>}
-                      </div>
-                    )}
+                    {renderSeriesInfo(s, showAction, allRequests, matchedCount, pendingCount)}
                   </td>
                   <td>{faculty?.first_name} {faculty?.last_name}</td>
                   <td>
                     {s.model_mode === 'nude'
-                      ? <span className="text-danger fw-bold me-2">Nude</span>
-                      : <span className="text-success me-2">Clothed</span>}
+                      ? <span className="text-danger fw-bold">Nude</span>
+                      : <span className="text-success fw-bold">Clothed</span>}
                     <small className="text-muted d-block">
-                      {formatSkinTone(s.pref_skin_tone)}, {s.pref_gender} Gender Presentation
+                      {formatSkinTone(s.pref_skin_tone)}<br /> {s.pref_gender} Gender Presentation
                     </small>
                     {s.notes && (
                       <small className="text-muted fst-italic d-block">
@@ -432,9 +410,7 @@ function AllRequests() {
                   </td>
                   {showActionColumn && (
                     <td>
-                      <div className="d-flex flex-column gap-2">
-                        {renderActionButtons(s, showAction, matchedCount)}
-                      </div>
+                      {renderActionButtons(s, showAction, matchedCount)}
                     </td>
                   )}
                 </tr>
@@ -473,8 +449,24 @@ function AllRequests() {
       <div className="py-3 border-bottom border-info mb-4 d-flex align-items-end date-filter-box">
         <Row className="g-2 align-items-end w-100">
           <Col xs={12} md="auto">
+            <div className="d-flex flex-wrap gap-2">
+              <Button className="status-filter-btn" variant={statusFilter === 'all' ? 'dark' : 'outline-dark'} onClick={() => setStatusFilter('all')}>
+                All
+              </Button>
+              <Button className="status-filter-btn" variant={statusFilter === 'pending' ? 'warning' : 'outline-warning'} onClick={() => setStatusFilter('pending')}>
+                Pending
+              </Button>
+              <Button className="status-filter-btn" variant={statusFilter === 'matched' ? 'success' : 'outline-success'} onClick={() => setStatusFilter('matched')}>
+                Matched
+              </Button>
+              <Button className="status-filter-btn" variant={statusFilter === 'archived' ? 'secondary' : 'outline-secondary'} onClick={() => setStatusFilter('archived')}>
+                Cancelled
+              </Button>
+            </div>
+          </Col>
+          <Col xs={12} md="auto">
             <Button
-              className="w-100"
+              className="w-100 status-filter-btn"
               variant={showAll ? "secondary" : "outline-secondary"}
               onClick={() => setShowAll(!showAll)}
             >
@@ -504,20 +496,26 @@ function AllRequests() {
         </Row>
       </div>
 
-      <div className="mb-4">
-        <h5 className="fw-bold text-warning mb-2">Pending ({pending.length})</h5>
-        {renderSection(pending, true)}
-      </div>
+      {(statusFilter === 'all' || statusFilter === 'pending') && (
+        <div className="mb-4">
+          <h5 className="fw-bold text-warning mb-2">Pending ({pending.length})</h5>
+          {renderSection(pending, true)}
+        </div>
+      )}
 
-      <div className="mb-4">
-        <h5 className="fw-bold text-success mb-2">Matched ({matched.length})</h5>
-        {renderSection(matched, false)}
-      </div>
+      {(statusFilter === 'all' || statusFilter === 'matched') && (
+        <div className="mb-4">
+          <h5 className="fw-bold text-success mb-2">Matched ({matched.length})</h5>
+          {renderSection(matched, false)}
+        </div>
+      )}
 
-      <div className="mb-4">
-        <h5 className="fw-bold text-secondary mb-2">Cancelled ({archived.length})</h5>
-        {renderSection(archived, false, false)}
-      </div>
+      {(statusFilter === 'all' || statusFilter === 'archived') && (
+        <div className="mb-4">
+          <h5 className="fw-bold text-secondary mb-2">Cancelled ({archived.length})</h5>
+          {renderSection(archived, false, false)}
+        </div>
+      )}
 
       <Modal show={!!editingSeries} onHide={() => setEditingSeries(null)} size="lg">
         <Modal.Header closeButton>

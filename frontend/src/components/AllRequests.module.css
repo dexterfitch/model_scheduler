@@ -1,0 +1,7 @@
+.badge {
+  padding: 1em 0.83em 0.8em 0.75em !important;
+  font-size: 0.6rem !important;
+  line-height: 0 !important;
+  font-weight: 400 !important;
+  color: var(--brand-black) !important;
+}

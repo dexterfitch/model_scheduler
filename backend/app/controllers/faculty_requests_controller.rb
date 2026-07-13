@@ -17,6 +17,7 @@ class FacultyRequestsController < ApplicationController
     @request.status = :pending
 
     if @request.save
+      @request.request_series&.update_status!
       render json: @request, status: :created
     else
       render json: { errors: @request.errors.full_messages }, status: :unprocessable_entity

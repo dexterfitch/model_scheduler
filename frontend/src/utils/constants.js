@@ -47,3 +47,11 @@ export const SKIN_TONE_OPTIONS = [
     color: '#593C2B' 
   }
 ];
+
+// Mirrors the --brand-* custom properties in src/index.css
+export const CALENDAR_COLORS = {
+  blue: '#0047bb',
+  green: '#2dc84d',
+  orange: '#fe5000',
+  grey: '#a7a8aa'
+};

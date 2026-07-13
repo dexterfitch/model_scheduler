@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, ListGroup, Badge, Alert } from "react-bootstrap";
 import api from "../services/api";
 import { formatDateWithWeekday, formatTime } from "../utils/time";
+import { CALENDAR_COLORS } from "../utils/constants";
 import SharedCalendar from "./SharedCalendar";
 
 function AdminCalendar() {
@@ -25,8 +26,8 @@ function AdminCalendar() {
           title: `✅ ${gig.faculty_request.class_name}`,
           start: gig.faculty_request.starts_at,
           end: gig.faculty_request.ends_at,
-          backgroundColor: '#198754',
-          borderColor: '#198754',
+          backgroundColor: CALENDAR_COLORS.green,
+          borderColor: CALENDAR_COLORS.green,
           extendedProps: { type: 'gig', ...gig }
         }));
 
@@ -39,8 +40,8 @@ function AdminCalendar() {
           title: `❓ ${req.class_name}`,
           start: req.starts_at,
           end: req.ends_at,
-          backgroundColor: '#fd7e14',
-          borderColor: '#fd7e14',
+          backgroundColor: CALENDAR_COLORS.orange,
+          borderColor: CALENDAR_COLORS.orange,
           extendedProps: { type: 'request', requestId: req.id, seriesId: req.request_series_id, ...req }
         }));
 

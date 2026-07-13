@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import styles from "./AdminDashboard.module.css";
 import { Row, Col, Card, Badge, Button } from "react-bootstrap";
 import { formatDateWithWeekday, formatTime } from "../utils/time";
 
@@ -59,33 +60,35 @@ function AdminDashboard() {
 
                   return (
                     <Card key={series.id} className="mb-2 border-start border-4 border-primary">
-                      <Card.Body className="d-flex justify-content-between align-items-center gap-3 py-3">
+                      <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 gap-md-3 py-3">
                         <div>
-                          <div className="fw-bold">
-                            {series.class_name}
+                          <div className="fw-bold">{series.class_name}</div>
+                          <div className="d-flex flex-wrap gap-1 mt-1">
                             {pendingRequests.length > 1 && (
-                              <Badge bg="info" text="dark" className="ms-2" style={{ fontSize: '0.7em' }}>
-                                {pendingRequests.length} dates
+                              <Badge bg="info" text="dark" className={`${styles.badge}`}>
+                                <i className="bi bi-calendar me-1"></i> {pendingRequests.length} dates
                               </Badge>
                             )}
                             {needsAttention && (
-                              <Badge bg="danger" className="ms-2" style={{ fontSize: '0.7em' }}>
-                                <i className="bi bi-exclamation-triangle-fill me-1"></i>Needs Attention
+                              <Badge bg="danger" className={`${styles.badge}`}>
+                                <i className="bi bi-exclamation-triangle-fill me-1"></i>Needs Attention: Model Dropped Out
                               </Badge>
                             )}
                           </div>
-                          <div className="small text-muted">
+                          <div className="small text-muted mt-1">
                             {series.user?.first_name} {series.user?.last_name} &bull; Next: {formatDateWithWeekday(firstReq.starts_at)} {formatTime(firstReq.starts_at)}
                           </div>
                         </div>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          className="text-nowrap"
-                          onClick={() => navigate('/requests')}
-                        >
-                          View &amp; Manage
-                        </Button>
+                        <div className="d-grid d-md-block">
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            className="text-nowrap"
+                            onClick={() => navigate('/requests')}
+                          >
+                            View &amp; Manage
+                          </Button>
+                        </div>
                       </Card.Body>
                     </Card>
                   );

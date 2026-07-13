@@ -5,4 +5,15 @@ $danger:    #e10098;
 $warning:   #fe5000;
 $info:      #a7a8aa;
 
+$border-radius:    0;
+$border-radius-sm: 0;
+$border-radius-lg: 0;
+$border-radius-xl: 0;
+
+$badge-border-radius: 50rem;
+
+$box-shadow-sm: none;
+$box-shadow:    none;
+$box-shadow-lg: none;
+
 @import 'bootstrap/scss/bootstrap';

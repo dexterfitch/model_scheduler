@@ -71,10 +71,21 @@
 /* Sitewide Styles */
 body {
   font-family: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  font-synthesis: none;
+  font-synthesis: style;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h2, .h2 {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  font-size: 2rem;
+}
+
+h3, .h3, h4, .h4, h5, .h5 {
+  font-weight: 700;
+  letter-spacing: -0.005em;
 }
 
 /* Bootstrap Overrides */
@@ -97,5 +108,14 @@ body {
 @media (min-width: 768px) {
   .date-filter-box {
     min-height: 100px;
+  }
+}
+
+
+/* AllGigs and AllRequests Filter Buttons */
+@media (max-width: 767px) {
+  .status-filter-btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
   }
 }
