@@ -110,10 +110,15 @@ end
 # ============================================================
 # SCENARIO C: Fully matched single-date request (isSingle labels test)
 # ============================================================
-fr_c = FacultyRequest.create!(
+series_c = RequestSeries.create!(
   user: faculty3, class_name: "Sculpture Studio", department: "Sculpture",
   building: "Station", room_number: "5", model_mode: :clothed,
-  pref_skin_tone: "Any", pref_gender: "Any",
+  pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+)
+fr_c = FacultyRequest.create!(
+  request_series: series_c, user: faculty3, class_name: series_c.class_name,
+  department: series_c.department, building: series_c.building, room_number: series_c.room_number,
+  model_mode: series_c.model_mode, pref_skin_tone: series_c.pref_skin_tone, pref_gender: series_c.pref_gender,
   starts_at: 6.days.from_now.change(hour: 13, min: 0),
   ends_at: 6.days.from_now.change(hour: 16, min: 0),
   status: :pending
@@ -212,10 +217,15 @@ series_g.update_status!
 # ============================================================
 # SCENARIO H: Cancelled gig, billable (same-day late cancellation) — for Reports testing
 # ============================================================
-fr_h = FacultyRequest.create!(
+series_h = RequestSeries.create!(
   user: faculty2, class_name: "Portrait Painting", department: "Painting",
   building: "Main", room_number: "220", model_mode: :clothed,
-  pref_skin_tone: "Any", pref_gender: "Any",
+  pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+)
+fr_h = FacultyRequest.create!(
+  request_series: series_h, user: faculty2, class_name: series_h.class_name,
+  department: series_h.department, building: series_h.building, room_number: series_h.room_number,
+  model_mode: series_h.model_mode, pref_skin_tone: series_h.pref_skin_tone, pref_gender: series_h.pref_gender,
   starts_at: 3.days.from_now.change(hour: 9, min: 0),
   ends_at: 3.days.from_now.change(hour: 12, min: 0),
   status: :pending
@@ -230,15 +240,21 @@ avail_h.update_columns(starts_at: today_start, ends_at: today_end)
 gig_h.update_columns(status: Gig.statuses[:cancelled], billable: true)
 fr_h.update_columns(status: FacultyRequest.statuses[:archived])
 avail_h.update_columns(status: ArtModelAvailability.statuses[:active])
+series_h.update_status!
 
 # ============================================================
-# SCENARIO I: Standalone pending request with lingering cancelled-gig history
-# (tests the FK-safe archive-instead-of-destroy path on FacultyRequestsController#destroy)
+# SCENARIO I: Pending request (in a series) with lingering cancelled-gig history
+# (tests the cancel_entire_series! foreign-key-safe fix — reachable via "Cancel Series" in AllRequests.jsx)
 # ============================================================
-fr_i = FacultyRequest.create!(
+series_i = RequestSeries.create!(
   user: faculty3, class_name: "Intro to Figure Modeling", department: "FYE",
   building: "Lazarus", room_number: "101", model_mode: :clothed,
-  pref_skin_tone: "Any", pref_gender: "Any",
+  pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+)
+fr_i = FacultyRequest.create!(
+  request_series: series_i, user: faculty3, class_name: series_i.class_name,
+  department: series_i.department, building: series_i.building, room_number: series_i.room_number,
+  model_mode: series_i.model_mode, pref_skin_tone: series_i.pref_skin_tone, pref_gender: series_i.pref_gender,
   starts_at: 7.days.from_now.change(hour: 9, min: 0),
   ends_at: 7.days.from_now.change(hour: 11, min: 0),
   status: :pending
@@ -249,12 +265,13 @@ gig_i = book!(fr_i, avail_i, confirmed_by: admin2)
 gig_i.update!(status: :cancelled, billable: false)
 fr_i.update!(status: :pending)
 avail_i.update!(status: :active)
-# fr_i is now pending again, but Gig id=gig_i.id still references it — exactly the scenario that used to crash
+series_i.update_status!
+# fr_i is now pending again, but Gig id=gig_i.id still references it
 
 # ============================================================
 # SCENARIO J: Free/unbooked availability slots on a model's calendar
 # ============================================================
-[2, 4, 6, 8].each do |days_out|
+[2, 4, 6, 12].each do |days_out|
   ArtModelAvailability.create!(
     user: model2, starts_at: days_out.days.from_now.change(hour: 9, min: 0),
     ends_at: days_out.days.from_now.change(hour: 17, min: 0), status: :active
@@ -272,6 +289,64 @@ ArtModelAvailability.create!(
   user: sock_model, starts_at: 5.days.from_now.change(hour: 9, min: 0),
   ends_at: 5.days.from_now.change(hour: 17, min: 0), status: :active
 )
+
+# ============================================================
+# SCENARIO L: Second confirmed gig for Jordan Ellis, clothed
+# (tests a model with both Nude and Clothed hours in the same Reports run)
+# ============================================================
+series_l = RequestSeries.create!(
+  user: faculty1, class_name: "Drawing I", department: "Open Studies",
+  building: "Fox", room_number: "210", model_mode: :clothed,
+  pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+)
+fr_l = FacultyRequest.create!(
+  request_series: series_l, user: faculty1, class_name: series_l.class_name,
+  department: series_l.department, building: series_l.building, room_number: series_l.room_number,
+  model_mode: series_l.model_mode, pref_skin_tone: series_l.pref_skin_tone, pref_gender: series_l.pref_gender,
+  starts_at: 5.days.from_now.change(hour: 13, min: 0),
+  ends_at: 5.days.from_now.change(hour: 15, min: 0),
+  status: :pending
+)
+avail_l = ArtModelAvailability.create!(user: model1, starts_at: fr_l.starts_at, ends_at: fr_l.ends_at, status: :active)
+book!(fr_l, avail_l, confirmed_by: admin2)
+
+# ============================================================
+# SCENARIO M: Stress-test data for Jordan Ellis — multiple departments,
+# mixed modes, spread across dates (for Reports print-table sort testing)
+# ============================================================
+def quick_confirmed_gig!(faculty:, model:, class_name:, department:, building:, room:, mode:, days_out:, start_hour:, end_hour:, confirmed_by:)
+  series = RequestSeries.create!(
+    user: faculty, class_name: class_name, department: department,
+    building: building, room_number: room, model_mode: mode,
+    pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+  )
+  fr = FacultyRequest.create!(
+    request_series: series, user: faculty, class_name: series.class_name,
+    department: series.department, building: series.building, room_number: series.room_number,
+    model_mode: series.model_mode, pref_skin_tone: series.pref_skin_tone, pref_gender: series.pref_gender,
+    starts_at: days_out.days.from_now.change(hour: start_hour, min: 0),
+    ends_at: days_out.days.from_now.change(hour: end_hour, min: 0),
+    status: :pending
+  )
+  avail = ArtModelAvailability.create!(user: model, starts_at: fr.starts_at, ends_at: fr.ends_at, status: :active)
+  book!(fr, avail, confirmed_by: confirmed_by)
+end
+
+quick_confirmed_gig!(faculty: faculty2, model: model1, class_name: "Painting III", department: "Painting",
+  building: "Main", room: "301", mode: :nude, days_out: 14, start_hour: 9, end_hour: 11, confirmed_by: admin2)
+
+quick_confirmed_gig!(faculty: faculty1, model: model1, class_name: "Illustration Basics", department: "Illustration",
+  building: "Lazarus", room: "150", mode: :clothed, days_out: 13, start_hour: 9, end_hour: 11, confirmed_by: superadmin)
+
+quick_confirmed_gig!(faculty: faculty1, model: model1, class_name: "Illustration Advanced", department: "Illustration",
+  building: "Lazarus", room: "150", mode: :nude, days_out: 20, start_hour: 9, end_hour: 11, confirmed_by: superadmin)
+
+# Same-day, different times, different modes — tests the date-tie mode-alphabetical sort
+quick_confirmed_gig!(faculty: faculty3, model: model1, class_name: "Sculpture Morning", department: "Sculpture",
+  building: "Station", room: "8", mode: :nude, days_out: 16, start_hour: 9, end_hour: 11, confirmed_by: admin2)
+
+quick_confirmed_gig!(faculty: faculty3, model: model1, class_name: "Sculpture Afternoon", department: "Sculpture",
+  building: "Station", room: "8", mode: :clothed, days_out: 16, start_hour: 13, end_hour: 15, confirmed_by: admin2)
 
 puts "Done!"
 puts "-" * 60

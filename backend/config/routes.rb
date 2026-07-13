@@ -32,5 +32,6 @@ Rails.application.routes.draw do
 
   if Rails.env.development?
     post "/test_login", to: "sessions#test_login"
+    get "/test_login", to: "sessions#test_login"
   end
 end
