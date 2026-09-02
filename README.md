@@ -20,7 +20,7 @@
 The application resolves scheduling conflicts through an interconnected relational schema:
 
 ```
-[Users] (Roles: Student, Model, Faculty, Admin, Superuser)
+[Users] (Roles: Model, Faculty, Admin, Superuser)
    │
    ├──< [RequestSeries] ──< [FacultyRequests]
    │                              │
