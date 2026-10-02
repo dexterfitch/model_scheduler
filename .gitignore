@@ -43,6 +43,11 @@ urls.txt
 /rawimages
 MICA Pose Pool User Guide.pdf
 MICA-Pose-Pool-User-Guide.md
+combine_logs.py
+combined_logs.json
+fetch_logs.sh
+flatten_code.py
+flattened_code.txt
 
 # Secrets files
 oauth_secrets.json
