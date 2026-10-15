@@ -26,10 +26,8 @@ function LoginPage() {
           )}
 
           <p className="mb-3 text-warning">
-            Thank you for being among the first users of the app! Some technical issues may arise as I continue to develop and improve the platform.<br />
-            For the best experience, please use Google Chrome (NOT in Incognito Mode), and without a VPN or any ad blockers or privacy extensions enabled.<br />
-            The reason this is important is because the app relies on two separate servers to operate; the frontend server hosted on Netlify must be able to 
-            communicate via Cookies with the backend server hosted on Render. A more long term solution is underway to address this Cookie dependency.
+            Thank you for being among the first users of the app! Some technical issues may arise as I continue to develop and improve the platform.<br /><br />
+            Please let us know (dfitch@mica.edu & tengleman@mica.edu) if you encounter any problems or have suggestions for improvement. Your feedback is invaluable in helping create a better experience for everyone. 
           </p>
 
           <p className="mb-3">
