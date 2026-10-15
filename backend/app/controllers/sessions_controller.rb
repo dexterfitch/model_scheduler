@@ -12,8 +12,10 @@ class SessionsController < ApplicationController
     user = User.from_omniauth(auth)
 
     if user.save
-      session[:user_id] = user.id
-      redirect_to "#{ENV['FRONTEND_URL']}/login_success/#{user.id}", allow_other_host: true
+      payload = { user_id: user.id, exp: 24.hours.from_now.to_i }
+      token = JWT.encode(payload, Rails.application.secret_key_base)
+      
+      redirect_to "#{ENV['FRONTEND_URL']}/login_success/#{user.id}?token=#{token}", allow_other_host: true
     else
       Rails.logger.error("Login Failed: #{user.errors.full_messages.join(', ')}")
       redirect_to "#{ENV['FRONTEND_URL']}?error=Login+Failed", allow_other_host: true
@@ -29,8 +31,9 @@ class SessionsController < ApplicationController
     raise ActionController::RoutingError, "Not Found" unless Rails.env.development?
     user = User.find_by(email: params[:email])
     if user
-      session[:user_id] = user.id
-      render json: user
+      payload = { user_id: user.id, exp: 24.hours.from_now.to_i }
+      token = JWT.encode(payload, Rails.application.secret_key_base)
+      render json: { user: user, token: token }
     else
       render json: { error: "User not found" }, status: :not_found
     end

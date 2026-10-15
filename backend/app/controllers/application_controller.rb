@@ -16,7 +16,22 @@ class ApplicationController < ActionController::API
   end
 
   def current_user
-    @current_user ||= User.find_by(id: session[:user_id])
+    return @current_user if defined?(@current_user)
+
+    header = request.headers['Authorization']
+    if header.present?
+      token = header.split(' ').last
+      begin
+        decoded = JWT.decode(token, Rails.application.secret_key_base).first
+        @current_user = User.find_by(id: decoded['user_id'])
+      rescue JWT::DecodeError
+        @current_user = nil
+      end
+    else
+      @current_user = User.find_by(id: session[:user_id])
+    end
+
+    @current_user
   end
 
   def require_role(*roles)

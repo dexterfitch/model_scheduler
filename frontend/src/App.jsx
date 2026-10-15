@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Spinner } from "react-bootstrap";
 import api from './services/api';
 
@@ -21,9 +21,15 @@ import Reports from './components/Reports';
 
 function LoginSuccess({ onLogin }) {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   useEffect(() => {
+    const token = searchParams.get('token');
+    if (token) {
+      localStorage.setItem('token', token);
+    }
+
     api.get(`/users/${id}`).then(res => {
       const user = res.data;
       if (!user.role) {
@@ -35,7 +41,7 @@ function LoginSuccess({ onLogin }) {
     }).catch(() => {
       navigate("/login?error=AuthFailed");
     });
-  }, [id, navigate, onLogin]);
+  }, [id, navigate, onLogin, searchParams]);
 
   return <div>Logging in...</div>;
 }
@@ -51,6 +57,7 @@ function App() {
     } catch (err) {
       console.error("Logout error", err);
     } finally {
+      localStorage.removeItem('token');
       setCurrentUser(null);
       setNeedsRoleSelection(false);
     }
