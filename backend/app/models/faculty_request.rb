@@ -130,7 +130,16 @@ class FacultyRequest < ApplicationRecord
 
   def sync_booked_gig_availabilities
     confirmed_gigs.includes(:art_model_availability).each do |booked_gig|
-      booked_gig.art_model_availability.update_columns(starts_at: starts_at, ends_at: ends_at)
+      slot = booked_gig.art_model_availability
+      shared = slot.gigs.where(status: :confirmed).where.not(id: booked_gig.id).exists?
+
+      if shared
+        # Other classes still use this slot, so give the moved class its own
+        new_slot = ArtModelAvailability.create!(user_id: slot.user_id, starts_at: starts_at, ends_at: ends_at)
+        booked_gig.update_column(:art_model_availability_id, new_slot.id)
+      else
+        slot.update_columns(starts_at: starts_at, ends_at: ends_at)
+      end
     end
   end
 

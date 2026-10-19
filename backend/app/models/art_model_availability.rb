@@ -17,8 +17,8 @@ class ArtModelAvailability < ApplicationRecord
     gigs.find { |g| g.status == 'confirmed' }
   end
 
-  def cancel_with_gig!(cancel_remaining_series: false, flag_for_attention: false)
-    gig = active_gig
+  def cancel_with_gig!(cancel_remaining_series: false, flag_for_attention: false, gig_id: nil)
+    gig = gig_id.present? ? gigs.find_by(id: gig_id, status: :confirmed) : active_gig
     return false unless gig
 
     series = gig.faculty_request.request_series
@@ -57,7 +57,7 @@ class ArtModelAvailability < ApplicationRecord
     # Losing any model means the session is short-staffed again
     request.update!(status: :pending, needs_attention: flag_for_attention) unless request.archived?
     availability.gigs.reload
-    availability.update!(status: :cancelled)
+    availability.update!(status: :cancelled) unless availability.active_gig
   end
 
   def prevent_past_deletion

@@ -35,12 +35,15 @@ class Gig < ApplicationRecord
 
   def no_overlap_for_model
     return unless faculty_request && art_model_availability
-    
-    overlapping_gigs = art_model_availability.gigs
+    # Only a confirmed gig can clash; this lets cancellations save even if
+    # older data already has an overlap
+    return unless confirmed?
+
+    overlapping_gigs = Gig.where(status: :confirmed)
       .where.not(id: id)
-      .where(status: :confirmed)
-      .joins(:faculty_request)
-      .where("faculty_requests.starts_at < ? AND faculty_requests.ends_at > ?", 
+      .joins(:art_model_availability, :faculty_request)
+      .where(art_model_availabilities: { user_id: art_model_availability.user_id })
+      .where("faculty_requests.starts_at < ? AND faculty_requests.ends_at > ?",
              faculty_request.ends_at, faculty_request.starts_at)
 
     if overlapping_gigs.exists?

@@ -190,6 +190,7 @@ function ModelDashboard({ user }) {
     if (!confirm(message)) return;
 
     api.post(`/art_model_availabilities/${availabilityId}/cancel`, {
+      gig_id: gig?.id,
       cancel_remaining_series: cancelRemainingSeries
     })
       .then(() => {
