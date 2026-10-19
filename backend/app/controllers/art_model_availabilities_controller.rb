@@ -65,8 +65,8 @@ class ArtModelAvailabilitiesController < ApplicationController
   private
 
   def availability_params
-    permitted = [:user_id, :starts_at, :ends_at]
-    permitted << :status if current_user.role_admin?
+    permitted = [:starts_at, :ends_at]
+    permitted += [:user_id, :status] if current_user.role_admin?
     params.require(:art_model_availability).permit(permitted)
   end
 end

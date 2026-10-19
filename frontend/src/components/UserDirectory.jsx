@@ -49,7 +49,9 @@ function UserDirectory() {
                     <td className="align-middle">
                       <Badge bg="dark" text="light" className="me-1">Pronouns: {u.pronouns}</Badge>
                       <Badge bg="dark" text="light" className="me-1">{formatSkinTone(u.skin_tone)}</Badge>
-                      <Badge bg="dark" text="light">{u.gender_identity} Gender Presentation</Badge>
+                      <Badge bg="dark" text="light" className="me-1">{u.gender_identity} Gender Presentation</Badge>
+                      {u.body_type && <Badge bg="dark" text="light" className="me-1">{u.body_type} Build</Badge>}
+                      {u.willing_to_model_nude && u.genitalia && <Badge bg="dark" text="light">{u.genitalia} Genitalia</Badge>}
                     </td>
                     <td className="align-middle">
                       {u.willing_to_model_nude
@@ -96,7 +98,9 @@ function UserDirectory() {
                     <div className="mb-2">
                       <Badge bg="dark" text="light" className="me-1">Pronouns: {u.pronouns}</Badge>
                       <Badge bg="dark" text="light" className="me-1">{formatSkinTone(u.skin_tone)}</Badge>
-                      <Badge bg="dark" text="light">{u.gender_identity} Gender Presentation</Badge>
+                      <Badge bg="dark" text="light" className="me-1">{u.gender_identity} Gender Presentation</Badge>
+                      {u.body_type && <Badge bg="dark" text="light" className="me-1">{u.body_type} Build</Badge>}
+                      {u.willing_to_model_nude && u.genitalia && <Badge bg="dark" text="light">{u.genitalia} Genitalia</Badge>}
                     </div>
                     <Link to={`/models/${u.id}`} className="btn btn-sm btn-outline-primary w-100">
                       View Availability

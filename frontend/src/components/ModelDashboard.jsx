@@ -368,7 +368,10 @@ function ModelDashboard({ user }) {
                               ? <Badge bg="danger" className="me-1">Nude</Badge>
                               : <Badge bg="success" className="me-1">Clothed</Badge>}
                             {pendingRequests.length > 1 && (
-                              <Badge bg="info" text="dark">{pendingRequests.length} dates</Badge>
+                              <Badge bg="info" text="dark" className="me-1">{pendingRequests.length} dates</Badge>
+                            )}
+                            {(series.models_needed || 1) > 1 && (
+                              <Badge bg="primary">Group session: {series.models_needed} models</Badge>
                             )}
                           </div>
                           <div className="mt-2">

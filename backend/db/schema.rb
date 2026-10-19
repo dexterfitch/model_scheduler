@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_07_143826) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_19_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -43,6 +43,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_07_143826) do
     t.integer "request_series_id"
     t.string "building"
     t.boolean "needs_attention", default: false, null: false
+    t.integer "model_count", default: 1, null: false
+    t.string "pref_body_type", default: "Any", null: false
+    t.string "pref_genitalia", default: "Any", null: false
+    t.integer "models_needed", default: 1, null: false
     t.index ["request_series_id"], name: "index_faculty_requests_on_request_series_id"
     t.index ["user_id"], name: "index_faculty_requests_on_user_id"
   end
@@ -73,6 +77,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_07_143826) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "building"
+    t.string "pref_body_type", default: "Any", null: false
+    t.string "pref_genitalia", default: "Any", null: false
+    t.integer "models_needed", default: 1, null: false
     t.index ["user_id"], name: "index_request_series_on_user_id"
   end
 
@@ -92,6 +99,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_07_143826) do
     t.string "image_url"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "body_type"
+    t.string "genitalia"
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 

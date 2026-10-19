@@ -14,6 +14,9 @@ class FacultyRequestsController < ApplicationController
   def create
     @request = FacultyRequest.new(request_params)
     @request.user_id = current_user.id unless current_user.role_admin?
+    if @request.request_series && !current_user.role_admin? && @request.request_series.user_id != current_user.id
+      raise NotAuthorizedError
+    end
     @request.status = :pending
 
     if @request.save
@@ -29,8 +32,8 @@ class FacultyRequestsController < ApplicationController
 
     require_admin_or_owner(@request)
 
-    if @request.status != 'pending' && !current_user.role_admin?
-      return render json: { error: "This request can no longer be edited because it has already been matched or archived" }, status: :forbidden
+    if (@request.status != 'pending' || @request.confirmed_gigs.exists?) && !current_user.role_admin?
+      return render json: { error: "This request can no longer be edited because a model has already been booked or it was archived" }, status: :forbidden
     end
 
     new_starts_at = request_params[:starts_at] ? Time.zone.parse(request_params[:starts_at].to_s) : @request.starts_at
@@ -44,6 +47,7 @@ class FacultyRequestsController < ApplicationController
     end
 
     if @request.update(request_params)
+      @request.request_series&.update_status!
       render json: @request
     else
       render json: { errors: @request.errors.full_messages }, status: :unprocessable_entity
@@ -55,37 +59,14 @@ class FacultyRequestsController < ApplicationController
 
     require_admin_or_owner(@request)
 
-    if @request.status == 'pending'
-      if Gig.where(faculty_request_id: @request.id).exists?
-        @request.update!(status: :archived)
-      else
-        @request.destroy
-      end
-      @request.request_series&.update_status!
-      head :no_content
-      return
-    end
+    series = @request.request_series
+    had_booked_models = @request.confirmed_gigs.exists?
+    is_late_cancel = @request.cancel_with_billing!
+    series&.update_status!
 
-    if @request.status == 'matched' && @request.gig
-      gig = @request.gig
-
-      is_late_cancel = gig.faculty_request.starts_at.to_date == Date.current
-
-      Gig.transaction do
-        @request.update!(status: 'archived')
-        gig.update!(
-          status: 'cancelled',
-          billable: is_late_cancel
-        )
-        gig.art_model_availability.update!(status: 'active')
-      end
-
-      @request.request_series&.update_status!
-
+    if had_booked_models
       render json: { message: "Request cancelled. Gig billable: #{is_late_cancel}" }, status: :ok
     else
-      @request.destroy
-      @request.request_series&.update_status!
       head :no_content
     end
   end
@@ -93,19 +74,14 @@ class FacultyRequestsController < ApplicationController
   private
 
   def request_params
-    params.require(:faculty_request).permit(
-      :user_id, 
-      :starts_at, 
-      :ends_at, 
-      :class_name, 
-      :department, 
-      :building,
-      :pref_skin_tone, 
-      :pref_gender, 
-      :model_mode,
-      :notes,
-      :room_number,
-      :request_series_id
-    )
+    permitted = [
+      :starts_at, :ends_at, :class_name, :department, :building,
+      :pref_skin_tone, :pref_gender, :pref_body_type, :pref_genitalia,
+      :models_needed, :model_mode, :notes, :room_number
+    ]
+    permitted += [:user_id, :request_series_id] if current_user.role_admin?
+    # Faculty can attach a new date to a series (checked in #create), but can't move it later
+    permitted << :request_series_id if action_name == "create"
+    params.require(:faculty_request).permit(permitted.uniq)
   end
 end

@@ -26,20 +26,21 @@ class ArtModelAvailability < ApplicationRecord
     ActiveRecord::Base.transaction do
       cancel_single_gig!(self, gig, flag_for_attention: flag_for_attention)
 
-      if cancel_remaining_series
-        series_scope = gig.faculty_request.request_series
-        if series_scope
-          future_matched_requests = series_scope.faculty_requests
-            .where(status: :matched)
-            .where("starts_at > ?", Time.current)
-            .where.not(id: gig.faculty_request_id)
+      if cancel_remaining_series && series
+        # Only release THIS model from later dates; other models booked on
+        # those dates (multi-model sessions) keep their gigs.
+        future_requests = series.faculty_requests
+          .where.not(status: :archived)
+          .where("starts_at > ?", Time.current)
+          .where.not(id: gig.faculty_request_id)
 
-          future_matched_requests.each do |other_request|
-            other_gig = other_request.gig
-            next unless other_gig
-            other_availability = other_gig.art_model_availability
-            cancel_single_gig!(other_availability, other_gig, flag_for_attention: flag_for_attention)
-          end
+        future_requests.each do |other_request|
+          other_gig = other_request.confirmed_gigs
+            .joins(:art_model_availability)
+            .find_by(art_model_availabilities: { user_id: user_id })
+          next unless other_gig
+
+          cancel_single_gig!(other_gig.art_model_availability, other_gig, flag_for_attention: flag_for_attention)
         end
       end
     end
@@ -51,8 +52,10 @@ class ArtModelAvailability < ApplicationRecord
   private
 
   def cancel_single_gig!(availability, gig, flag_for_attention: false)
-    gig.faculty_request.update!(status: :pending, needs_attention: flag_for_attention)
+    request = gig.faculty_request
     gig.destroy!
+    # Losing any model means the session is short-staffed again
+    request.update!(status: :pending, needs_attention: flag_for_attention) unless request.archived?
     availability.gigs.reload
     availability.update!(status: :cancelled)
   end

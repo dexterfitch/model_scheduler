@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Badge, Row, Col } from 'react-bootstrap';
 import { formatDateTime, formatTime, roundToNearest5, findActiveGigForAvailability } from "../utils/time";
 import { GENDER_IDENTITIES, SKIN_TONES } from "../utils/constants";
+import ModelBodyFields from "./ModelBodyFields";
 
 const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [users, setUsers] = useState([]);
@@ -12,7 +13,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [sockForm, setSockForm] = useState({
     first_name: "", last_name: "", email: "", phone: "",
     stage_name: "", skin_tone: "Medium", gender_identity: "",
-    willing_to_model_nude: false
+    willing_to_model_nude: false, body_type: "", genitalia: ""
   });
   const [sockErrors, setSockErrors] = useState([]);
   const [sockSuccess, setSockSuccess] = useState(false);
@@ -163,7 +164,11 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
 
   const handleSockFormChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setSockForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setSockForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+      ...(name === 'willing_to_model_nude' && !checked ? { genitalia: "" } : {})
+    }));
   };
 
   const handleCreateSockAccount = async (e) => {
@@ -182,7 +187,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
       setSockForm({
         first_name: "", last_name: "", email: "", phone: "",
         stage_name: "", skin_tone: "Medium", gender_identity: "",
-        willing_to_model_nude: false
+        willing_to_model_nude: false, body_type: "", genitalia: ""
       });
       fetchUsers();
     } catch (err) {
@@ -389,6 +394,11 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                 </div>
               </Col>
             </Row>
+            <ModelBodyFields
+              values={sockForm}
+              labelClassName="form-label fw-bold"
+              onChange={(name, value) => setSockForm(prev => ({ ...prev, [name]: value }))}
+            />
             <div className="mt-4">
               <button type="submit" className="btn btn-primary text-white w-100">Create Sock Account</button>
             </div>

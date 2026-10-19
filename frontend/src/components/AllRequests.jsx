@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert } from "react-bootstrap";
 import api from "../services/api";
 import styles from "./AllRequests.module.css";
-import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
+import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateShort } from "../utils/time";
-import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
+import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 
 function AllRequests() {
   const navigate = useNavigate();
@@ -63,7 +63,7 @@ function AllRequests() {
 
   const [editingSeries, setEditingSeries] = useState(null);
   const [seriesForm, setSeriesForm] = useState({
-    class_name: '', department: '', building: '', room_number: '', notes: '', dates: []
+    class_name: '', department: '', building: '', room_number: '', notes: '', models_needed: 1, dates: []
   });
   const [editError, setEditError] = useState('');
 
@@ -90,11 +90,11 @@ function AllRequests() {
     }
   };
 
-  const handleFindNewModel = async (req) => {
-    const modelName = `${req.gig?.art_model_availability?.user?.first_name} ${req.gig?.art_model_availability?.user?.last_name}`;
-    if (!confirm(`Release ${modelName} from this date and reopen it for rematching? Their availability for this time slot will remain intact.`)) return;
+  const handleFindNewModel = async (gig) => {
+    const modelName = `${gig.art_model_availability?.user?.first_name} ${gig.art_model_availability?.user?.last_name}`;
+    if (!confirm(`Release ${modelName} from this date and reopen their spot for rematching? Their availability for this time slot will remain intact.`)) return;
     try {
-      await api.delete(`/gigs/${req.gig.id}`);
+      await api.delete(`/gigs/${gig.id}`);
       api.get("/request_series").then(res => setAllSeries(res.data));
     } catch (err) {
       alert("Failed to release this date for rematching.");
@@ -113,12 +113,14 @@ function AllRequests() {
       building: s.building || '',
       room_number: s.room_number || '',
       notes: s.notes || '',
+      models_needed: s.models_needed || 1,
       dates: activeRequests.map(r => {
         const startDate = new Date(r.starts_at);
         const endDate = new Date(r.ends_at);
         return {
           id: r.id,
           status: r.status,
+          booked: r.confirmed_gigs?.length || 0,
           date: `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}`,
           start: `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`,
           end: `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`
@@ -138,7 +140,8 @@ function AllRequests() {
           department: seriesForm.department,
           building: seriesForm.building,
           room_number: seriesForm.room_number,
-          notes: seriesForm.notes
+          notes: seriesForm.notes,
+          models_needed: seriesForm.models_needed
         }
       });
 
@@ -160,6 +163,9 @@ function AllRequests() {
               model_mode: editingSeries.model_mode,
               pref_skin_tone: editingSeries.pref_skin_tone,
               pref_gender: editingSeries.pref_gender,
+              pref_body_type: editingSeries.pref_body_type,
+              pref_genitalia: editingSeries.pref_genitalia,
+              models_needed: seriesForm.models_needed,
               notes: seriesForm.notes,
               starts_at,
               ends_at
@@ -202,7 +208,7 @@ function AllRequests() {
   };
 
   const handleRemoveExistingDate = async (d) => {
-    const isMatched = d.status === 'matched';
+    const isMatched = d.status === 'matched' || d.booked > 0;
     const message = isMatched
       ? "Remove this matched date? The model will be released and the gig marked cancelled (billable if same-day). This cannot be undone."
       : "Remove this pending date? This cannot be undone.";
@@ -228,8 +234,23 @@ function AllRequests() {
     const matchedCount = allRequests.filter(r => r.status === 'matched').length;
     const pendingCount = allRequests.filter(r => r.status === 'pending').length;
     const archivedCount = allRequests.filter(r => r.status === 'archived').length;
+    const bookedCount = allRequests
+      .filter(r => r.status !== 'archived')
+      .reduce((sum, r) => sum + (r.confirmed_gigs?.length || 0), 0);
 
-    return { allRequests, displayRequests, matchedCount, pendingCount, archivedCount };
+    return { allRequests, displayRequests, matchedCount, pendingCount, archivedCount, bookedCount };
+  };
+
+  const renderPreferenceSummary = (s, separator) => {
+    const parts = [];
+    if ((s.models_needed || 1) > 1) parts.push(<strong key="count">{formatModelCount(s.models_needed)}</strong>);
+    parts.push(formatSkinTone(s.pref_skin_tone));
+    parts.push(`${formatGenderPreference(s)} Gender Presentation`);
+    parts.push(formatBodyType(s.pref_body_type));
+    if (s.model_mode === 'nude') parts.push(formatGenitalia(s.pref_genitalia));
+    return parts.map((p, i) => (
+      <React.Fragment key={i}>{i > 0 && separator}{p}</React.Fragment>
+    ));
   };
 
   const renderDateRow = (req, showBadge, isSingle) => (
@@ -245,19 +266,29 @@ function AllRequests() {
       )}
       <i className="bi bi-calendar3 me-1"></i>
       {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
-      {req.status === 'matched' && req.gig?.art_model_availability?.user && (
+      {(req.models_needed || 1) > 1 && req.status !== 'archived' && (
+        <Badge bg="light" text="dark" className={`ms-2 border ${styles.badge}`}>
+          {(req.confirmed_gigs || []).length}/{req.models_needed} models
+        </Badge>
+      )}
+      {req.status !== 'archived' && (req.confirmed_gigs || []).length > 0 && (
         <>
           {' ('}
-          {req.gig.art_model_availability.user.first_name} {req.gig.art_model_availability.user.last_name}
+          {req.confirmed_gigs.map((gig, i) => (
+            <React.Fragment key={gig.id}>
+              {i > 0 && ', '}
+              {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
+              {(!isSingle || (req.models_needed || 1) > 1) && (
+                <i
+                  role="button"
+                  className="bi bi-arrow-repeat text-primary ms-1"
+                  title="Release this model from only this date and find someone else"
+                  onClick={() => handleFindNewModel(gig)}
+                ></i>
+              )}
+            </React.Fragment>
+          ))}
           {') '}
-          {!isSingle && (
-            <i
-              role="button"
-              className="bi bi-arrow-repeat text-primary ms-1"
-              title="Find a different model for only this date"
-              onClick={() => handleFindNewModel(req)}
-            ></i>
-          )}
         </>
       )}
       {req.status === 'pending' && showBadge && (
@@ -276,7 +307,7 @@ function AllRequests() {
     </div>
   );
 
-  const renderActionButtons = (s, showAction, matchedCount) => {
+  const renderActionButtons = (s, showAction, matchedCount, bookedCount) => {
     const activeCount = s.faculty_requests?.filter(r => r.status !== 'archived').length || 0;
     const isSingle = activeCount <= 1;
 
@@ -284,12 +315,12 @@ function AllRequests() {
       <div className="d-flex flex-column gap-1">
         {showAction && matchedCount === 0 && (
           <Button size="sm" variant="outline-primary" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
-            Find Match
+            {bookedCount > 0 ? "Find More Models" : "Find Match"}
           </Button>
         )}
-        {matchedCount > 0 && (
+        {bookedCount > 0 && (
           <Button size="sm" variant="outline-warning" onClick={() => handleReleaseRemaining(s.id)}>
-            Release Model and Rematch
+            {(s.models_needed || 1) > 1 ? "Release Models and Rematch" : "Release Model and Rematch"}
           </Button>
         )}
         {s.status !== 'archived' && (
@@ -327,7 +358,7 @@ function AllRequests() {
   };
 
   const renderSeriesCard = (s, showAction, showActionColumn = true) => {
-    const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount } = getSeriesMeta(s);
+    const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount, bookedCount } = getSeriesMeta(s);
     const faculty = s.user;
     const isSingle = allRequests.filter(r => r.status !== 'archived').length <= 1;
 
@@ -352,14 +383,14 @@ function AllRequests() {
             Faculty: {faculty?.first_name} {faculty?.last_name}
           </div>
           <div className="small text-muted mb-2">
-            {formatSkinTone(s.pref_skin_tone)}, {s.pref_gender} Gender Presentation
+            {renderPreferenceSummary(s, ', ')}
           </div>
           {s.notes && (
             <div className="small text-muted fst-italic mb-2 border rounded p-2">
               <i className="bi bi-journal-text me-1"></i>{s.notes}
             </div>
           )}
-          {showActionColumn && renderActionButtons(s, showAction, matchedCount)}
+          {showActionColumn && renderActionButtons(s, showAction, matchedCount, bookedCount)}
         </div>
       </div>
     );
@@ -384,7 +415,7 @@ function AllRequests() {
             </tr>
           ) : (
             seriesList.map(s => {
-              const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount } = getSeriesMeta(s);
+              const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount, bookedCount } = getSeriesMeta(s);
               const faculty = s.user;
               const isSingle = allRequests.filter(r => r.status !== 'archived').length <= 1;
 
@@ -403,7 +434,7 @@ function AllRequests() {
                       ? <span className="text-danger fw-bold">Nude</span>
                       : <span className="text-success fw-bold">Clothed</span>}
                     <small className="text-muted d-block">
-                      {formatSkinTone(s.pref_skin_tone)}<br /> {s.pref_gender} Gender Presentation
+                      {renderPreferenceSummary(s, <br />)}
                     </small>
                     {s.notes && (
                       <small className="text-muted fst-italic d-block">
@@ -413,7 +444,7 @@ function AllRequests() {
                   </td>
                   {showActionColumn && (
                     <td>
-                      {renderActionButtons(s, showAction, matchedCount)}
+                      {renderActionButtons(s, showAction, matchedCount, bookedCount)}
                     </td>
                   )}
                 </tr>
@@ -525,7 +556,7 @@ function AllRequests() {
           <Modal.Title>Edit Series</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {seriesForm.dates.some(d => d.status === 'matched') && (
+          {seriesForm.dates.some(d => d.status === 'matched' || d.booked > 0) && (
             <Alert variant="warning" className="small">
               <strong>⚠️ THIS SERIES INCLUDES CONFIRMED GIGS.</strong><br />
               Only edit confirmed modeling gigs by request, and only for unusual circumstances (campus closures, emergencies, etc.). Make sure both faculty and the model are aware of the change and they've agreed to any changes before saving. If a new time conflicts with another confirmed gig for that model, saving will be blocked.
@@ -591,6 +622,21 @@ function AllRequests() {
               value={seriesForm.notes}
               onChange={e => setSeriesForm(prev => ({ ...prev, notes: e.target.value }))}
             />
+          </Form.Group>
+
+          <Form.Group className="mb-3" style={{ maxWidth: '220px' }}>
+            <Form.Label>Models per Session</Form.Label>
+            <Form.Select
+              value={seriesForm.models_needed}
+              onChange={e => setSeriesForm(prev => ({ ...prev, models_needed: Number(e.target.value) }))}
+            >
+              {Array.from({ length: MAX_MODELS_PER_REQUEST }, (_, i) => i + 1).map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              Raising this reopens matched dates for more models.
+            </Form.Text>
           </Form.Group>
 
           <hr />

@@ -5,8 +5,12 @@ class User < ApplicationRecord
 
   GENDER_IDENTITIES = ["Woman", "Man", "Non-binary", "Prefer not to say"].freeze
   SKIN_TONES = ["Light", "Medium", "Dark"].freeze
+  BODY_TYPES = ["Muscular", "Average", "Fat"].freeze
+  GENITALIA = ["Male", "Female", "Intersex"].freeze
 
   enum :role, { admin: 0, faculty: 1, model: 2 }, prefix: true
+
+  before_validation :normalize_model_attributes
 
   validates :first_name, :last_name, :email, presence: true
   validates :email, presence: true, uniqueness: { case_sensitive: false }
@@ -18,6 +22,9 @@ class User < ApplicationRecord
     validates :gender_identity, inclusion: { in: GENDER_IDENTITIES }
     validates :skin_tone, inclusion: { in: SKIN_TONES }
     validates :willing_to_model_nude, inclusion: { in: [true, false] }
+    # Both optional so existing model profiles stay valid
+    validates :body_type, inclusion: { in: BODY_TYPES }, allow_nil: true
+    validates :genitalia, inclusion: { in: GENITALIA }, allow_nil: true
   end
 
   def self.from_omniauth(auth)
@@ -30,5 +37,14 @@ class User < ApplicationRecord
 
   def as_json(options = {})
     super({ except: [:created_at, :updated_at] }.merge(options))
+  end
+
+  private
+
+  def normalize_model_attributes
+    self.body_type = nil if body_type.blank?
+    self.genitalia = nil if genitalia.blank?
+    # Only nude sessions use this, so don't keep it for clothed-only models
+    self.genitalia = nil unless willing_to_model_nude
   end
 end

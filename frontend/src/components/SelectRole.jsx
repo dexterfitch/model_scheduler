@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Container, Card, Button, Form, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import api from '../services/api';
 import { GENDER_IDENTITIES, SKIN_TONE_OPTIONS } from "../utils/constants";
+import ModelBodyFields from "./ModelBodyFields";
 
 const SelectRole = ({ onLogin, userId: propUserId }) => {
   const location = useLocation();
@@ -18,6 +19,8 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
     gender_identity: '',
     skin_tone: '',
     willing_to_model_nude: false,
+    body_type: '',
+    genitalia: '',
   });
 
   const userId = propUserId || location.state?.userId;
@@ -38,7 +41,8 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
+      ...(name === 'willing_to_model_nude' && !checked ? { genitalia: '' } : {})
     }));
   };
 
@@ -205,6 +209,11 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
                   label={<strong>I am willing to model nude</strong>}
                 />
               </div>
+
+              <ModelBodyFields
+                values={formData}
+                onChange={(name, value) => setFormData(prev => ({ ...prev, [name]: value }))}
+              />
 
               <div className="d-flex gap-2">
                 <Button

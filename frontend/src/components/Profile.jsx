@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { GENDER_IDENTITIES, SKIN_TONE_OPTIONS } from '../utils/constants';
+import ModelBodyFields from './ModelBodyFields';
 
 const Profile = ({ currentUser, setCurrentUser }) => {
 
@@ -16,6 +17,8 @@ const Profile = ({ currentUser, setCurrentUser }) => {
     gender_identity: '',
     skin_tone: '',
     willing_to_model_nude: false,
+    body_type: '',
+    genitalia: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -32,6 +35,8 @@ const Profile = ({ currentUser, setCurrentUser }) => {
         gender_identity: currentUser.gender_identity || '',
         skin_tone: currentUser.skin_tone || '',
         willing_to_model_nude: currentUser.willing_to_model_nude || false,
+        body_type: currentUser.body_type || '',
+        genitalia: currentUser.genitalia || '',
       });
     }
   }, [currentUser]);
@@ -40,7 +45,8 @@ const Profile = ({ currentUser, setCurrentUser }) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
+      ...(name === 'willing_to_model_nude' && !checked ? { genitalia: '' } : {})
     }));
   };
 
@@ -153,6 +159,11 @@ const Profile = ({ currentUser, setCurrentUser }) => {
                     I am willing to model nude
                   </label>
                 </div>
+
+                <ModelBodyFields
+                  values={formData}
+                  onChange={(name, value) => setFormData(prev => ({ ...prev, [name]: value }))}
+                />
               </>
             )}
 

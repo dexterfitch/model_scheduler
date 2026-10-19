@@ -28,6 +28,15 @@ export const GENDER_PREFERENCE_OPTIONS = [
   "Man"
 ];
 
+// Gender-neutral build options (used for both nude and clothed sessions)
+export const BODY_TYPES = ["Muscular", "Average", "Fat"];
+
+// Only used for nude sessions
+export const GENITALIA_OPTIONS = ["Male", "Female", "Intersex"];
+
+// Keep in sync with FacultyRequest::MAX_MODELS_PER_REQUEST
+export const MAX_MODELS_PER_REQUEST = 6;
+
 export const SKIN_TONES = ["Light", 
   "Medium", 
   "Dark"

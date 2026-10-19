@@ -2,9 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from "react-bootstrap";
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
-import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
+import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours } from "../utils/time";
-import { DEPARTMENTS, BUILDINGS, GENDER_PREFERENCE_OPTIONS, SKIN_TONES } from "../utils/constants";
+import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
+import ModelPreferenceFields, { DEFAULT_MODEL_PREFERENCES, applyPreferenceChange } from "./ModelPreferenceFields";
+
+const PREFERENCE_KEYS = Object.keys(DEFAULT_MODEL_PREFERENCES);
+const pickPreferences = (obj) =>
+  Object.fromEntries(PREFERENCE_KEYS.map(k => [k, obj[k] ?? DEFAULT_MODEL_PREFERENCES[k]]));
 
 const emptyDate = () => ({ date: "", start_time: "", end_time: "" });
 
@@ -18,7 +23,7 @@ function FacultyDashboard({ user }) {
   const [editingRequest, setEditingRequest] = useState(null);
   const [editFormData, setEditFormData] = useState({
     class_name: "", department: "", building: "", room_number: "",
-    model_mode: "clothed", pref_skin_tone: "Any", pref_gender: "Any", notes: "",
+    ...DEFAULT_MODEL_PREFERENCES, notes: "",
     starts_at: "", starts_time: "", ends_time: ""
   });
   const [editError, setEditError] = useState('');
@@ -30,9 +35,7 @@ function FacultyDashboard({ user }) {
     class_name: "",
     department: "",
     building: "",
-    model_mode: "clothed",
-    pref_skin_tone: "Any",
-    pref_gender: "Any",
+    ...DEFAULT_MODEL_PREFERENCES,
     notes: "",
     room_number: ""
   });
@@ -63,6 +66,14 @@ function FacultyDashboard({ user }) {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePreferenceChange = (name, value) => {
+    setFormData(prev => applyPreferenceChange(prev, name, value));
+  };
+
+  const handleEditPreferenceChange = (name, value) => {
+    setEditFormData(prev => applyPreferenceChange(prev, name, value));
   };
 
   const handleDateChange = (index, field, value) => {
@@ -122,9 +133,7 @@ function FacultyDashboard({ user }) {
         class_name: formData.class_name,
         department: formData.department,
         building: formData.building,
-        model_mode: formData.model_mode,
-        pref_skin_tone: formData.pref_skin_tone,
-        pref_gender: formData.pref_gender,
+        ...pickPreferences(formData),
         notes: formData.notes,
         room_number: formData.room_number
       },
@@ -142,8 +151,8 @@ function FacultyDashboard({ user }) {
         setShowModal(false);
         fetchSeries();
         setFormData({
-          class_name: "", department: "", building: "", model_mode: "clothed",
-          pref_skin_tone: "Any", pref_gender: "Any", notes: "", room_number: ""
+          class_name: "", department: "", building: "",
+          ...DEFAULT_MODEL_PREFERENCES, notes: "", room_number: ""
         });
         setDates([emptyDate()]);
       })
@@ -190,9 +199,7 @@ function FacultyDashboard({ user }) {
       department: req.department,
       building: req.building,
       room_number: req.room_number || "",
-      model_mode: req.model_mode,
-      pref_skin_tone: req.pref_skin_tone,
-      pref_gender: req.pref_gender,
+      ...pickPreferences(req),
       notes: req.notes || "",
       starts_at: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
       starts_time: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
@@ -230,9 +237,7 @@ function FacultyDashboard({ user }) {
         department: editFormData.department,
         building: editFormData.building,
         room_number: editFormData.room_number,
-        model_mode: editFormData.model_mode,
-        pref_skin_tone: editFormData.pref_skin_tone,
-        pref_gender: editFormData.pref_gender,
+        ...pickPreferences(editFormData),
         notes: editFormData.notes,
         starts_at: startDateTime,
         ends_at: endDateTime
@@ -285,9 +290,7 @@ function FacultyDashboard({ user }) {
           department: series.department,
           building: series.building,
           room_number: series.room_number,
-          model_mode: series.model_mode,
-          pref_skin_tone: series.pref_skin_tone,
-          pref_gender: series.pref_gender,
+          ...pickPreferences(series),
           notes: series.notes,
           starts_at,
           ends_at
@@ -346,7 +349,9 @@ function FacultyDashboard({ user }) {
             <Col md={6} lg={4} key={s.id} className="mb-4">
               <Card className={`h-100 shadow-sm border-0 ${styles.card}`}>
                 <Card.Header className={`text-white fw-bold ${s.status === 'matched' ? 'bg-success' : 'bg-warning'}`}>
-                  {s.status === 'matched' ? 'Model Confirmed' : 'Pending Match'}
+                  {s.status === 'matched'
+                    ? ((s.models_needed || 1) > 1 ? 'Models Confirmed' : 'Model Confirmed')
+                    : 'Pending Match'}
                   {requests.length > 1 && (
                     <Badge bg="light" text="dark" className="ms-2">{requests.length} dates</Badge>
                   )}
@@ -364,24 +369,32 @@ function FacultyDashboard({ user }) {
                           <div>
                             <div className="fw-bold">{formatDateWithWeekday(req.starts_at)}</div>
                             <div className="text-muted small">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
-                            {req.status === 'matched' && (
-                              <div>
-                                <Badge bg="success">Model Confirmed</Badge>
-                                <br />
-                                {req.gig?.confirmed_by?.email && (
-                                  <a
-                                    href={`mailto:${req.gig.confirmed_by.email}?subject=${encodeURIComponent(`Edit request: ${s.class_name} (${formatDateWithWeekday(req.starts_at)})`)}&body=${encodeURIComponent(`Hi ${req.gig.confirmed_by.first_name},\n\nI need to make a change to my confirmed request for ${s.class_name} on ${formatDateWithWeekday(req.starts_at)} at ${formatTime(req.starts_at)}.\n\nDetails:\n`)}`}
-                                    className="small"
-                                    title={`Email ${req.gig.confirmed_by.first_name} about this date`}
-                                  >
-                                    <small>Need to edit? Contact {req.gig.confirmed_by.email}</small>
-                                  </a>
-                                )}
-                              </div>
-                            )}
+                            {(() => {
+                              const booked = req.confirmed_gigs || [];
+                              const needed = req.models_needed || 1;
+                              if (booked.length === 0) return null;
+                              const contact = booked.find(g => g.confirmed_by?.email)?.confirmed_by;
+                              return (
+                                <div>
+                                  {req.status === 'matched'
+                                    ? <Badge bg="success">{needed > 1 ? `All ${needed} Models Confirmed` : 'Model Confirmed'}</Badge>
+                                    : <Badge bg="warning" text="dark">{booked.length} of {needed} Models Confirmed</Badge>}
+                                  <br />
+                                  {contact?.email && (
+                                    <a
+                                      href={`mailto:${contact.email}?subject=${encodeURIComponent(`Edit request: ${s.class_name} (${formatDateWithWeekday(req.starts_at)})`)}&body=${encodeURIComponent(`Hi ${contact.first_name},\n\nI need to make a change to my confirmed request for ${s.class_name} on ${formatDateWithWeekday(req.starts_at)} at ${formatTime(req.starts_at)}.\n\nDetails:\n`)}`}
+                                      className="small"
+                                      title={`Email ${contact.first_name} about this date`}
+                                    >
+                                      <small>Need to edit? Contact {contact.email}</small>
+                                    </a>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                           <div className="d-flex gap-1">
-                            {req.status === 'pending' && (
+                            {req.status === 'pending' && (req.confirmed_gigs || []).length === 0 && (
                               <Button variant="outline-secondary" size="sm" onClick={() => openEditModal(req)}>
                                 <i className="bi bi-pencil"></i> Edit
                               </Button>
@@ -461,7 +474,10 @@ function FacultyDashboard({ user }) {
                       ? <Badge bg="danger">Nude Required</Badge>
                       : <Badge bg="success">Clothed</Badge>}
                     {s.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(s.pref_skin_tone)}</Badge>}
-                    {s.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{s.pref_gender} Presentation</Badge>}
+                    {(s.models_needed || 1) > 1 && <Badge bg="primary">{formatModelCount(s.models_needed)}</Badge>}
+                    {s.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenderPreference(s)} Presentation</Badge>}
+                    {s.pref_body_type && s.pref_body_type !== 'Any' && <Badge bg="light" text="dark" className="border">{formatBodyType(s.pref_body_type)}</Badge>}
+                    {s.model_mode === 'nude' && s.pref_genitalia && s.pref_genitalia !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenitalia(s.pref_genitalia)}</Badge>}
                   </div>
 
                   {s.notes && (
@@ -581,29 +597,7 @@ function FacultyDashboard({ user }) {
 
             <hr />
             <h5>Model Preferences</h5>
-
-            <Row>
-              <Col md={4} className="mb-3">
-                <Form.Label>Nudity</Form.Label>
-                <Form.Select name="model_mode" value={formData.model_mode} onChange={handleInputChange}>
-                  <option value="clothed">Clothed</option>
-                  <option value="nude">Nude</option>
-                </Form.Select>
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Label>Skin Tone</Form.Label>
-                <Form.Select name="pref_skin_tone" value={formData.pref_skin_tone} onChange={handleInputChange}>
-                  <option value="Any">Any</option>
-                  {SKIN_TONES.map(t => <option key={t} value={t}>{t}</option>)}
-                </Form.Select>
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Label>Gender Presentation</Form.Label>
-                <Form.Select name="pref_gender" value={formData.pref_gender} onChange={handleInputChange}>
-                  {GENDER_PREFERENCE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
-                </Form.Select>
-              </Col>
-            </Row>
+            <ModelPreferenceFields values={formData} onChange={handlePreferenceChange} />
 
             <Form.Group className="mb-3">
               <Form.Label>Notes for Admin</Form.Label>
@@ -681,28 +675,7 @@ function FacultyDashboard({ user }) {
 
             <hr />
             <h5>Model Preferences</h5>
-            <Row>
-              <Col md={4} className="mb-3">
-                <Form.Label>Nudity</Form.Label>
-                <Form.Select name="model_mode" value={editFormData.model_mode} onChange={handleEditInputChange}>
-                  <option value="clothed">Clothed</option>
-                  <option value="nude">Nude</option>
-                </Form.Select>
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Label>Skin Tone</Form.Label>
-                <Form.Select name="pref_skin_tone" value={editFormData.pref_skin_tone} onChange={handleEditInputChange}>
-                  <option value="Any">Any</option>
-                  {SKIN_TONES.map(t => <option key={t} value={t}>{t}</option>)}
-                </Form.Select>
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Label>Gender Presentation</Form.Label>
-                <Form.Select name="pref_gender" value={editFormData.pref_gender} onChange={handleEditInputChange}>
-                  {GENDER_PREFERENCE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
-                </Form.Select>
-              </Col>
-            </Row>
+            <ModelPreferenceFields values={editFormData} onChange={handleEditPreferenceChange} />
 
             <Form.Group className="mb-3">
               <Form.Label>Notes for Admin</Form.Label>

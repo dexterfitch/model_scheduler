@@ -176,6 +176,8 @@ function ModelDetail() {
                 <div className="mb-2">
                   <Badge bg="info" text="dark" className="me-1">{formatSkinTone(user.skin_tone)}</Badge>
                   <Badge bg="info" text="dark" className="me-1">{user.gender_identity}</Badge>
+                  {user.body_type && <Badge bg="info" text="dark" className="me-1">{user.body_type} Build</Badge>}
+                  {user.willing_to_model_nude && user.genitalia && <Badge bg="info" text="dark" className="me-1">{user.genitalia} Genitalia</Badge>}
                 </div>
                 <div>
                   {user.willing_to_model_nude

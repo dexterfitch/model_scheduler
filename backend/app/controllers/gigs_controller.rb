@@ -21,10 +21,19 @@ class GigsController < ApplicationController
   def create
     gig = Gig.new(gig_params)
     gig.confirmed_by = current_user
-    if gig.save
+
+    saved = Gig.transaction do
+      # Lock the request so two admins can't over-fill the last open slot at once
+      gig.faculty_request&.lock!
+      gig.save
+    end
+
+    if saved
       gig.art_model_availability&.update(status: 'active')
-      gig.faculty_request&.update(status: 'matched', needs_attention: false)
-      gig.faculty_request&.request_series&.update_status!
+      faculty_request = gig.faculty_request
+      faculty_request.refresh_match_status!
+      faculty_request.update(needs_attention: false) if faculty_request.matched?
+      faculty_request.request_series&.update_status!
       render json: gig, status: :created
     else
       render json: { errors: gig.errors.full_messages }, status: :unprocessable_entity
@@ -36,9 +45,9 @@ class GigsController < ApplicationController
     is_late_cancel = gig.faculty_request.starts_at.to_date == Date.current
 
     Gig.transaction do
-      gig.faculty_request&.update!(status: 'pending')
       gig.update!(status: 'cancelled', billable: is_late_cancel)
       gig.art_model_availability&.update!(status: 'active')
+      gig.faculty_request&.refresh_match_status!
     end
 
     gig.faculty_request&.request_series&.update_status!

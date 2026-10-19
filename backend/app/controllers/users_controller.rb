@@ -99,10 +99,13 @@ class UsersController < ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(
-      :first_name, :last_name, :email, :phone, :bio,
-      :stage_name, :pronouns, :gender_identity, :skin_tone, :willing_to_model_nude
-    )
+    permitted = [
+      :first_name, :last_name, :phone,
+      :stage_name, :pronouns, :gender_identity, :skin_tone, :willing_to_model_nude,
+      :body_type, :genitalia
+    ]
+    permitted << :email if current_user.role_admin?
+    params.require(:user).permit(permitted)
   end
 
   def apply_model_defaults(user)

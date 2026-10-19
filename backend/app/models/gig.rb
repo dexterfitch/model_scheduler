@@ -8,6 +8,8 @@ class Gig < ApplicationRecord
   validate :request_must_fit_availability
   validate :no_overlap_for_model
   validate :model_must_be_nudity_compatible
+  validate :request_must_have_open_slot, on: :create
+  validate :model_not_already_on_request, on: :create
 
   def as_json(options = {})
     super(options.merge(include: {
@@ -52,5 +54,24 @@ class Gig < ApplicationRecord
     if faculty_request.model_mode == 'nude' && !art_model_availability.user.willing_to_model_nude
       errors.add(:base, "This model is not willing to model nude, and the class requires a nude session")
     end
+  end
+
+  def request_must_have_open_slot
+    return unless faculty_request
+
+    if faculty_request.confirmed_gigs.count >= faculty_request.models_needed
+      errors.add(:base, "This class already has all #{faculty_request.models_needed} model(s) it requested")
+    end
+  end
+
+  def model_not_already_on_request
+    return unless faculty_request && art_model_availability
+
+    already_booked = faculty_request.confirmed_gigs
+      .joins(:art_model_availability)
+      .where(art_model_availabilities: { user_id: art_model_availability.user_id })
+      .exists?
+
+    errors.add(:base, "This model is already booked for this class") if already_booked
   end
 end

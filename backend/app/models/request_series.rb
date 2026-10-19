@@ -4,12 +4,26 @@ class RequestSeries < ApplicationRecord
 
   enum :status, { pending: 0, matched: 1, archived: 2 }
 
+  # Attributes that live on the series and get copied onto each dated request
+  SHARED_ATTRIBUTES = %w[
+    class_name department building model_mode
+    pref_skin_tone pref_gender pref_body_type pref_genitalia
+    models_needed notes room_number
+  ].freeze
+
+  before_validation :normalize_preferences
+
   validates :class_name, presence: true
   validates :department, presence: true
   validates :building, presence: true, inclusion: { in: FacultyRequest::BUILDINGS }
   validates :model_mode, presence: true, inclusion: { in: %w[clothed nude] }
   validates :pref_gender, inclusion: { in: User::GENDER_IDENTITIES + ["Any"] }, allow_nil: true
   validates :pref_skin_tone, inclusion: { in: User::SKIN_TONES + ["Any"] }, allow_nil: true
+  validates :pref_body_type, inclusion: { in: User::BODY_TYPES + ["Any"] }, allow_nil: true
+  validates :pref_genitalia, inclusion: { in: User::GENITALIA + ["Any"] }, allow_nil: true
+  validates :models_needed, numericality: {
+    only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: FacultyRequest::MAX_MODELS_PER_REQUEST
+  }
   validates :user, presence: true
 
   scope :with_pending_requests, -> {
@@ -33,22 +47,29 @@ class RequestSeries < ApplicationRecord
       update!(status: :pending)
     end
   end
+
+  # Most models already booked on any one remaining date; models_needed can't go below this.
+  def max_booked_on_active_request
+    faculty_requests.where.not(status: :archived).map(&:booked_count).max || 0
+  end
   
   def release_remaining_for_rematch!
-    future_matched_requests = faculty_requests
-      .where(status: :matched)
+    future_requests = faculty_requests
+      .where.not(status: :archived)
       .where("starts_at > ?", Time.current)
 
     ActiveRecord::Base.transaction do
-      future_matched_requests.each do |request|
-        gig = request.gig
-        next unless gig
+      future_requests.each do |request|
+        booked = request.confirmed_gigs.includes(:art_model_availability).to_a
+        next if booked.empty?
 
-        availability = gig.art_model_availability
+        booked.each do |gig|
+          availability = gig.art_model_availability
+          gig.destroy!
+          availability.gigs.reload
+          availability.update!(status: :active)
+        end
         request.update!(status: :pending)
-        gig.destroy!
-        availability.gigs.reload
-        availability.update!(status: :active)
       end
     end
 
@@ -59,20 +80,16 @@ class RequestSeries < ApplicationRecord
     ActiveRecord::Base.transaction do
       faculty_requests.each do |request|
         next if request.status == 'archived'
-
-        if request.status == 'matched' && request.gig
-          gig = request.gig
-          is_late_cancel = gig.faculty_request.starts_at.to_date == Date.current
-          request.update!(status: :archived)
-          gig.update!(status: :cancelled, billable: is_late_cancel)
-          gig.art_model_availability.update!(status: :active)
-        elsif Gig.where(faculty_request_id: request.id).exists?
-          request.update!(status: :archived)
-        else
-          request.destroy!
-        end
+        request.cancel_with_billing!
       end
       update_status!
     end
+  end
+
+  private
+
+  def normalize_preferences
+    self.pref_body_type = "Any" if pref_body_type.blank?
+    self.pref_genitalia = "Any" if pref_genitalia.blank? || model_mode != "nude"
   end
 end
