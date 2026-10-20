@@ -66,12 +66,19 @@ sock_model = User.create!(
   stage_name: "Offline Test Account"
 )
 
+# Body details used for matching (genitalia only for models willing to pose nude)
+model1.update!(body_type: "Average", genitalia: "Intersex")
+model2.update!(body_type: "Average")
+model3.update!(body_type: "Muscular", genitalia: "Male")
+model5.update!(body_type: "Fat", genitalia: "Male")
+
 puts "Building scenarios..."
 
 # Helper to create a matched gig cleanly (mirrors gigs_controller#create side effects)
 def book!(faculty_request, availability, confirmed_by:)
   gig = Gig.create!(faculty_request: faculty_request, art_model_availability: availability, confirmed_by: confirmed_by)
-  faculty_request.update!(status: :matched, needs_attention: false)
+  faculty_request.refresh_match_status!
+  faculty_request.update!(needs_attention: false) if faculty_request.matched?
   faculty_request.request_series&.update_status!
   gig
 end
@@ -347,6 +354,46 @@ quick_confirmed_gig!(faculty: faculty3, model: model1, class_name: "Sculpture Mo
 
 quick_confirmed_gig!(faculty: faculty3, model: model1, class_name: "Sculpture Afternoon", department: "Sculpture",
   building: "Station", room: "8", mode: :clothed, days_out: 16, start_hour: 13, end_hour: 15, confirmed_by: admin2)
+
+# ============================================================
+# SCENARIO N: Group session needing 2 models, only 1 booked so far
+# ============================================================
+series_n = RequestSeries.create!(
+  user: faculty3, class_name: "Group Pose Lab", department: "Drawing",
+  building: "Main", room_number: "305", model_mode: :clothed,
+  pref_skin_tone: "Any", pref_gender: "Any", models_needed: 2, status: :pending
+)
+fr_n = FacultyRequest.create!(
+  request_series: series_n, user: faculty3, class_name: series_n.class_name,
+  department: series_n.department, building: series_n.building, room_number: series_n.room_number,
+  model_mode: series_n.model_mode, pref_skin_tone: "Any", pref_gender: "Any", models_needed: 2,
+  starts_at: 8.days.from_now.change(hour: 13, min: 0),
+  ends_at: 8.days.from_now.change(hour: 15, min: 0),
+  status: :pending
+)
+avail_n = ArtModelAvailability.create!(user: model3, starts_at: fr_n.starts_at, ends_at: fr_n.ends_at, status: :active)
+book!(fr_n, avail_n, confirmed_by: superadmin)
+# A second model with open time covering the class, so an admin can fill the last spot
+ArtModelAvailability.create!(user: model5, starts_at: fr_n.starts_at - 1.hour, ends_at: fr_n.ends_at + 1.hour, status: :active)
+
+# ============================================================
+# SCENARIO O: Nude request preferring a trans woman (Woman + male genitalia)
+# ============================================================
+series_o = RequestSeries.create!(
+  user: faculty1, class_name: "Advanced Figure Painting", department: "Painting",
+  building: "Main", room_number: "415", model_mode: :nude,
+  pref_skin_tone: "Any", pref_gender: "Woman", pref_genitalia: "Male", pref_body_type: "Fat",
+  status: :pending
+)
+FacultyRequest.create!(
+  request_series: series_o, user: faculty1, class_name: series_o.class_name,
+  department: series_o.department, building: series_o.building, room_number: series_o.room_number,
+  model_mode: series_o.model_mode, pref_skin_tone: "Any", pref_gender: "Woman",
+  pref_genitalia: "Male", pref_body_type: "Fat",
+  starts_at: 12.days.from_now.change(hour: 10, min: 0),
+  ends_at: 12.days.from_now.change(hour: 12, min: 0),
+  status: :pending
+)
 
 puts "Done!"
 puts "-" * 60
