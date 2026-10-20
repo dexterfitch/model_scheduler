@@ -94,4 +94,18 @@ RSpec.describe "Availability permissions", type: :request do
       expect(Gig.exists?(later_gig.id)).to be false
     end
   end
+
+  describe "editing slots" do
+    it "lets a model change the hours of a free slot" do
+      patch_slot(as: model, changes: { ends_at: slot.starts_at + 4.hours })
+      expect(response).to have_http_status(:ok)
+      expect(slot.reload.ends_at).to eq(slot.starts_at + 4.hours)
+    end
+
+    it "locks a slot once a gig is booked on it" do
+      create(:gig, art_model_availability: slot)
+      patch_slot(as: model, changes: { ends_at: slot.starts_at + 4.hours })
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+  end
 end

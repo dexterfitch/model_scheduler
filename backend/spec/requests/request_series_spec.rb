@@ -71,4 +71,52 @@ RSpec.describe "Request series permissions", type: :request do
       expect(booked_date.reload).to be_matched
     end
   end
+
+  describe "what the series list reveals" do
+    let(:booked_model) { booked_date.confirmed_gigs.first.art_model_availability.user }
+
+    it "never shows faculty the booked model's personal details" do
+      booked_model.update!(phone: "410-555-0199")
+      get "/request_series", headers: auth_headers(faculty)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include(booked_model.email)
+      expect(response.body).not_to include("410-555-0199")
+      expect(response.body).not_to include("art_model_availability")
+    end
+
+    it "still tells faculty that a model is booked" do
+      get "/request_series", headers: auth_headers(faculty)
+      dates = response.parsed_body.first["faculty_requests"]
+      expect(dates.first["confirmed_gigs"].size).to eq(1)
+    end
+
+    it "shows admins which model is booked" do
+      get "/request_series", headers: auth_headers(admin)
+      expect(response.body).to include(booked_model.email)
+    end
+  end
+
+  describe "changing models per session" do
+    it "reopens a matched date when an admin raises the count" do
+      patch_series(as: admin, changes: { models_needed: 2 })
+      expect(booked_date.reload).to be_pending
+      expect(booked_date.models_needed).to eq(2)
+    end
+
+    it "won't go below the number of models already booked" do
+      booked_date.update_columns(models_needed: 2)
+      series.update_columns(models_needed: 2)
+      create(:gig, faculty_request: booked_date)
+
+      patch_series(as: admin, changes: { models_needed: 1 })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(booked_date.reload.models_needed).to eq(2)
+    end
+
+    it "copies series changes to every date" do
+      patch_series(as: admin, changes: { room_number: "B204" })
+      expect(booked_date.reload.room_number).to eq("B204")
+    end
+  end
 end

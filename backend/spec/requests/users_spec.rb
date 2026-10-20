@@ -89,4 +89,50 @@ RSpec.describe "User profile permissions", type: :request do
       expect(user.reload).to be_role_faculty
     end
   end
+
+  describe "superusers" do
+    let(:superuser) { create(:user, :admin, superuser: true) }
+
+    it "can grant superuser status to an admin" do
+      other_admin = create(:user, :admin)
+      post "/users/#{other_admin.id}/promote_to_superuser", headers: auth_headers(superuser)
+      expect(other_admin.reload.superuser).to be true
+    end
+
+    it "can't grant superuser status to someone who isn't an admin" do
+      post "/users/#{user.id}/promote_to_superuser", headers: auth_headers(superuser)
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(user.reload.superuser).to be_falsey
+    end
+
+    it "keeps admin powers while viewing the app as a model" do
+      superuser.update!(role: :model, gender_identity: "Woman", skin_tone: "Medium", willing_to_model_nude: false)
+      get "/users", headers: auth_headers(superuser)
+      expect(response).to have_http_status(:ok)
+    end
+  end
+
+  describe "sock accounts" do
+    let(:sock_params) do
+      { user: { first_name: "Sock", last_name: "Model", email: "sock.model@mica.edu",
+                gender_identity: "Woman", skin_tone: "Light", willing_to_model_nude: false } }
+    end
+
+    it "lets an admin create a model account" do
+      post "/users", params: sock_params, headers: auth_headers(admin), as: :json
+      expect(response).to have_http_status(:created)
+      expect(User.find_by(email: "sock.model@mica.edu")).to be_role_model
+    end
+
+    it "always makes the new account a model, even if another role is requested" do
+      post "/users", params: { user: sock_params[:user].merge(role: "admin") }, headers: auth_headers(admin), as: :json
+      expect(User.find_by(email: "sock.model@mica.edu")).to be_role_model
+    end
+
+    it "doesn't let faculty create accounts" do
+      post "/users", params: sock_params, headers: auth_headers(user), as: :json
+      expect(response).to have_http_status(:forbidden)
+      expect(User.exists?(email: "sock.model@mica.edu")).to be false
+    end
+  end
 end
