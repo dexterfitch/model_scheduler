@@ -22,13 +22,13 @@ class ApplicationController < ActionController::API
     if header.present?
       token = header.split(' ').last
       begin
-        decoded = JWT.decode(token, Rails.application.secret_key_base).first
+        decoded = JWT.decode(token, Rails.application.secret_key_base, true, { algorithm: "HS256" }).first
         @current_user = User.find_by(id: decoded['user_id'])
+        # Tokens from before a logout carry an old version number
+        @current_user = nil if @current_user && decoded.fetch('ver', 0) != @current_user.token_version
       rescue JWT::DecodeError
         @current_user = nil
       end
-    else
-      @current_user = User.find_by(id: session[:user_id])
     end
 
     @current_user

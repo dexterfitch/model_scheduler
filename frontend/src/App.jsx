@@ -33,13 +33,13 @@ function LoginSuccess({ onLogin }) {
     api.get(`/users/${id}`).then(res => {
       const user = res.data;
       if (!user.role) {
-        navigate("/select-role", { state: { userId: user.id } });
+        navigate("/select-role", { state: { userId: user.id }, replace: true });
       } else {
         onLogin(user);
-        navigate("/");
+        navigate("/", { replace: true });
       }
     }).catch(() => {
-      navigate("/login?error=AuthFailed");
+      navigate("/login?error=AuthFailed", { replace: true });
     });
   }, [id, navigate, onLogin, searchParams]);
 

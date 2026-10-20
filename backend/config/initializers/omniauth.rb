@@ -5,6 +5,7 @@ Rails.application.config.middleware.use OmniAuth::Builder do
     {
       scope: 'email, profile',
       prompt: 'select_account',
+      hd: 'mica.edu',
     }
 end
 

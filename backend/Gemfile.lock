@@ -359,6 +359,7 @@ DEPENDENCIES
   debug
   dotenv-rails
   factory_bot_rails
+  jwt
   kamal
   omniauth
   omniauth-google-oauth2
