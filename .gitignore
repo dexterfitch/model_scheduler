@@ -125,6 +125,8 @@ docker-logs/
 /frontend/dist/
 /frontend/.parcel-cache/
 /frontend/.cache/
+/frontend/test-results
+/frontend/playwright-report
 
 ##############################
 # Additional Optional Ignores
