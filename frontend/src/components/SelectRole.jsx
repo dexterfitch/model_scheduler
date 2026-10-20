@@ -4,6 +4,7 @@ import { Container, Card, Button, Form, Row, Col, Alert, Spinner } from 'react-b
 import api from '../services/api';
 import { GENDER_IDENTITIES, SKIN_TONE_OPTIONS } from "../utils/constants";
 import ModelBodyFields from "./ModelBodyFields";
+import { extractErrorMessages } from "../utils/formatters";
 
 const SelectRole = ({ onLogin, userId: propUserId }) => {
   const location = useLocation();
@@ -78,8 +79,7 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
       navigate('/');
     } catch (err) {
       console.error("Failed to set role:", err);
-      const msg = err.response?.data?.errors?.join(', ') || "Something went wrong.";
-      setError(msg);
+      setError(extractErrorMessages(err, "Something went wrong."));
       setLoading(false);
     }
   };
