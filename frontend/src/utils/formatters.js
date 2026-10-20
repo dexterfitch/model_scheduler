@@ -5,8 +5,10 @@ export const formatSkinTone = (tone) => {
 };
 
 export const extractErrorMessages = (err, fallback) => {
-  const messages = err.response?.data?.errors || [err.response?.data?.error] || [fallback];
-  return Array.isArray(messages) ? messages.join(" ") : messages;
+  const data = err.response?.data;
+  if (Array.isArray(data?.errors) && data.errors.length) return data.errors.join(" ");
+  if (data?.error) return data.error;
+  return fallback;
 };
 
 // Display label for a gender preference option. The stored values stay separate

@@ -158,7 +158,7 @@ function FacultyDashboard({ user }) {
       })
       .catch((err) => {
         console.error(err);
-        setSubmitError("Error submitting request. Please try again.");
+        setSubmitError(extractErrorMessages(err, "Error submitting request. Please try again."));
       });
   };
 

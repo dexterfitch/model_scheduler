@@ -28,9 +28,10 @@ class User < ApplicationRecord
   end
 
   def self.from_omniauth(auth)
-    user = where(email: auth.info.email).first_or_initialize
-    user.first_name = auth.info.first_name
-    user.last_name = auth.info.last_name
+    email = auth.info.email.to_s.downcase
+    user = where("LOWER(email) = ?", email).first_or_initialize(email: email)
+    user.first_name = auth.info.first_name if user.first_name.blank?
+    user.last_name = auth.info.last_name if user.last_name.blank?
     user.image_url = auth.info.image
     user
   end

@@ -1,4 +1,5 @@
 class RequestSeriesController < ApplicationController
+  MAX_DATES_PER_SERIES = 50
   before_action -> { require_role(:admin, :faculty) }, except: [:available_for_model]
   before_action -> { require_role(:admin, :model) }, only: [:available_for_model]
   before_action -> { require_role(:admin) }, only: [:release_remaining]
@@ -60,18 +61,36 @@ class RequestSeriesController < ApplicationController
 
     dates = params[:dates]
 
-    if dates.blank? || dates.empty?
+    unless dates.is_a?(Array) && dates.any?
       return render json: { error: "At least one date is required" }, status: :unprocessable_entity
     end
+
+    if dates.length > MAX_DATES_PER_SERIES
+      return render json: { error: "A request can have at most #{MAX_DATES_PER_SERIES} dates" }, status: :unprocessable_entity
+    end
+
+    # Parse every date up front so one bad entry gives a clear error instead of a crash
+    eastern = ActiveSupport::TimeZone["Eastern Time (US & Canada)"]
+    times = dates.each_with_index.map do |entry, i|
+      entry = entry.permit(:date, :start_time, :end_time) if entry.respond_to?(:permit)
+      starts_at = ends_at = nil
+      if entry.respond_to?(:[]) && !entry.is_a?(String)
+        starts_at = eastern.parse("#{entry[:date]}T#{entry[:start_time]}") rescue nil
+        ends_at   = eastern.parse("#{entry[:date]}T#{entry[:end_time]}") rescue nil
+      end
+      unless starts_at && ends_at
+        return render json: { error: "Date ##{i + 1} has an invalid date or time" }, status: :unprocessable_entity
+      end
+      [starts_at, ends_at]
+    end
+
+    failure = nil
 
     ActiveRecord::Base.transaction do
       @series.save!
 
-      dates.each do |date_entry|
-        starts_at = ActiveSupport::TimeZone["Eastern Time (US & Canada)"].parse("#{date_entry[:date]}T#{date_entry[:start_time]}")
-        ends_at = ActiveSupport::TimeZone["Eastern Time (US & Canada)"].parse("#{date_entry[:date]}T#{date_entry[:end_time]}")
-
-        FacultyRequest.create!(
+      times.each_with_index do |(starts_at, ends_at), i|
+        faculty_request = FacultyRequest.new(
           request_series: @series,
           user: @series.user,
           class_name: @series.class_name,
@@ -89,8 +108,14 @@ class RequestSeriesController < ApplicationController
           ends_at: ends_at,
           status: :pending
         )
+        next if faculty_request.save
+
+        failure = "Date ##{i + 1} (#{starts_at.strftime('%b %-d')}): #{faculty_request.errors.full_messages.to_sentence}"
+        raise ActiveRecord::Rollback
       end
     end
+
+    return render json: { error: failure }, status: :unprocessable_entity if failure
 
     render json: @series, status: :created
   rescue ActiveRecord::RecordInvalid => e

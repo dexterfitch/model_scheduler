@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_20_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_20_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -43,7 +43,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_20_120000) do
     t.integer "request_series_id"
     t.string "building"
     t.boolean "needs_attention", default: false, null: false
-    t.integer "model_count", default: 1, null: false
     t.string "pref_body_type", default: "Any", null: false
     t.string "pref_genitalia", default: "Any", null: false
     t.integer "models_needed", default: 1, null: false
@@ -89,7 +88,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_20_120000) do
     t.string "email", null: false
     t.integer "role"
     t.boolean "superuser", default: false
-    t.string "password_digest"
     t.string "phone"
     t.string "stage_name"
     t.string "pronouns"
