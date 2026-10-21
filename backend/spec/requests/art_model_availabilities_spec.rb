@@ -108,4 +108,19 @@ RSpec.describe "Availability permissions", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
   end
+
+  describe "cancelling a gig that already happened" do
+    it "refuses, and keeps the gig on record for billing" do
+      gig = create(:gig, art_model_availability: slot)
+      past = 2.days.ago.change(hour: 10)
+      gig.faculty_request.update_columns(starts_at: past, ends_at: past + 2.hours)
+      slot.update_columns(starts_at: past - 1.hour, ends_at: past + 7.hours)
+
+      post "/art_model_availabilities/#{slot.id}/cancel",
+        params: { gig_id: gig.id }, headers: auth_headers(model), as: :json
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(gig.reload).to be_confirmed
+    end
+  end
 end

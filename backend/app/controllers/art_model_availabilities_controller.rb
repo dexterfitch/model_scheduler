@@ -50,6 +50,13 @@ class ArtModelAvailabilitiesController < ApplicationController
 
     require_admin_or_owner(availability)
 
+    target_gig = params[:gig_id].present? ?
+      availability.gigs.find_by(id: params[:gig_id], status: :confirmed) :
+      availability.active_gig
+    if target_gig && target_gig.faculty_request.starts_at <= Time.current
+      return render json: { error: "This session has already started, so it can't be cancelled." }, status: :unprocessable_content
+    end
+
     cancel_remaining_series = ActiveModel::Type::Boolean.new.cast(params[:cancel_remaining_series])
 
     if availability.cancel_with_gig!(
