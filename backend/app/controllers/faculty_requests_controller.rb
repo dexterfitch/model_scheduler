@@ -59,6 +59,10 @@ class FacultyRequestsController < ApplicationController
 
     require_admin_or_owner(@request)
 
+    if @request.starts_at <= Time.current && @request.confirmed_gigs.exists?
+      return render json: { error: "This session has already started, so it can't be cancelled. The booked model will still be paid." }, status: :unprocessable_content
+    end
+
     series = @request.request_series
     had_booked_models = @request.confirmed_gigs.exists?
     is_late_cancel = @request.cancel_with_billing!

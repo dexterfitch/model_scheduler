@@ -79,12 +79,27 @@ RSpec.describe "Gigs API", type: :request do
     end
 
     it "is billable when released on the day of the class" do
-      today = Time.zone.today
-      gig.faculty_request.update_columns(starts_at: today.in_time_zone.change(hour: 10), ends_at: today.in_time_zone.change(hour: 12))
-      gig.art_model_availability.update_columns(starts_at: today.in_time_zone.change(hour: 9), ends_at: today.in_time_zone.change(hour: 17))
+      # A class later today that hasn't started yet
+      soon = Time.current + 5.minutes
+      gig.faculty_request.update_columns(starts_at: soon, ends_at: soon + 1.hour)
+      gig.art_model_availability.update_columns(starts_at: soon - 1.hour, ends_at: soon + 2.hours)
 
       delete "/gigs/#{gig.id}", headers: auth_headers(admin)
       expect(gig.reload.billable).to be true
+    end
+  end
+
+  describe "releasing a model from a date that already happened" do
+    it "refuses, and keeps the gig billable" do
+      gig = create(:gig)
+      past = 2.days.ago.change(hour: 10)
+      gig.faculty_request.update_columns(starts_at: past, ends_at: past + 2.hours)
+      gig.art_model_availability.update_columns(starts_at: past - 1.hour, ends_at: past + 7.hours)
+
+      delete "/gigs/#{gig.id}", headers: auth_headers(admin)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(gig.reload).to be_confirmed
     end
   end
 end

@@ -79,7 +79,8 @@ class RequestSeries < ApplicationRecord
   def cancel_entire_series!
     ActiveRecord::Base.transaction do
       faculty_requests.each do |request|
-        next if request.status == 'archived'
+        # Sessions that already started were worked and must stay billable
+        next if request.status == 'archived' || request.starts_at <= Time.current
         request.cancel_with_billing!
       end
       update_status!

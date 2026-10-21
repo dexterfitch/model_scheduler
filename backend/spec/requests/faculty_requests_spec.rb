@@ -133,4 +133,19 @@ RSpec.describe "Faculty request permissions", type: :request do
       expect(my_request.reload.starts_at.to_date).to eq(7.days.from_now.to_date)
     end
   end
+
+  describe "cancelling a date that already happened" do
+    it "refuses, and keeps the model's gig billable" do
+      req = create(:faculty_request, user: faculty)
+      gig = create(:gig, faculty_request: req)
+      past = 2.days.ago.change(hour: 10)
+      req.update_columns(starts_at: past, ends_at: past + 2.hours)
+      gig.art_model_availability.update_columns(starts_at: past - 1.hour, ends_at: past + 7.hours)
+
+      delete "/faculty_requests/#{req.id}", headers: auth_headers(faculty)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(gig.reload).to be_confirmed
+    end
+  end
 end

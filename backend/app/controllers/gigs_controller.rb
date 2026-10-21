@@ -42,6 +42,9 @@ class GigsController < ApplicationController
 
   def destroy
     gig = Gig.find(params[:id])
+    if gig.faculty_request.starts_at <= Time.current
+      return render json: { error: "This session has already started, so the model can't be released from it." }, status: :unprocessable_content
+    end
     is_late_cancel = gig.faculty_request.starts_at.to_date == Date.current
 
     Gig.transaction do
