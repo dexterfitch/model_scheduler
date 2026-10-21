@@ -42,4 +42,33 @@ RSpec.describe Gig, type: :model do
     expect(gig).not_to be_valid
     expect(gig.errors.full_messages).to include("This model is not willing to model nude, and the class requires a nude session")
   end
+
+  describe "what can be booked" do
+    it "won't book a model into availability they cancelled" do
+      slot = create(:art_model_availability, status: :cancelled)
+      gig = build(:gig, art_model_availability: slot)
+      expect(gig).not_to be_valid
+      expect(gig.errors.full_messages.join).to include("cancelled that availability")
+    end
+
+    it "won't book into a class that was cancelled" do
+      cancelled_class = create(:faculty_request)
+      cancelled_class.update_columns(status: FacultyRequest.statuses[:archived])
+      gig = build(:gig, faculty_request: cancelled_class)
+      expect(gig).not_to be_valid
+      expect(gig.errors.full_messages.join).to include("class has been cancelled")
+    end
+
+    it "won't book into a class that already started" do
+      past = 2.days.ago.change(hour: 10)
+      past_class = create(:faculty_request)
+      past_class.update_columns(starts_at: past, ends_at: past + 2.hours)
+      slot = create(:art_model_availability)
+      slot.update_columns(starts_at: past - 1.hour, ends_at: past + 7.hours)
+
+      gig = build(:gig, faculty_request: past_class, art_model_availability: slot)
+      expect(gig).not_to be_valid
+      expect(gig.errors.full_messages.join).to include("already started")
+    end
+  end
 end

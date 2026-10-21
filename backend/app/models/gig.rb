@@ -10,6 +10,7 @@ class Gig < ApplicationRecord
   validate :model_must_be_nudity_compatible
   validate :request_must_have_open_slot, on: :create
   validate :model_not_already_on_request, on: :create
+  validate :must_be_bookable, on: :create
 
   def as_json(options = {})
     super(options.merge(include: {
@@ -19,6 +20,20 @@ class Gig < ApplicationRecord
   end
 
   private
+  
+  def must_be_bookable
+    return unless faculty_request && art_model_availability
+
+    if art_model_availability.cancelled?
+      errors.add(:base, "This model cancelled that availability, so they can't be booked into it")
+    end
+    if faculty_request.archived?
+      errors.add(:base, "This class has been cancelled")
+    end
+    if faculty_request.starts_at && faculty_request.starts_at <= Time.current
+      errors.add(:base, "This class has already started, so a model can't be booked into it")
+    end
+  end
 
   def request_must_fit_availability
     return unless faculty_request && art_model_availability
