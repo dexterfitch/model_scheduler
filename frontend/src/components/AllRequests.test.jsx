@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import AllRequests from './AllRequests';
 import api from '../services/api';
+import { daysFromNow } from '../test/dates';
 
 vi.mock('../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }
@@ -16,7 +17,7 @@ const series = {
   pref_skin_tone: 'Any', pref_gender: 'Any', pref_body_type: 'Any', pref_genitalia: 'Any',
   faculty_requests: [{
     id: 11, status: 'pending', models_needed: 2, user: faculty,
-    starts_at: '2026-11-02T15:00:00Z', ends_at: '2026-11-02T17:00:00Z',
+    starts_at: daysFromNow(12, 15), ends_at: daysFromNow(12, 17),
     confirmed_gigs: [{ id: 100, status: 'confirmed', art_model_availability: { user: { first_name: 'Alex', last_name: 'Booked' } } }]
   }]
 };

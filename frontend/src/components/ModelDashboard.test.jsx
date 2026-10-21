@@ -2,20 +2,13 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelDashboard from './ModelDashboard';
 import api from '../services/api';
+import { daysFromNow } from '../test/dates';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 // The calendar library needs a real browser, so a placeholder stands in for it here
 vi.mock('./SharedCalendar', () => ({ default: () => <div>calendar</div> }));
 
 const model = { id: 10, first_name: 'Jordan', willing_to_model_nude: false };
-
-// Dates relative to today, so these tests keep working as the calendar moves on
-const daysFromNow = (days, hour) => {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + days);
-  d.setUTCHours(hour, 0, 0, 0);
-  return d.toISOString();
-};
 
 // One all-day slot holding two classes: the exact situation behind fix #7
 const slot = { id: 5, status: 'active', starts_at: daysFromNow(12, 13), ends_at: daysFromNow(12, 21) };

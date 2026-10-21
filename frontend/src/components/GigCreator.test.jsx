@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import GigCreator from './GigCreator';
 import api from '../services/api';
+import { daysFromNow } from '../test/dates';
 
 // Replace the real backend connection with a fake one
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
@@ -12,11 +13,11 @@ const blair = { id: 11, first_name: 'Blair', last_name: 'Free',   willing_to_mod
 
 const makeRequest = (modelsNeeded) => ({
   id: 1, class_name: 'Figure Drawing I', status: 'pending', model_mode: 'clothed', models_needed: modelsNeeded,
-  starts_at: '2026-11-02T15:00:00Z', ends_at: '2026-11-02T17:00:00Z',
+  starts_at: daysFromNow(12, 15), ends_at: daysFromNow(12, 17),
   pref_skin_tone: 'Any', pref_gender: 'Any', pref_body_type: 'Any', pref_genitalia: 'Any',
   user: { first_name: 'Priya', last_name: 'Nair' }
 });
-const slot = (id, user) => ({ id, user, status: 'active', starts_at: '2026-11-02T13:00:00Z', ends_at: '2026-11-02T21:00:00Z' });
+const slot = (id, user) => ({ id, user, status: 'active', starts_at: daysFromNow(12, 13), ends_at: daysFromNow(12, 21) });
 
 // The fake backend: one class, two available models, Alex already booked
 function fakeBackend(modelsNeeded) {

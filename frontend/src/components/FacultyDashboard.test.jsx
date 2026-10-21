@@ -2,6 +2,7 @@ import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import FacultyDashboard from './FacultyDashboard';
 import api from '../services/api';
+import { daysFromNow } from '../test/dates';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
@@ -11,9 +12,9 @@ const series = {
   model_mode: 'clothed', models_needed: 2,
   pref_skin_tone: 'Any', pref_gender: 'Any', pref_body_type: 'Any', pref_genitalia: 'Any',
   faculty_requests: [
-    { id: 11, status: 'pending', models_needed: 2, starts_at: '2026-11-02T15:00:00Z', ends_at: '2026-11-02T17:00:00Z',
+    { id: 11, status: 'pending', models_needed: 2, starts_at: daysFromNow(12, 15), ends_at: daysFromNow(12, 17),
       confirmed_gigs: [{ id: 100, status: 'confirmed', confirmed_by: { first_name: 'Dex', email: 'dfitch@mica.edu' } }] },
-    { id: 12, status: 'pending', models_needed: 2, starts_at: '2026-11-09T15:00:00Z', ends_at: '2026-11-09T17:00:00Z',
+    { id: 12, status: 'pending', models_needed: 2, starts_at: daysFromNow(19, 15), ends_at: daysFromNow(19, 17),
       confirmed_gigs: [] }
   ]
 };
