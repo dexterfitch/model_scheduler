@@ -44,7 +44,7 @@ function AdminDashboard() {
             <h2 className="mb-1">Admin Dashboard</h2>
           </div>
         </Card.Body>
-        <div class="rainbow-bar"></div>
+        <div className="rainbow-bar"></div>
       </Card>
       
       <Row>
