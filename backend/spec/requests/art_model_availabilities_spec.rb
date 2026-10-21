@@ -66,7 +66,7 @@ RSpec.describe "Availability permissions", type: :request do
 
     it "flags the class for admin attention when a model drops out" do
       cancel(as: model)
-      expect(Gig.exists?(gig.id)).to be false
+      expect(gig.reload).to be_cancelled
       expect(booked_class.reload.needs_attention).to be true
     end
 
@@ -91,7 +91,7 @@ RSpec.describe "Availability permissions", type: :request do
       later_gig = create(:gig, faculty_request: later_class, art_model_availability: later_slot)
 
       cancel(as: model, cancel_remaining_series: true)
-      expect(Gig.exists?(later_gig.id)).to be false
+      expect(later_gig.reload).to be_cancelled
     end
   end
 
@@ -121,6 +121,19 @@ RSpec.describe "Availability permissions", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(gig.reload).to be_confirmed
+    end
+  end
+
+  describe "deleting a free slot that has a cancelled gig in its history" do
+    it "removes it from the model's availability instead of crashing" do
+      gig = create(:gig, art_model_availability: slot)
+      gig.update_columns(status: Gig.statuses[:cancelled], billable: false)
+
+      delete "/art_model_availabilities/#{slot.id}", headers: auth_headers(model)
+
+      expect(response).to have_http_status(:no_content)
+      expect(slot.reload).to be_cancelled
+      expect(gig.reload).to be_cancelled
     end
   end
 end

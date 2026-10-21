@@ -11,7 +11,8 @@ RSpec.describe ArtModelAvailability, type: :model do
 
   it "cancels the gig the model chose, not the first one on the slot" do
     slot.reload.cancel_with_gig!(gig_id: afternoon_gig.id)
-    expect(Gig.exists?(afternoon_gig.id)).to be false
+    expect(afternoon_gig.reload).to be_cancelled
+    expect(afternoon_gig.billable).to be false
     expect(Gig.exists?(morning_gig.id)).to be true
   end
 

@@ -65,7 +65,9 @@ class RequestSeries < ApplicationRecord
 
         booked.each do |gig|
           availability = gig.art_model_availability
-          gig.destroy!
+          # Same rule as releasing a single date: same-day releases are paid
+          gig.update_columns(status: Gig.statuses[:cancelled],
+            billable: request.starts_at.to_date == Date.current, updated_at: Time.current)
           availability.gigs.reload
           availability.update!(status: :active)
         end

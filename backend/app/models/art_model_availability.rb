@@ -53,7 +53,8 @@ class ArtModelAvailability < ApplicationRecord
 
   def cancel_single_gig!(availability, gig, flag_for_attention: false)
     request = gig.faculty_request
-    gig.destroy!
+    # Keep the record so there's a history of who dropped out; model cancellations aren't paid
+    gig.update_columns(status: Gig.statuses[:cancelled], billable: false, updated_at: Time.current)
     # Losing any model means the session is short-staffed again
     request.update!(status: :pending, needs_attention: flag_for_attention) unless request.archived?
     availability.gigs.reload

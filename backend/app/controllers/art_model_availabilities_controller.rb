@@ -38,6 +38,13 @@ class ArtModelAvailabilitiesController < ApplicationController
 
     require_admin_or_owner(availability)
 
+    # A slot with past bookings can't be deleted outright (the history must stay),
+    # so take it out of the model's availability instead
+    if availability.gigs.exists? && !availability.active_gig && availability.starts_at >= Time.current
+      availability.update_columns(status: ArtModelAvailability.statuses[:cancelled], updated_at: Time.current)
+      return head :no_content
+    end
+
     if availability.destroy
       head :no_content
     else
