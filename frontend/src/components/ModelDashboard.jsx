@@ -211,12 +211,13 @@ function ModelDashboard({ user }) {
   };
 
   const getActiveGigForAvailability = (availabilityId) => findActiveGigForAvailability(myGigs, availabilityId);
-
+  // Gigs are never marked completed in the database, so treat any that already started as completed
+  const hasStarted = (gig) => new Date(gig.faculty_request.starts_at) <= new Date();
   const renderGigStatusBadge = (gig) => {
-    if (gig.status === 'confirmed') {
+    if (gig.status === 'confirmed' && !hasStarted(gig)) {
       return <Badge bg="success" className="mb-2">Confirmed</Badge>;
     }
-    if (gig.status === 'completed') {
+    if (gig.status === 'completed' || gig.status === 'confirmed') {
       return <Badge bg="primary" className="mb-2">Completed</Badge>;
     }
     if (gig.status === 'cancelled') {
@@ -229,6 +230,8 @@ function ModelDashboard({ user }) {
 
   const filteredGigs = myGigs.filter(gig => {
     if (gigFilter === 'all') return true;
+    if (gigFilter === 'confirmed') return gig.status === 'confirmed' && !hasStarted(gig);
+    if (gigFilter === 'completed') return gig.status === 'completed' || (gig.status === 'confirmed' && hasStarted(gig));
     return gig.status === gigFilter;
   });
 
@@ -322,7 +325,7 @@ function ModelDashboard({ user }) {
                           ? <span className="text-danger fw-bold">NUDE</span>
                           : "Clothed"}
                       </div>
-                      {gig.status === 'confirmed' && (
+                      {gig.status === 'confirmed' && !hasStarted(gig) && (
                         <Button
                           variant="outline-danger"
                           size="sm"

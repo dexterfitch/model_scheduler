@@ -9,21 +9,29 @@ vi.mock('./SharedCalendar', () => ({ default: () => <div>calendar</div> }));
 
 const model = { id: 10, first_name: 'Jordan', willing_to_model_nude: false };
 
+// Dates relative to today, so these tests keep working as the calendar moves on
+const daysFromNow = (days, hour) => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + days);
+  d.setUTCHours(hour, 0, 0, 0);
+  return d.toISOString();
+};
+
 // One all-day slot holding two classes: the exact situation behind fix #7
-const slot = { id: 5, status: 'active', starts_at: '2026-11-02T13:00:00Z', ends_at: '2026-11-02T21:00:00Z' };
+const slot = { id: 5, status: 'active', starts_at: daysFromNow(12, 13), ends_at: daysFromNow(12, 21) };
 const gig = (id, className, start, end, extra = {}) => ({
   id, status: 'confirmed', art_model_availability: slot,
   faculty_request: { id, class_name: className, model_mode: 'clothed', starts_at: start, ends_at: end },
   ...extra
 });
-const morning   = gig(100, 'Morning Figure Drawing', '2026-11-02T14:00:00Z', '2026-11-02T16:00:00Z');
-const afternoon = gig(101, 'Afternoon Portraits',    '2026-11-02T18:00:00Z', '2026-11-02T20:00:00Z');
+const morning   = gig(100, 'Morning Figure Drawing', daysFromNow(12, 14), daysFromNow(12, 16));
+const afternoon = gig(101, 'Afternoon Portraits',    daysFromNow(12, 18), daysFromNow(12, 20));
 const lateCancel = gig(102, 'Costume Study', '2026-10-01T14:00:00Z', '2026-10-01T16:00:00Z',
   { status: 'cancelled', billable: true });
 
 const groupCall = {
   id: 7, class_name: 'Group Pose Lab', department: 'Drawing', model_mode: 'clothed', models_needed: 3,
-  faculty_requests: [{ id: 30, status: 'pending', starts_at: '2026-11-10T15:00:00Z', ends_at: '2026-11-10T17:00:00Z' }]
+  faculty_requests: [{ id: 30, status: 'pending', starts_at: daysFromNow(20, 15), ends_at: daysFromNow(20, 17) }]
 };
 
 beforeEach(() => {
@@ -68,7 +76,28 @@ describe('ModelDashboard', () => {
     await userEvent.click(await screen.findByRole('button', { name: "I'm Available" }));
 
     expect(api.post).toHaveBeenCalledWith('/art_model_availabilities', {
-      art_model_availability: { starts_at: '2026-11-10T15:00:00Z', ends_at: '2026-11-10T17:00:00Z' }
+      art_model_availability: {
+        starts_at: groupCall.faculty_requests[0].starts_at,
+        ends_at: groupCall.faculty_requests[0].ends_at
+      }
     });
+  });
+
+  it('moves gigs that already happened to Completed, without a Cancel button', async () => {
+    const lastWeek = gig(103, 'Gesture Drawing', '2026-10-14T14:00:00Z', '2026-10-14T16:00:00Z');
+    api.get.mockImplementation((url) => {
+      if (url === '/gigs') return Promise.resolve({ data: [lastWeek] });
+      return Promise.resolve({ data: [] });
+    });
+    render(<ModelDashboard user={model} />);
+
+    // Not listed with upcoming confirmed gigs
+    expect(await screen.findByText('No confirmed gigs.')).toBeInTheDocument();
+
+    // Listed under Completed, with no way to cancel it
+    await userEvent.click(screen.getByRole('button', { name: 'Completed' }));
+    const card = (await screen.findAllByText('Gesture Drawing'))[0].closest('.card');
+    expect(within(card).getByText('Completed')).toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: 'Cancel' })).toBeNull();
   });
 });
