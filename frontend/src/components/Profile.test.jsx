@@ -71,4 +71,13 @@ describe('Profile', () => {
     expect(select(container, 'body_type')).toBeNull();
     expect(screen.queryByText('Model Details')).toBeNull();
   });
+
+  it("explains why the server refused the save", async () => {
+    api.patch.mockRejectedValue({ response: { data: { errors: ["You're booked for 2 nude sessions; cancel those first."] } } });
+    renderProfile(model);
+    await userEvent.click(screen.getByLabelText('I am willing to model nude'));
+    await userEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+
+    expect(await screen.findByText(/booked for 2 nude sessions/)).toBeInTheDocument();
+  });
 });

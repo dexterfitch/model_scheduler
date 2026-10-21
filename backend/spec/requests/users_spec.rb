@@ -135,4 +135,31 @@ RSpec.describe "User profile permissions", type: :request do
       expect(User.exists?(email: "sock.model@mica.edu")).to be false
     end
   end
+
+  describe "withdrawing consent to pose nude" do
+    let(:model) { create(:user, :model, :nude_ok) }
+    let(:slot)  { create(:art_model_availability, user: model) }
+
+    def stop_posing_nude
+      patch "/users/#{model.id}", params: { user: { willing_to_model_nude: false } },
+        headers: auth_headers(model), as: :json
+    end
+
+    it "is blocked while the model is booked into an upcoming nude session" do
+      create(:gig, art_model_availability: slot, faculty_request: create(:faculty_request, :nude))
+      stop_posing_nude
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["errors"].join).to include("booked for 1 nude session")
+      expect(model.reload.willing_to_model_nude).to be true
+    end
+
+    it "is allowed when the model's only bookings are clothed" do
+      create(:gig, art_model_availability: slot)
+      stop_posing_nude
+
+      expect(response).to have_http_status(:ok)
+      expect(model.reload.willing_to_model_nude).to be false
+    end
+  end
 end

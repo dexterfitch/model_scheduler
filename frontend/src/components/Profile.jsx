@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { GENDER_IDENTITIES, SKIN_TONE_OPTIONS } from '../utils/constants';
 import ModelBodyFields from './ModelBodyFields';
+import { extractErrorMessages } from '../utils/formatters';
 
 const Profile = ({ currentUser, setCurrentUser }) => {
 
@@ -68,7 +69,7 @@ const Profile = ({ currentUser, setCurrentUser }) => {
       }, 1500);
     } catch (err) {
       console.error(err);
-      setMessage({ type: 'danger', text: 'Failed to update profile.' });
+      setMessage({ type: 'danger', text: extractErrorMessages(err, 'Failed to update profile.') });
     } finally {
       setLoading(false);
     }

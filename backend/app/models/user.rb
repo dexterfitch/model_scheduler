@@ -11,6 +11,8 @@ class User < ApplicationRecord
   enum :role, { admin: 0, faculty: 1, model: 2 }, prefix: true
 
   before_validation :normalize_model_attributes
+  validate :no_upcoming_nude_bookings, on: :update,
+  if: -> { role_model? && willing_to_model_nude_changed?(from: true, to: false) }
 
   validates :first_name, :last_name, :email, presence: true
   validates :email, presence: true, uniqueness: { case_sensitive: false }
@@ -41,6 +43,18 @@ class User < ApplicationRecord
   end
 
   private
+
+  def no_upcoming_nude_bookings
+    count = Gig.where(status: :confirmed)
+      .joins(:art_model_availability, :faculty_request)
+      .where(art_model_availabilities: { user_id: id })
+      .where(faculty_requests: { model_mode: FacultyRequest.model_modes[:nude] })
+      .where("faculty_requests.starts_at > ?", Time.current)
+      .count
+    return if count.zero?
+
+    errors.add(:base, "You're booked for #{count} nude session#{'s' if count > 1}; cancel #{count > 1 ? 'those' : 'it'} first.")
+  end
 
   def normalize_model_attributes
     self.body_type = nil if body_type.blank?

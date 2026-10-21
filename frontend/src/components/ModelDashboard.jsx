@@ -263,7 +263,7 @@ function ModelDashboard({ user }) {
               : <Badge bg="success" className="p-2">Clothed Only</Badge>}
           </div>
         </Card.Body>
-        <div class="rainbow-bar"></div>
+        <div className="rainbow-bar"></div>
       </Card>
 
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
