@@ -23,7 +23,7 @@ class FacultyRequestsController < ApplicationController
       @request.request_series&.update_status!
       render json: @request, status: :created
     else
-      render json: { errors: @request.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: @request.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -39,18 +39,18 @@ class FacultyRequestsController < ApplicationController
     new_starts_at = request_params[:starts_at] ? Time.zone.parse(request_params[:starts_at].to_s) : @request.starts_at
 
     if new_starts_at && new_starts_at.to_date <= Date.current
-      return render json: { error: "Requests must be for a future date (tomorrow or later)" }, status: :unprocessable_entity
+      return render json: { error: "Requests must be for a future date (tomorrow or later)" }, status: :unprocessable_content
     end
 
     if new_starts_at && new_starts_at > 4.months.from_now
-      return render json: { error: "Cannot be more than 4 months in the future" }, status: :unprocessable_entity
+      return render json: { error: "Cannot be more than 4 months in the future" }, status: :unprocessable_content
     end
 
     if @request.update(request_params)
       @request.request_series&.update_status!
       render json: @request
     else
-      render json: { errors: @request.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: @request.errors.full_messages }, status: :unprocessable_content
     end
   end
 

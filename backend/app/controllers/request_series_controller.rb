@@ -62,11 +62,11 @@ class RequestSeriesController < ApplicationController
     dates = params[:dates]
 
     unless dates.is_a?(Array) && dates.any?
-      return render json: { error: "At least one date is required" }, status: :unprocessable_entity
+      return render json: { error: "At least one date is required" }, status: :unprocessable_content
     end
 
     if dates.length > MAX_DATES_PER_SERIES
-      return render json: { error: "A request can have at most #{MAX_DATES_PER_SERIES} dates" }, status: :unprocessable_entity
+      return render json: { error: "A request can have at most #{MAX_DATES_PER_SERIES} dates" }, status: :unprocessable_content
     end
 
     # Parse every date up front so one bad entry gives a clear error instead of a crash
@@ -79,7 +79,7 @@ class RequestSeriesController < ApplicationController
         ends_at   = eastern.parse("#{entry[:date]}T#{entry[:end_time]}") rescue nil
       end
       unless starts_at && ends_at
-        return render json: { error: "Date ##{i + 1} has an invalid date or time" }, status: :unprocessable_entity
+        return render json: { error: "Date ##{i + 1} has an invalid date or time" }, status: :unprocessable_content
       end
       [starts_at, ends_at]
     end
@@ -115,11 +115,11 @@ class RequestSeriesController < ApplicationController
       end
     end
 
-    return render json: { error: failure }, status: :unprocessable_entity if failure
+    return render json: { error: failure }, status: :unprocessable_content if failure
 
     render json: @series, status: :created
   rescue ActiveRecord::RecordInvalid => e
-    render json: { error: e.message }, status: :unprocessable_entity
+    render json: { error: e.message }, status: :unprocessable_content
   end
 
   def update
@@ -139,14 +139,14 @@ class RequestSeriesController < ApplicationController
     if series_params[:model_mode] == "nude"
       clothed_only = clothed_only_models_booked_on(@series)
       if clothed_only.any?
-        return render json: { error: "Can't switch to nude: #{clothed_only.to_sentence} only model clothed. Release them first." }, status: :unprocessable_entity
+        return render json: { error: "Can't switch to nude: #{clothed_only.to_sentence} only model clothed. Release them first." }, status: :unprocessable_content
       end
     end
 
     if series_params.key?(:models_needed)
       booked = @series.max_booked_on_active_request
       if series_params[:models_needed].to_i < booked
-        return render json: { error: "Models needed can't be lower than the #{booked} model(s) already booked on a date. Release a model first." }, status: :unprocessable_entity
+        return render json: { error: "Models needed can't be lower than the #{booked} model(s) already booked on a date. Release a model first." }, status: :unprocessable_content
       end
     end
 
@@ -168,7 +168,7 @@ class RequestSeriesController < ApplicationController
 
     render json: @series
   rescue ActiveRecord::RecordInvalid => e
-    render json: { error: e.message }, status: :unprocessable_entity
+    render json: { error: e.message }, status: :unprocessable_content
   end
 
   def release_remaining

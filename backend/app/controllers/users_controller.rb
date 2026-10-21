@@ -19,7 +19,7 @@ class UsersController < ApplicationController
     if user.save
       render json: user, status: :created
     else
-      render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: user.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -29,7 +29,7 @@ class UsersController < ApplicationController
     if @target_user.update(safe_params)
       render json: @target_user
     else
-      render json: { errors: @target_user.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: @target_user.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -37,7 +37,7 @@ class UsersController < ApplicationController
     target_role = params[:role]
 
     unless ALLOWED_ROLES.include?(target_role)
-      return render json: { error: "Invalid role" }, status: :unprocessable_entity
+      return render json: { error: "Invalid role" }, status: :unprocessable_content
     end
 
     user = User.find(params[:id])
@@ -49,7 +49,7 @@ class UsersController < ApplicationController
       render json: user
     else
       Rails.logger.error("Promote Failed: #{user.errors.full_messages}")
-      render json: { error: user.errors.full_messages }, status: :unprocessable_entity
+      render json: { error: user.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -61,7 +61,7 @@ class UsersController < ApplicationController
     user = User.find(params[:id])
 
     unless user.role_admin?
-      return render json: { error: "User must be an admin before becoming a superuser" }, status: :unprocessable_entity
+      return render json: { error: "User must be an admin before becoming a superuser" }, status: :unprocessable_content
     end
     
     user.update(superuser: true)
@@ -72,7 +72,7 @@ class UsersController < ApplicationController
     target_role = params[:role]
 
     unless SELECTABLE_ROLES.include?(target_role)
-      return render json: { error: "Invalid role" }, status: :unprocessable_entity
+      return render json: { error: "Invalid role" }, status: :unprocessable_content
     end
 
     if current_user.role.present?
@@ -86,7 +86,7 @@ class UsersController < ApplicationController
     if current_user.save
       render json: current_user
     else
-      render json: { error: current_user.errors.full_messages }, status: :unprocessable_entity
+      render json: { error: current_user.errors.full_messages }, status: :unprocessable_content
     end
   end
 

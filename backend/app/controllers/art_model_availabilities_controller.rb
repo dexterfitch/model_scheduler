@@ -17,7 +17,7 @@ class ArtModelAvailabilitiesController < ApplicationController
     if availability.save
       render json: availability, status: :created
     else
-      render json: { errors: availability.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: availability.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -29,7 +29,7 @@ class ArtModelAvailabilitiesController < ApplicationController
     if availability.update(availability_params)
       render json: availability
     else
-      render json: { errors: availability.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: availability.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -48,7 +48,7 @@ class ArtModelAvailabilitiesController < ApplicationController
     if availability.destroy
       head :no_content
     else
-      render json: { errors: availability.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: availability.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -73,7 +73,7 @@ class ArtModelAvailabilitiesController < ApplicationController
     )
       render json: availability
     else
-      render json: { error: "No active gig found for this availability slot" }, status: :unprocessable_entity
+      render json: { error: "No active gig found for this availability slot" }, status: :unprocessable_content
     end
   end
 

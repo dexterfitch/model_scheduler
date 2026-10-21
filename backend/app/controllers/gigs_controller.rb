@@ -36,7 +36,7 @@ class GigsController < ApplicationController
       faculty_request.request_series&.update_status!
       render json: gig, status: :created
     else
-      render json: { errors: gig.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: gig.errors.full_messages }, status: :unprocessable_content
     end
   end
 
