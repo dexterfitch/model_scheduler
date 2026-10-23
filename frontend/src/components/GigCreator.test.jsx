@@ -104,4 +104,55 @@ describe('GigCreator (matching screen)', () => {
     // The sooner date comes first on the page
     expect(soonerRow.compareDocumentPosition(laterRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  describe('classes with preferences for each model', () => {
+    const any = { pref_skin_tone: 'Any', pref_gender: 'Any', pref_genitalia: 'Any' };
+    const casey = { id: 12, first_name: 'Casey', last_name: 'Strong', willing_to_model_nude: false,
+                    skin_tone: 'Medium', gender_identity: 'Man', body_type: 'Muscular' };
+
+    function seriesBackend({ bookedSlot } = {}) {
+      const date = { id: 31, status: 'pending', models_needed: 2, starts_at: daysFromNow(12, 15), ends_at: daysFromNow(12, 17) };
+      const series = {
+        id: 1, class_name: 'Group Pose Lab', status: 'pending', model_mode: 'clothed', models_needed: 2,
+        ...any, pref_body_type: 'Any', user: { first_name: 'Priya', last_name: 'Nair' },
+        model_slots: [{ position: 1, ...any, pref_body_type: 'Fat' }, { position: 2, ...any, pref_body_type: 'Muscular' }],
+        faculty_requests: [date]
+      };
+      const gigs = bookedSlot ? [{
+        id: 200, status: 'confirmed', model_slot_position: bookedSlot,
+        faculty_request: date, art_model_availability: { id: 1, user: alex }
+      }] : [];
+      api.get.mockImplementation((url) => Promise.resolve({ data:
+        url === '/request_series' ? [series]
+        : url === '/art_model_availabilities' ? [slot(1, alex), slot(2, blair), slot(3, casey)]
+        : gigs
+      }));
+      render(
+        <MemoryRouter initialEntries={['/gigs/new/1?type=series']}>
+          <Routes><Route path="/gigs/new/:requestId" element={<GigCreator />} /></Routes>
+        </MemoryRouter>
+      );
+    }
+
+    it("shows each model's preferences on the class", async () => {
+      seriesBackend();
+      // Each slot is one line: "Model 1: Any Skintone, Any, Fat Build"
+      const line = (pattern) => (_, el) => el.tagName === 'LI' && pattern.test(el.textContent);
+      expect(await screen.findByText(line(/Model 1: .*Fat Build/))).toBeInTheDocument();
+      expect(screen.getByText(line(/Model 2: .*Muscular Build/))).toBeInTheDocument();
+    });
+
+    it('ranks the model who fits an open slot first, and says which slot', async () => {
+      seriesBackend();
+      const [first] = await screen.findAllByRole('heading', { level: 5 });
+      expect(first).toHaveTextContent('Casey Strong');
+      expect(screen.getByText('Best fit: Model 2')).toBeInTheDocument();
+    });
+
+    it('only ranks against slots that are still open, and shows who fills the rest', async () => {
+      seriesBackend({ bookedSlot: 2 });   // Alex already fills the Muscular slot
+      expect(await screen.findByText(/Alex Booked \(Model 2\)/)).toBeInTheDocument();
+      expect(screen.queryByText('Best fit: Model 2')).toBeNull();
+    });
+  });
 });

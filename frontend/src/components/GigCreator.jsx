@@ -9,6 +9,15 @@ const modelName = (user) => `${user?.first_name} ${user?.last_name}`;
 // Earliest date first
 const byStart = (a, b) => new Date(a.starts_at) - new Date(b.starts_at);
 
+// "Medium Skintone, Woman, Fat Build" for one set of preferences
+const preferenceSummary = (prefs, modelMode) => {
+  const withMode = { ...prefs, model_mode: modelMode };
+  return [
+    formatSkinTone(prefs.pref_skin_tone), formatGenderPreference(withMode), formatBodyType(prefs.pref_body_type),
+    ...(modelMode === 'nude' ? [formatGenitalia(prefs.pref_genitalia)] : [])
+  ].join(', ');
+};
+
 function GigCreator() {
   const { requestId } = useParams();
   const [searchParams] = useSearchParams();
@@ -86,6 +95,21 @@ function GigCreator() {
             return timeMatch && !hasConflict(user.id, reqStart, reqEnd);
           });
           if (!fitsAll) return null;
+
+          // Classes with per-model preferences: score against the best still-open slot
+          const slots = targetSeries.model_slots || [];
+          if (slots.length > 0) {
+            const openSlots = slots.filter(slot =>
+              requestsToBook.some(req => !booked[req.id].some(g => g.model_slot_position === slot.position))
+            );
+            let bestSlot = null;
+            let score = 0;
+            openSlots.forEach(slot => {
+              const slotScore = calculateMatchScore(user, { ...slot, model_mode: targetSeries.model_mode });
+              if (bestSlot === null || slotScore > score) { bestSlot = slot.position; score = slotScore; }
+            });
+            return { user, avails, requestsToBook, score, bestSlot };
+          }
 
           return { user, avails, requestsToBook, score: calculateMatchScore(user, targetSeries) };
         }).filter(Boolean);
@@ -264,7 +288,9 @@ function GigCreator() {
                   {formatDateWithWeekday(req.starts_at)} &nbsp; {formatTime(req.starts_at)} - {formatTime(req.ends_at)}
                   {isMultiModel && (
                     <span className="text-muted ms-2">
-                      ({booked.length}/{req.models_needed} booked{booked.length > 0 && `: ${booked.map(g => modelName(g.art_model_availability.user)).join(", ")}`})
+                      ({booked.length}/{req.models_needed} booked{booked.length > 0 && `: ${booked.map(g =>
+                        `${modelName(g.art_model_availability.user)}${g.model_slot_position ? ` (Model ${g.model_slot_position})` : ''}`
+                      ).join(", ")}`})
                     </span>
                   )}
                 </div>
@@ -281,11 +307,21 @@ function GigCreator() {
             {isNude
               ? <Badge bg="danger">Nude Required</Badge>
               : <Badge bg="success">Clothed</Badge>}
-            <Badge bg="info" text="dark">
-              Pref: {formatSkinTone(displayData.pref_skin_tone)}, {formatGenderPreference(displayData)}, {formatBodyType(displayData.pref_body_type)}
-              {isNude && `, ${formatGenitalia(displayData.pref_genitalia)}`}
-            </Badge>
+            {!(displayData.model_slots?.length > 0) && (
+              <Badge bg="info" text="dark">
+                Pref: {preferenceSummary(displayData, displayData.model_mode)}
+              </Badge>
+            )}
           </div>
+          {displayData.model_slots?.length > 0 && (
+            <ul className="list-unstyled small mt-2 mb-0">
+              {displayData.model_slots.map(slot => (
+                <li key={slot.position}>
+                  <strong>Model {slot.position}:</strong> {preferenceSummary(slot, displayData.model_mode)}
+                </li>
+              ))}
+            </ul>
+          )}
           {displayData.notes && (
             <div className="small text-muted fst-italic mt-2">
               <i className="bi bi-journal-text me-1"></i>{displayData.notes}
@@ -327,6 +363,9 @@ function GigCreator() {
                         {modelName(model.user)}
                         {model.score > 0 && <Badge bg="warning" text="dark" className="ms-2">★ Match</Badge>}
                       </h5>
+                      {model.bestSlot && model.score > 0 && (
+                        <div className="small fw-bold">Best fit: Model {model.bestSlot}</div>
+                      )}
                       <div className="text-muted small">
                         {formatSkinTone(model.user.skin_tone)} / {model.user.gender_identity}
                         {model.user.body_type && ` / ${model.user.body_type}`}
