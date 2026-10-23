@@ -515,31 +515,31 @@ function FacultyDashboard({ user }) {
           )}
           <Form onSubmit={handleSubmit}>
             <Row>
-              <Col md={6} className="mb-3">
+              <Form.Group as={Col} md={6} className="mb-3" controlId="new-class-name">
                 <Form.Label>Class Name</Form.Label>
                 <Form.Control required name="class_name" value={formData.class_name} onChange={handleInputChange} placeholder="e.g. Figure Drawing 101" />
-              </Col>
-              <Col md={6} className="mb-3">
+              </Form.Group>
+              <Form.Group as={Col} md={6} className="mb-3" controlId="new-department">
                 <Form.Label>Department</Form.Label>
                 <Form.Select required name="department" value={formData.department} onChange={handleInputChange}>
                   <option value="">-- Select --</option>
                   {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
                 </Form.Select>
-              </Col>
+              </Form.Group>
             </Row>
 
             <Row>
-              <Col md={4} className="mb-3">
+              <Form.Group as={Col} md={4} className="mb-3" controlId="new-building">
                 <Form.Label>Building</Form.Label>
                 <Form.Select required name="building" value={formData.building} onChange={handleInputChange}>
                   <option value="">-- Select --</option>
                   {BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
                 </Form.Select>
-              </Col>
-              <Col md={4} className="mb-3">
+              </Form.Group>
+              <Form.Group as={Col} md={4} className="mb-3" controlId="new-room">
                 <Form.Label>Room Number</Form.Label>
                 <Form.Control name="room_number" value={formData.room_number} onChange={handleInputChange} placeholder="e.g. 413" />
-              </Col>
+              </Form.Group>
             </Row>
 
             <hr />
@@ -547,22 +547,22 @@ function FacultyDashboard({ user }) {
             <div className="d-flex justify-content-between align-items-center mb-2">
               <h5 className="mb-0">Dates & Times</h5>
               <Button variant="outline-primary" size="sm" type="button" onClick={addDate}>
-                <i className="bi bi-plus-circle me-1"></i> Add Another Date
+                <i className="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Another Date
               </Button>
             </div>
 
             {dates.map((d, index) => (
-              <div key={index} className="p-3 mb-2 bg-light rounded border">
+              <div key={index} className="p-3 mb-2 bg-light rounded border" role="group" aria-labelledby={`new-date-${index}-heading`}>
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <small className="fw-bold text-muted">Date {index + 1}</small>
+                  <small id={`new-date-${index}-heading`} className="fw-bold text-muted">Date {index + 1}</small>
                   {dates.length > 1 && (
-                    <Button variant="outline-danger" size="sm" type="button" onClick={() => removeDate(index)}>
-                      <i className="bi bi-trash"></i>
+                    <Button variant="outline-danger" size="sm" type="button" onClick={() => removeDate(index)} aria-label={`Remove date ${index + 1}`} title="Remove this date">
+                      <i className="bi bi-trash" aria-hidden="true"></i>
                     </Button>
                   )}
                 </div>
                 <Row>
-                  <Col md={4} className="mb-2">
+                  <Form.Group as={Col} md={4} className="mb-2" controlId={`new-date-${index}-date`}>
                     <Form.Label className="small">Date</Form.Label>
                     <Form.Control
                       required
@@ -570,8 +570,8 @@ function FacultyDashboard({ user }) {
                       value={d.date}
                       onChange={e => handleDateChange(index, 'date', e.target.value)}
                     />
-                  </Col>
-                  <Col md={4} className="mb-2">
+                  </Form.Group>
+                  <Form.Group as={Col} md={4} className="mb-2" controlId={`new-date-${index}-start`}>
                     <Form.Label className="small">Start Time</Form.Label>
                     <Form.Control
                       required
@@ -580,8 +580,8 @@ function FacultyDashboard({ user }) {
                       onChange={e => handleDateChange(index, 'start_time', e.target.value)}
                       onBlur={e => handleDateBlur(index, 'start_time', e.target.value)}
                     />
-                  </Col>
-                  <Col md={4} className="mb-2">
+                  </Form.Group>
+                  <Form.Group as={Col} md={4} className="mb-2" controlId={`new-date-${index}-end`}>
                     <Form.Label className="small">End Time</Form.Label>
                     <Form.Control
                       required
@@ -590,7 +590,7 @@ function FacultyDashboard({ user }) {
                       onChange={e => handleDateChange(index, 'end_time', e.target.value)}
                       onBlur={e => handleDateBlur(index, 'end_time', e.target.value)}
                     />
-                  </Col>
+                  </Form.Group>
                 </Row>
               </div>
             ))}
@@ -599,7 +599,7 @@ function FacultyDashboard({ user }) {
             <h5>Model Preferences</h5>
             <ModelPreferenceFields values={formData} onChange={handlePreferenceChange} />
 
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="new-notes">
               <Form.Label>Notes for Admin</Form.Label>
               <Form.Control
                 as="textarea"
@@ -631,53 +631,53 @@ function FacultyDashboard({ user }) {
           )}
           <Form onSubmit={handleEditSubmit}>
             <Row>
-              <Col md={6} className="mb-3">
+              <Form.Group as={Col} md={6} className="mb-3" controlId="edit-class-name">
                 <Form.Label>Class Name</Form.Label>
                 <Form.Control required name="class_name" value={editFormData.class_name} onChange={handleEditInputChange} />
-              </Col>
-              <Col md={6} className="mb-3">
+              </Form.Group>
+              <Form.Group as={Col} md={6} className="mb-3" controlId="edit-department">
                 <Form.Label>Department</Form.Label>
                 <Form.Select required name="department" value={editFormData.department} onChange={handleEditInputChange}>
                   <option value="">-- Select --</option>
                   {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
                 </Form.Select>
-              </Col>
+              </Form.Group>
             </Row>
 
             <Row>
-              <Col md={4} className="mb-3">
+              <Form.Group as={Col} md={4} className="mb-3" controlId="edit-building">
                 <Form.Label>Building</Form.Label>
                 <Form.Select required name="building" value={editFormData.building} onChange={handleEditInputChange}>
                   <option value="">-- Select --</option>
                   {BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
                 </Form.Select>
-              </Col>
-              <Col md={4} className="mb-3">
+              </Form.Group>
+              <Form.Group as={Col} md={4} className="mb-3" controlId="edit-room">
                 <Form.Label>Room Number</Form.Label>
                 <Form.Control name="room_number" value={editFormData.room_number} onChange={handleEditInputChange} placeholder="e.g. 413" />
-              </Col>
+              </Form.Group>
             </Row>
 
             <Row>
-              <Col md={4} className="mb-3">
+              <Form.Group as={Col} md={4} className="mb-3" controlId="edit-date">
                 <Form.Label>Date</Form.Label>
                 <Form.Control required type="date" name="starts_at" value={editFormData.starts_at} onChange={handleEditInputChange} />
-              </Col>
-              <Col md={4} className="mb-3">
+              </Form.Group>
+              <Form.Group as={Col} md={4} className="mb-3" controlId="edit-start">
                 <Form.Label>Start Time</Form.Label>
                 <Form.Control required type="time" name="starts_time" value={editFormData.starts_time} onChange={handleEditInputChange} />
-              </Col>
-              <Col md={4} className="mb-3">
+              </Form.Group>
+              <Form.Group as={Col} md={4} className="mb-3" controlId="edit-end">
                 <Form.Label>End Time</Form.Label>
                 <Form.Control required type="time" name="ends_time" value={editFormData.ends_time} onChange={handleEditInputChange} />
-              </Col>
+              </Form.Group>
             </Row>
 
             <hr />
             <h5>Model Preferences</h5>
             <ModelPreferenceFields values={editFormData} onChange={handleEditPreferenceChange} />
 
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="edit-notes">
               <Form.Label>Notes for Admin</Form.Label>
               <Form.Control as="textarea" rows={3} name="notes" value={editFormData.notes} onChange={handleEditInputChange} />
             </Form.Group>

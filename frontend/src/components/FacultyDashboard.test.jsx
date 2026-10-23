@@ -28,13 +28,13 @@ const nextWeek = (() => {
 async function submitNewRequest() {
   await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
   const modal = await screen.findByRole('dialog');
-  await userEvent.type(modal.querySelector('input[name="class_name"]'), 'Anatomy Lab');
-  await userEvent.selectOptions(modal.querySelector('select[name="department"]'), 'Drawing');
-  await userEvent.selectOptions(modal.querySelector('select[name="building"]'), 'Main');
-  fireEvent.change(modal.querySelector('input[type="date"]'), { target: { value: nextWeek } });
-  const [start, end] = modal.querySelectorAll('input[type="time"]');
-  fireEvent.change(start, { target: { value: '10:00' } });
-  fireEvent.change(end, { target: { value: '12:00' } });
+  const field = (label) => within(modal).getByLabelText(label);
+  await userEvent.type(field('Class Name'), 'Anatomy Lab');
+  await userEvent.selectOptions(field('Department'), 'Drawing');
+  await userEvent.selectOptions(field('Building'), 'Main');
+  fireEvent.change(field('Date'), { target: { value: nextWeek } });
+  fireEvent.change(field('Start Time'), { target: { value: '10:00' } });
+  fireEvent.change(field('End Time'), { target: { value: '12:00' } });
   await userEvent.click(within(modal).getByRole('button', { name: 'Submit Request' }));
 }
 
@@ -68,5 +68,28 @@ describe('FacultyDashboard', () => {
     render(<FacultyDashboard user={{ id: 1 }} />);
     await submitNewRequest();
     expect(await screen.findByText(/Date #1 \(Nov 9\)/)).toBeInTheDocument();
+  });
+
+  it('labels the New Request form, including the remove button on each date', async () => {
+    render(<FacultyDashboard user={{ id: 1 }} />);
+    await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
+    const modal = await screen.findByRole('dialog');
+
+    for (const label of ['Class Name', 'Department', 'Building', 'Room Number', 'Notes for Admin']) {
+      expect(within(modal).getByLabelText(label)).toBeInTheDocument();
+    }
+    await userEvent.click(within(modal).getByRole('button', { name: /Add Another Date/ }));
+    expect(within(modal).getByRole('group', { name: 'Date 2' })).toBeInTheDocument();
+    expect(within(modal).getByRole('button', { name: 'Remove date 2' })).toBeInTheDocument();
+  });
+
+  it('labels the Edit Request form', async () => {
+    render(<FacultyDashboard user={{ id: 1 }} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Edit/ }));
+    const modal = await screen.findByRole('dialog');
+
+    for (const label of ['Class Name', 'Department', 'Building', 'Room Number', 'Date', 'Start Time', 'End Time', 'Notes for Admin']) {
+      expect(within(modal).getByLabelText(label)).toBeInTheDocument();
+    }
   });
 });
