@@ -1,9 +1,31 @@
-$primary:   #0047bb;
-$secondary: #808080;
-$success:   #2dc84d;
-$danger:    #e10098;
-$warning:   #fe5000;
-$info:      #a7a8aa;
+// MICA brand palette (mica.edu → Branding → Color Palette).
+// Every text/background pairing in this app should be on MICA's
+// "Approved combinations" list, which is also WCAG 2.1 AA.
+$mica-blue:     #0047bb;
+$mica-blue-072: #10069f;
+$mica-yellow:   #fedb00;
+$mica-pink:     #e10098;
+$mica-green:    #2dc84d;
+$mica-orange:   #fe5000;
+$mica-grey:     #a7a8aa; // Cool Grey 6
+$mica-black:    #000000;
+$mica-white:    #ffffff;
+
+$primary:   $mica-blue;
+$secondary: $mica-grey;
+$success:   $mica-green;
+$danger:    $mica-pink;
+$warning:   $mica-orange;
+$info:      $mica-black;
+$dark:      $mica-black;
+$light:     $mica-white;  // pink text is only approved on pure white
+$body-color: $mica-black;
+
+// Bootstrap picks black or white text for each fill. Make it choose
+// pure MICA black/white, and only pairings that pass WCAG AA.
+$min-contrast-ratio:   4.5;
+$color-contrast-dark:  $mica-black;
+$color-contrast-light: $mica-white;
 
 $border-radius:    0;
 $border-radius-sm: 0;
@@ -17,3 +39,49 @@ $box-shadow:    none;
 $box-shadow-lg: none;
 
 @import 'bootstrap/scss/bootstrap';
+
+// ---- MICA-approved text on coloured fills ----
+// Green, orange and Cool Grey fills get black text; blue, pink and black get white.
+// This wins even where a component hard-codes text-white or text-dark.
+@each $name in (primary, secondary, success, danger, warning, info, dark) {
+  .bg-#{$name},
+  .badge.bg-#{$name} {
+    color: color-contrast(map-get($theme-colors, $name)) !important;
+  }
+}
+
+// ---- Outline buttons ----
+// Green, orange and grey text aren't approved on white, so these buttons use
+// black text and carry the brand colour in a thicker border.
+@each $name in (secondary, success, warning, info) {
+  .btn-outline-#{$name} {
+    --bs-btn-color: #{$mica-black};
+    --bs-btn-border-width: 2px;
+  }
+}
+
+// On the black navbar, brand-coloured text on black IS approved, so keep the colour.
+.navbar {
+  @each $name in (secondary, success, warning) {
+    .btn-outline-#{$name} {
+      --bs-btn-color: #{map-get($theme-colors, $name)};
+    }
+  }
+}
+
+// ---- Coloured text ----
+// Only blue, Blue 072, pink and black text are approved on white.
+.text-success,
+.text-warning,
+.text-secondary,
+.text-info {
+  color: $mica-black !important;
+}
+
+// ---- Info messages ----
+// Calm white box with a black border, rather than a heavy black block.
+.alert-info {
+  --bs-alert-bg: #{$mica-white};
+  --bs-alert-color: #{$mica-black};
+  --bs-alert-border-color: #{$mica-black};
+}
