@@ -127,6 +127,7 @@ docker-logs/
 /frontend/.cache/
 /frontend/test-results
 /frontend/playwright-report
+/frontend/screenshots/
 
 ##############################
 # Additional Optional Ignores
