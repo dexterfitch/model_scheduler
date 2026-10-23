@@ -5,6 +5,7 @@ import { Container, Badge, Row, Col } from 'react-bootstrap';
 import { formatDateTime, formatTime, roundToNearest5, findActiveGigForAvailability } from "../utils/time";
 import { GENDER_IDENTITIES, SKIN_TONES } from "../utils/constants";
 import ModelBodyFields from "./ModelBodyFields";
+import { extractErrorMessages } from "../utils/formatters";
 
 const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [users, setUsers] = useState([]);
@@ -137,7 +138,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
       await api.post(`/users/${userId}/promote`, { role: newRole });
       fetchUsers();
     } catch (err) {
-      alert("Failed to update role");
+      alert(extractErrorMessages(err, "Failed to update role."));
     }
   };
 
@@ -158,7 +159,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
       alert(`Switched to ${targetRole} mode!`);
     } catch (err) {
       console.error(err);
-      alert("Promote Failed");
+      alert(extractErrorMessages(err, "Couldn't switch roles."));
     }
   };
 

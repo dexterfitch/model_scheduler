@@ -117,4 +117,19 @@ describe('SuperUserPanel', () => {
     expect(screen.getByLabelText('End')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove new slot 1' })).toBeInTheDocument();
   });
+
+  it('explains why switching your own role failed', async () => {
+    api.post.mockRejectedValue({ response: { data: { errors: ['Email must be a MICA email address'] } } });
+    renderPanel();
+    await userEvent.click(await screen.findByRole('button', { name: 'Become Model' }));
+    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Email must be a MICA email address'));
+  });
+
+  it("explains why changing someone else's role failed", async () => {
+    api.post.mockRejectedValue({ response: { data: { errors: ['Email must be a MICA email address'] } } });
+    renderPanel();
+    const row = await rowFor('pnair@mica.edu');
+    await userEvent.click(within(row).getByRole('button', { name: 'Model' }));
+    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Email must be a MICA email address'));
+  });
 });
