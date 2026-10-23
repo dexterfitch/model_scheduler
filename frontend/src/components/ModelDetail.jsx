@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Badge, Button, Alert, Spinner, Modal, Form } from "react-bootstrap";
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
-import { formatSkinTone } from "../utils/formatters";
+import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents } from "../utils/time";
 
 function ModelDetail() {
@@ -97,7 +97,7 @@ function ModelDetail() {
         setShowModal(false);
         fetchData();
       })
-      .catch(() => setModalError("Error saving availability. Please try again."));
+      .catch((err) => setModalError(extractErrorMessages(err, "Error saving availability. Please try again.")));
   };
 
   const handleDelete = () => {
@@ -109,7 +109,7 @@ function ModelDetail() {
         setShowModal(false);
         fetchData();
       })
-      .catch(() => setModalError("Error deleting. Please try again."));
+      .catch((err) => setModalError(extractErrorMessages(err, "Error deleting. Please try again.")));
   };
 
   const handleCancelGig = () => {
@@ -121,7 +121,7 @@ function ModelDetail() {
         setShowModal(false);
         fetchData();
       })
-      .catch(() => setModalError("Error cancelling. Please try again."));
+      .catch((err) => setModalError(extractErrorMessages(err, "Error cancelling. Please try again.")));
   };
 
   const getActiveGigForAvailability = (availabilityId) => findActiveGigForAvailability(gigs, availabilityId);
@@ -213,14 +213,14 @@ function ModelDetail() {
           ) : (
             <Form onSubmit={handleSubmit}>
               <Row>
-                <Col>
+                <Form.Group as={Col} controlId="availability-start">
                   <Form.Label>Start Time</Form.Label>
                   <Form.Control type="time" name="start" value={times.start} onChange={handleTimeChange} min="08:00" max="22:00" required />
-                </Col>
-                <Col>
+                </Form.Group>
+                <Form.Group as={Col} controlId="availability-end">
                   <Form.Label>End Time</Form.Label>
                   <Form.Control type="time" name="end" value={times.end} onChange={handleTimeChange} min="08:00" max="22:00" required />
-                </Col>
+                </Form.Group>
               </Row>
               <div className="mt-4 d-flex justify-content-between">
                 <div>
