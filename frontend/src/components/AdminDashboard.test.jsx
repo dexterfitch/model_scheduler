@@ -41,4 +41,28 @@ describe('AdminDashboard', () => {
     await screen.findByText('Group Pose Lab');
     expect(screen.queryByText(/models booked/)).toBeNull();
   });
+
+  it("lists today's evening classes in Today's Schedule, and not tomorrow's", async () => {
+    // Local times on purpose: an 8:30 PM class here is already "tomorrow" in UTC
+    const at = (daysAhead, hour, minute = 0) => {
+      const d = new Date();
+      d.setDate(d.getDate() + daysAhead);
+      d.setHours(hour, minute, 0, 0);
+      return d.toISOString();
+    };
+    const gig = (id, class_name, starts_at, ends_at) => ({
+      id, status: 'confirmed',
+      faculty_request: { class_name, starts_at, ends_at, model_mode: 'clothed', user: { first_name: 'Priya', last_name: 'Nair' } },
+      art_model_availability: { user: { first_name: 'Jordan', last_name: 'Ellis' } }
+    });
+    api.get.mockImplementation((url) => Promise.resolve({
+      data: url === '/gigs'
+        ? [gig(1, 'Evening Life Drawing', at(0, 20, 30), at(0, 22)), gig(2, 'Tomorrow Morning Class', at(1, 9), at(1, 11))]
+        : []
+    }));
+    render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
+
+    expect(await screen.findByText('Evening Life Drawing')).toBeInTheDocument();
+    expect(screen.queryByText('Tomorrow Morning Class')).toBeNull();
+  });
 });

@@ -25,9 +25,12 @@ function AdminDashboard() {
       });
     setPendingSeries(pending);
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Compare calendar days in local (Baltimore) time, not UTC, so evening classes count as today
+    const todayStr = new Date().toDateString();
     const today = gigsRes.data.filter(g =>
-      g.status === 'confirmed' && g.faculty_request?.starts_at?.startsWith(todayStr)
+      g.status === 'confirmed' &&
+      g.faculty_request?.starts_at &&
+      new Date(g.faculty_request.starts_at).toDateString() === todayStr
     );
     setTodaysGigs(today);
   };
