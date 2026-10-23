@@ -48,10 +48,11 @@ describe('AllRequests (admin requests page)', () => {
     expect(screen.getAllByText(/Alex Booked/).length).toBeGreaterThan(0);
   });
 
-  it('releases just one model from a date', async () => {
+  it('releases just one model from a date, with a real button that names the model', async () => {
     renderPage();
-    const [releaseIcon] = await screen.findAllByTitle(/Release this model from only this date/);
-    await userEvent.click(releaseIcon);
+    const [releaseButton] = await screen.findAllByRole('button', { name: 'Release Alex Booked from this date and find someone else' });
+    expect(releaseButton.tagName).toBe('BUTTON');   // real buttons can be reached with Tab
+    await userEvent.click(releaseButton);
     expect(api.delete).toHaveBeenCalledWith('/gigs/100');
   });
 

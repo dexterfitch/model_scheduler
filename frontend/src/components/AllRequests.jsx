@@ -279,12 +279,15 @@ function AllRequests() {
               {i > 0 && ', '}
               {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
               {(!isSingle || (req.models_needed || 1) > 1) && (
-                <i
-                  role="button"
-                  className="bi bi-arrow-repeat text-primary ms-1"
+                <button
+                  type="button"
+                  className="btn btn-link p-0 ms-1 align-baseline text-primary"
                   title="Release this model from only this date and find someone else"
+                  aria-label={`Release ${gig.art_model_availability?.user?.first_name} ${gig.art_model_availability?.user?.last_name} from this date and find someone else`}
                   onClick={() => handleFindNewModel(gig)}
-                ></i>
+                >
+                  <i className="bi bi-arrow-repeat" aria-hidden="true"></i>
+                </button>
               )}
             </React.Fragment>
           ))}
