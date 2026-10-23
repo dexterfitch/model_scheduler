@@ -356,7 +356,7 @@ function FacultyDashboard({ user }) {
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
           <h2>My Classes</h2>
-          <p className="text-muted mb-0">Manage your model needs. Note: Confirmed gigs (matched requests) can only be changed by an admin.</p>
+          <p className="text-muted mb-0">Manage your model needs. Once a model is booked, only an admin can change that class.</p>
         </div>
         <div className={`d-grid d-md-block {styles.requestBtn}`}>
           <Button
@@ -391,7 +391,7 @@ function FacultyDashboard({ user }) {
                 <Card.Header className={`text-white fw-bold ${s.status === 'matched' ? 'bg-success' : 'bg-warning'}`}>
                   {s.status === 'matched'
                     ? ((s.models_needed || 1) > 1 ? 'Models Confirmed' : 'Model Confirmed')
-                    : 'Pending Match'}
+                    : 'Pending'}
                   {requests.length > 1 && (
                     <Badge bg="light" text="dark" className="ms-2">{requests.length} dates</Badge>
                   )}
@@ -552,7 +552,7 @@ function FacultyDashboard({ user }) {
                       className="w-100 mt-2"
                       onClick={() => handleCancelSeries(s.id)}
                     >
-                      {s.status === 'matched' ? "Cancel Confirmed Request" : "Cancel Pending Request"}
+                      Cancel Class
                     </Button>
                   )}
                 </Card.Body>

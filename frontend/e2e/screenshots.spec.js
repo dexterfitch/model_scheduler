@@ -47,7 +47,7 @@ for (const [size, options] of Object.entries(sizes)) {
         await shot(page, name);
       }
       await page.goto('/requests');
-      await visibleButton(page, 'Find Match').click();
+      await visibleButton(page, 'Find Model').click();
       await shot(page, '26-admin-matching-screen');
       await page.goto('/directory');
       await page.locator('a:visible', { hasText: 'View Availability' }).first().click();

@@ -249,7 +249,7 @@ function GigCreator() {
         <i className="bi bi-arrow-left me-1"></i> Back
       </Button>
 
-      <h2 className="mb-4">Create Gig Match</h2>
+      <h2 className="mb-4">Book a Model</h2>
 
       <Card className="mb-4 border-primary shadow-sm">
         <Card.Header className="bg-primary text-white">
@@ -352,7 +352,7 @@ function GigCreator() {
                     <div>
                       <h5 className="mb-1">
                         {modelName(model.user)}
-                        {model.score > 0 && <Badge bg="warning" text="dark" className="ms-2">★ Match</Badge>}
+                        {model.score > 0 && <Badge bg="warning" text="dark" className="ms-2">★ Good Fit</Badge>}
                       </h5>
                       {model.bestSlot && model.score > 0 && (
                         <div className="small fw-bold">Best fit: Model {model.bestSlot}</div>

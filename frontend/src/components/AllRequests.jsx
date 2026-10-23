@@ -312,7 +312,7 @@ function AllRequests() {
             className="text-primary text-decoration-underline"
             onClick={() => navigate(`/gigs/new/${req.id}`)}
           >
-            Find Match
+            Find Model
           </span>
           {')'}
         </>
@@ -328,7 +328,7 @@ function AllRequests() {
       <div className="d-flex flex-column gap-1">
         {showAction && matchedCount === 0 && (
           <Button size="sm" variant="outline-primary" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
-            {bookedCount > 0 ? "Find More Models" : "Find Match"}
+            {bookedCount > 0 ? "Find More Models" : "Find Model"}
           </Button>
         )}
         {bookedCount > 0 && (
@@ -339,10 +339,10 @@ function AllRequests() {
         {s.status !== 'archived' && (
           <div className="d-flex gap-1">
             <Button size="sm" variant="outline-secondary" className="flex-fill" onClick={() => openEditSeriesModal(s)}>
-              {isSingle ? "Edit Gig" : "Edit Series"}
+              Edit Class
             </Button>
             <Button size="sm" variant="outline-danger" className="flex-fill" onClick={() => handleCancelSeries(s.id, isSingle)}>
-              {isSingle ? "Cancel Gig" : "Cancel Series"}
+              Cancel Class
             </Button>
           </div>
         )}
@@ -566,7 +566,7 @@ function AllRequests() {
 
       <Modal show={!!editingSeries} onHide={() => setEditingSeries(null)} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>Edit Series</Modal.Title>
+          <Modal.Title>Edit Class</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {seriesForm.dates.some(d => d.status === 'matched' || d.booked > 0) && (
@@ -638,7 +638,7 @@ function AllRequests() {
           </Form.Group>
 
           <Form.Group className="mb-3" style={{ maxWidth: '220px' }} controlId="edit-models-needed">
-            <Form.Label>Models per Session</Form.Label>
+            <Form.Label>Number of Models</Form.Label>
             <Form.Select
               value={seriesForm.models_needed}
               onChange={e => setSeriesForm(prev => ({ ...prev, models_needed: Number(e.target.value) }))}

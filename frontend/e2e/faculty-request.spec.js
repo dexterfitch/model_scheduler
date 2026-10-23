@@ -30,13 +30,13 @@ test('faculty create a nude request and the gender label updates as they choose'
 
   await expect(page.getByText('Request submitted successfully!')).toBeVisible();
   const card = page.locator('.card').filter({ hasText: 'Life Drawing Lab' });
-  await expect(card).toContainText('Trans Woman Presentation');
+  await expect(card).toContainText('Gender: Trans Woman');
   await expect(card).toContainText('Male Genitalia');
 });
 
 test('the seeded trans woman request shows its full preferences', async ({ page }) => {
   await loginAs(page, 'achen@mica.edu');
   const card = page.locator('.card').filter({ hasText: 'Advanced Figure Painting' });
-  await expect(card).toContainText('Trans Woman Presentation');
+  await expect(card).toContainText('Gender: Trans Woman');
   await expect(card).toContainText('Fat Build');
 });

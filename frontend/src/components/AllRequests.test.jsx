@@ -73,11 +73,11 @@ describe('AllRequests (admin requests page)', () => {
   it("shows the server's reason when models per session can't be lowered", async () => {
     api.patch.mockRejectedValue({ response: { data: { error: "Models needed can't be lower than the 1 model(s) already booked on a date." } } });
     renderPage();
-    const [editButton] = await screen.findAllByRole('button', { name: 'Edit Gig' });
+    const [editButton] = await screen.findAllByRole('button', { name: 'Edit Class' });
     await userEvent.click(editButton);
 
     const dialog = await screen.findByRole('dialog');
-    const modelsSelect = within(dialog).getByLabelText('Models per Session');
+    const modelsSelect = within(dialog).getByLabelText('Number of Models');
     await userEvent.selectOptions(modelsSelect, '1');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));
 
@@ -87,13 +87,13 @@ describe('AllRequests (admin requests page)', () => {
     expect(await within(dialog).findByText(/can't be lower/)).toBeInTheDocument();
   });
 
-  it('labels every field and button in the Edit Gig window', async () => {
+  it('labels every field and button in the Edit Class window', async () => {
     renderPage();
-    const [editButton] = await screen.findAllByRole('button', { name: 'Edit Gig' });
+    const [editButton] = await screen.findAllByRole('button', { name: 'Edit Class' });
     await userEvent.click(editButton);
     const dialog = await screen.findByRole('dialog');
 
-    for (const label of ['Class Name', 'Department', 'Building', 'Room Number', 'Notes', 'Models per Session', 'Date 1', 'Start time 1', 'End time 1']) {
+    for (const label of ['Class Name', 'Department', 'Building', 'Room Number', 'Notes', 'Number of Models', 'Date 1', 'Start time 1', 'End time 1']) {
       expect(within(dialog).getByLabelText(label)).toBeInTheDocument();
     }
     expect(within(dialog).getByRole('button', { name: 'Remove date 1' })).toBeInTheDocument();
