@@ -100,9 +100,11 @@ function Layout({ currentUser, onLogout, refreshUser }) {
               <Button
                 variant="outline-warning"
                 size="sm"
+                aria-label="Report a bug"
+                title="Report a bug"
                 onClick={() => { setNavExpanded(false); setShowBugModal(true); }}
               >
-                <i className="bi bi-bug"></i>
+                <i className="bi bi-bug" aria-hidden="true"></i>
               </Button>
               <Button variant="outline-light" size="sm" onClick={() => { setNavExpanded(false); onLogout(); }}>
                 Logout

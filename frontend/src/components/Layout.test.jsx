@@ -65,4 +65,9 @@ describe('Layout (navigation)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Logout' }));
     expect(onLogout).toHaveBeenCalled();
   });
+  
+  it('gives the bug report button a name screen readers can announce', () => {
+    renderLayout(faculty);
+    expect(screen.getByRole('button', { name: 'Report a bug' })).toBeInTheDocument();
+  });
 });
