@@ -1,6 +1,8 @@
 import {
-  genderOptionLabel, formatGenderPreference, calculateMatchScore, extractErrorMessages
+  genderOptionLabel, formatGenderPreference, calculateMatchScore, extractErrorMessages,
+  calendarTextColor
 } from './formatters';
+import { CALENDAR_COLORS } from './constants';
 
 describe('genderOptionLabel', () => {
   it('shows Trans Woman for Woman with male genitalia', () => {
@@ -47,5 +49,18 @@ describe('extractErrorMessages', () => {
   it('uses a single server error', () => {
     const err = { response: { data: { error: 'Not authorized' } } };
     expect(extractErrorMessages(err, 'x')).toBe('Not authorized');
+  });
+});
+
+describe('calendarTextColor', () => {
+  it('uses MICA-approved text on each calendar colour', () => {
+    expect(calendarTextColor(CALENDAR_COLORS.blue)).toBe('#ffffff');
+    expect(calendarTextColor(CALENDAR_COLORS.green)).toBe('#000000');
+    expect(calendarTextColor(CALENDAR_COLORS.orange)).toBe('#000000');
+    expect(calendarTextColor(CALENDAR_COLORS.grey)).toBe('#000000');
+  });
+
+  it('falls back to black for any other colour', () => {
+    expect(calendarTextColor('#123456')).toBe('#000000');
   });
 });

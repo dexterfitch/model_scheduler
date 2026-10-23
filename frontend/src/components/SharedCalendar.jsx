@@ -6,6 +6,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import bootstrap5Plugin from '@fullcalendar/bootstrap5';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../assets/styles/fullcalendar-overrides.css';
+import { calendarTextColor } from '../utils/formatters';
 
 const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }) => {
   const wrapperRef = useRef(null);
@@ -38,7 +39,7 @@ const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }
         height="auto"
         selectable={true}
         editable={editable}
-        events={events}
+        events={events.map(e => ({ textColor: calendarTextColor(e.backgroundColor), ...e }))}
         select={onDateSelect}
         eventClick={onEventClick}
         

@@ -1,3 +1,10 @@
+import { CALENDAR_COLORS } from './constants';
+
+// Text colour for each calendar fill, from MICA's approved combinations:
+// white on blue; black on green, orange and Cool Grey.
+export const calendarTextColor = (background) =>
+  background === CALENDAR_COLORS.blue ? '#ffffff' : '#000000';
+
 export const formatSkinTone = (tone) => {
   if (!tone || tone === "Any") return "Any Skintone";
   if (tone.toLowerCase().includes("skintone")) return tone;
