@@ -77,7 +77,7 @@ describe('AllRequests (admin requests page)', () => {
     await userEvent.click(editButton);
 
     const dialog = await screen.findByRole('dialog');
-    const modelsSelect = within(dialog).getByText('Models per Session').closest('.mb-3').querySelector('select');
+    const modelsSelect = within(dialog).getByLabelText('Models per Session');
     await userEvent.selectOptions(modelsSelect, '1');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));
 
@@ -85,5 +85,17 @@ describe('AllRequests (admin requests page)', () => {
       request_series: expect.objectContaining({ models_needed: 1 })
     }));
     expect(await within(dialog).findByText(/can't be lower/)).toBeInTheDocument();
+  });
+
+  it('labels every field and button in the Edit Gig window', async () => {
+    renderPage();
+    const [editButton] = await screen.findAllByRole('button', { name: 'Edit Gig' });
+    await userEvent.click(editButton);
+    const dialog = await screen.findByRole('dialog');
+
+    for (const label of ['Class Name', 'Department', 'Building', 'Room Number', 'Notes', 'Models per Session', 'Date 1', 'Start time 1', 'End time 1']) {
+      expect(within(dialog).getByLabelText(label)).toBeInTheDocument();
+    }
+    expect(within(dialog).getByRole('button', { name: 'Remove date 1' })).toBeInTheDocument();
   });
 });

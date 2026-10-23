@@ -573,7 +573,7 @@ function AllRequests() {
 
           <Row>
             <Col md={7}>
-              <Form.Group className="mb-3">
+              <Form.Group className="mb-3" controlId="edit-class-name">
                 <Form.Label>Class Name</Form.Label>
                 <Form.Control
                   value={seriesForm.class_name}
@@ -582,7 +582,7 @@ function AllRequests() {
               </Form.Group>
             </Col>
             <Col md={5}>
-              <Form.Group className="mb-3">
+              <Form.Group className="mb-3" controlId="edit-department">
                 <Form.Label>Department</Form.Label>
                 <Form.Select
                   value={seriesForm.department}
@@ -596,7 +596,7 @@ function AllRequests() {
 
           <Row>
             <Col md={6}>
-              <Form.Group className="mb-3">
+              <Form.Group className="mb-3" controlId="edit-building">
                 <Form.Label>Building</Form.Label>
                 <Form.Select
                   value={seriesForm.building}
@@ -607,7 +607,7 @@ function AllRequests() {
               </Form.Group>
             </Col>
             <Col md={6}>
-              <Form.Group className="mb-3">
+              <Form.Group className="mb-3" controlId="edit-room">
                 <Form.Label>Room Number</Form.Label>
                 <Form.Control
                   value={seriesForm.room_number}
@@ -617,7 +617,7 @@ function AllRequests() {
             </Col>
           </Row>
 
-          <Form.Group className="mb-3">
+          <Form.Group className="mb-3" controlId="edit-notes">
             <Form.Label>Notes</Form.Label>
             <Form.Control
               as="textarea"
@@ -627,7 +627,7 @@ function AllRequests() {
             />
           </Form.Group>
 
-          <Form.Group className="mb-3" style={{ maxWidth: '220px' }}>
+          <Form.Group className="mb-3" style={{ maxWidth: '220px' }} controlId="edit-models-needed">
             <Form.Label>Models per Session</Form.Label>
             <Form.Select
               value={seriesForm.models_needed}
@@ -654,6 +654,7 @@ function AllRequests() {
               <Col xs={6} md={4}>
                 <Form.Control
                   type="date"
+                  aria-label={`Date ${i + 1}`}
                   value={d.date}
                   onChange={e => updateSeriesDate(i, 'date', e.target.value)}
                 />
@@ -661,6 +662,7 @@ function AllRequests() {
               <Col xs={3} md={3}>
                 <Form.Control
                   type="time"
+                  aria-label={`Start time ${i + 1}`}
                   value={d.start}
                   onChange={e => updateSeriesDate(i, 'start', e.target.value)}
                   onBlur={e => updateSeriesDate(i, 'start', roundToNearest5(e.target.value))}
@@ -669,6 +671,7 @@ function AllRequests() {
               <Col xs={3} md={2}>
                 <Form.Control
                   type="time"
+                  aria-label={`End time ${i + 1}`}
                   value={d.end}
                   onChange={e => updateSeriesDate(i, 'end', e.target.value)}
                   onBlur={e => updateSeriesDate(i, 'end', roundToNearest5(e.target.value))}
@@ -682,8 +685,9 @@ function AllRequests() {
                     className="text-danger p-0"
                     onClick={() => removeNewSeriesDate(d.id)}
                     title="Discard this unsaved date"
+                    aria-label={`Discard date ${i + 1}`}
                   >
-                    <i className="bi bi-x-lg"></i>
+                    <i className="bi bi-x-lg" aria-hidden="true"></i>
                   </Button>
                 ) : (
                   <Button
@@ -692,8 +696,9 @@ function AllRequests() {
                     className="text-danger p-0"
                     onClick={() => handleRemoveExistingDate(d)}
                     title="Remove this date"
+                    aria-label={`Remove date ${i + 1}`}
                   >
-                    <i className="bi bi-trash"></i>
+                    <i className="bi bi-trash" aria-hidden="true"></i>
                   </Button>
                 )}
               </Col>
