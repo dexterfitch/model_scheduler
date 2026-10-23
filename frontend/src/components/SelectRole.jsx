@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Container, Card, Button, Form, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import api from '../services/api';
-import { GENDER_IDENTITIES, SKIN_TONE_OPTIONS } from "../utils/constants";
+import { GENDER_IDENTITIES } from "../utils/constants";
+import SkinTonePicker from "./SkinTonePicker";
 import ModelBodyFields from "./ModelBodyFields";
 import { extractErrorMessages } from "../utils/formatters";
 
@@ -137,7 +138,7 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
 
             <Form onSubmit={handleModelSubmit}>
               <Row className="mb-3">
-                <Col md={6} className="mb-3 mb-md-0">
+                <Form.Group as={Col} md={6} className="mb-3 mb-md-0" controlId="setup-stage-name">
                   <Form.Label>Stage Name (Optional)</Form.Label>
                   <Form.Control
                     type="text"
@@ -145,8 +146,8 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
                     value={formData.stage_name}
                     onChange={handleModelFormChange}
                   />
-                </Col>
-                <Col md={6}>
+                </Form.Group>
+                <Form.Group as={Col} md={6} controlId="setup-pronouns">
                   <Form.Label>Pronouns</Form.Label>
                   <Form.Control
                     type="text"
@@ -155,11 +156,11 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
                     onChange={handleModelFormChange}
                     placeholder="e.g. they/them"
                   />
-                </Col>
+                </Form.Group>
               </Row>
 
               <Row className="mb-3">
-                <Col md={6} className="mb-3 mb-md-0">
+                <Form.Group as={Col} md={6} className="mb-3 mb-md-0" controlId="setup-gender">
                   <Form.Label>Gender Identity *</Form.Label>
                   <Form.Select
                     name="gender_identity"
@@ -170,32 +171,10 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
                     <option value="">Select...</option>
                     {GENDER_IDENTITIES.map(g => <option key={g} value={g}>{g}</option>)}
                   </Form.Select>
-                </Col>
+                </Form.Group>
 
                 <Col md={6}>
-                  <Form.Label>Skin Tone *</Form.Label>
-                  <div className="d-flex gap-2">
-                    {SKIN_TONE_OPTIONS.map((tone) => (
-                      <div
-                        key={tone.label}
-                        onClick={() => handleSkinToneSelect(tone.label)}
-                        className="rounded-circle"
-                        title={tone.label}
-                        style={{
-                          width: '40px',
-                          height: '40px',
-                          backgroundColor: tone.color,
-                          cursor: 'pointer',
-                          border: formData.skin_tone === tone.label ? '4px solid #0d6efd' : '1px solid #dee2e6',
-                          transform: formData.skin_tone === tone.label ? 'scale(1.1)' : 'scale(1)',
-                          transition: 'all 0.2s ease'
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <Form.Text className="small mt-1">
-                    Selected: <strong>{formData.skin_tone || 'None'}</strong>
-                  </Form.Text>
+                  <SkinTonePicker value={formData.skin_tone} onChange={handleSkinToneSelect} required />
                 </Col>
               </Row>
 

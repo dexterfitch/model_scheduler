@@ -36,10 +36,10 @@ describe('SelectRole (first login)', () => {
     const { container } = renderPage();
     await userEvent.click(screen.getByRole('button', { name: /I am a Model/ }));
 
-    await userEvent.selectOptions(container.querySelector('select[name="gender_identity"]'), 'Woman');
-    await userEvent.click(screen.getByTitle('Medium'));
+    await userEvent.selectOptions(screen.getByLabelText(/Gender Identity/), 'Woman');
+    await userEvent.click(screen.getByRole('radio', { name: 'Medium' }));
     await userEvent.click(screen.getByLabelText('I am willing to model nude'));
-    await userEvent.selectOptions(container.querySelector('select[name="genitalia"]'), 'Intersex');
+    await userEvent.selectOptions(screen.getByLabelText('Genitalia'), 'Intersex');
     fireEvent.submit(container.querySelector('form'));
 
     await vi.waitFor(() => expect(api.patch).toHaveBeenCalledWith('/users/5', {
@@ -65,5 +65,14 @@ describe('SelectRole (first login)', () => {
     await userEvent.click(screen.getByRole('button', { name: /I am Faculty/ }));
 
     expect(await screen.findByText('Role already set')).toBeInTheDocument();
+  });
+
+  it('labels every field on the model setup form', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /I am a Model/ }));
+    for (const label of [/Stage Name/, /Pronouns/, /Gender Identity/, 'Body Type']) {
+      expect(screen.getByLabelText(label)).toBeInTheDocument();
+    }
+    expect(screen.getByRole('radiogroup', { name: /Skin Tone/ })).toBeInTheDocument();
   });
 });
