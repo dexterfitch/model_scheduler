@@ -52,7 +52,7 @@ describe('ModelPreferenceFields', () => {
 
   it('labels every preference so screen readers can announce them', () => {
     render(<Harness initial={{ model_mode: 'nude' }} />);
-    for (const label of ['Nudity', 'Number of Models', 'Skin Tone', 'Gender Presentation', 'Body Type', 'Genitalia']) {
+    for (const label of ['Nudity', 'Number of Models', 'Skin Tone', 'Gender', 'Body Type', 'Genitalia']) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
   });

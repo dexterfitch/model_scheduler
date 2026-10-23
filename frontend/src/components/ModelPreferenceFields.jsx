@@ -70,7 +70,7 @@ function PreferenceSet({ prefs, isNude, idPrefix, onChange }) {
         </Form.Select>
       </Form.Group>
       <Form.Group as={Col} md={6} lg={3} className="mb-3" controlId={`${idPrefix}-gender`}>
-        <Form.Label>Gender Presentation</Form.Label>
+        <Form.Label>Gender</Form.Label>
         <Form.Select name="pref_gender" value={prefs.pref_gender || "Any"} onChange={handle}>
           {GENDER_PREFERENCE_OPTIONS.map(g => (
             <option key={g} value={g}>{genderOptionLabel(g, genitalia)}</option>

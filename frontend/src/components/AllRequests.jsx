@@ -249,7 +249,7 @@ function AllRequests() {
       s.model_slots.forEach(slot => parts.push(`Model ${slot.position}: ${formatPreferenceSummary(slot, s.model_mode)}`));
     } else {
       parts.push(formatSkinTone(s.pref_skin_tone));
-      parts.push(`${formatGenderPreference(s)} Gender Presentation`);
+      parts.push(`Gender: ${formatGenderPreference(s)}`);
       parts.push(formatBodyType(s.pref_body_type));
       if (s.model_mode === 'nude') parts.push(formatGenitalia(s.pref_genitalia));
     }

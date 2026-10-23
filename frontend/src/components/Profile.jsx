@@ -124,7 +124,7 @@ const Profile = ({ currentUser, setCurrentUser }) => {
 
                 <div className="row mb-3">
                   <div className="col-md-6">
-                    <label className="form-label" htmlFor="profile-gender">Gender Presentation *</label>
+                    <label className="form-label" htmlFor="profile-gender">Gender *</label>
                     <select id="profile-gender" className="form-select" name="gender_identity" value={formData.gender_identity} onChange={handleChange} required>
                       <option value="">Select...</option>
                       {GENDER_IDENTITIES.map(g => <option key={g} value={g}>{g}</option>)}

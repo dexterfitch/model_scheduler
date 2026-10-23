@@ -161,7 +161,7 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
 
               <Row className="mb-3">
                 <Form.Group as={Col} md={6} className="mb-3 mb-md-0" controlId="setup-gender">
-                  <Form.Label>Gender Identity *</Form.Label>
+                  <Form.Label>Gender *</Form.Label>
                   <Form.Select
                     name="gender_identity"
                     value={formData.gender_identity}

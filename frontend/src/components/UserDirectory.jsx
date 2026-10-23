@@ -49,7 +49,7 @@ function UserDirectory() {
                     <td className="align-middle">
                       <Badge bg="dark" text="light" className="me-1">Pronouns: {u.pronouns}</Badge>
                       <Badge bg="dark" text="light" className="me-1">{formatSkinTone(u.skin_tone)}</Badge>
-                      <Badge bg="dark" text="light" className="me-1">{u.gender_identity} Gender Presentation</Badge>
+                      <Badge bg="dark" text="light" className="me-1">Gender: {u.gender_identity}</Badge>
                       {u.body_type && <Badge bg="dark" text="light" className="me-1">{u.body_type} Build</Badge>}
                       {u.willing_to_model_nude && u.genitalia && <Badge bg="dark" text="light">{u.genitalia} Genitalia</Badge>}
                     </td>
@@ -98,7 +98,7 @@ function UserDirectory() {
                     <div className="mb-2">
                       <Badge bg="dark" text="light" className="me-1">Pronouns: {u.pronouns}</Badge>
                       <Badge bg="dark" text="light" className="me-1">{formatSkinTone(u.skin_tone)}</Badge>
-                      <Badge bg="dark" text="light" className="me-1">{u.gender_identity} Gender Presentation</Badge>
+                      <Badge bg="dark" text="light" className="me-1">Gender: {u.gender_identity}</Badge>
                       {u.body_type && <Badge bg="dark" text="light" className="me-1">{u.body_type} Build</Badge>}
                       {u.willing_to_model_nude && u.genitalia && <Badge bg="dark" text="light">{u.genitalia} Genitalia</Badge>}
                     </div>

@@ -73,7 +73,7 @@ describe('SuperUserPanel', () => {
     await userEvent.type(screen.getByLabelText('First Name'), 'Sam');
     await userEvent.type(screen.getByLabelText('Last Name'), 'Rivera');
     await userEvent.type(screen.getByLabelText(/Email/), 'srivera@mica.edu');
-    await userEvent.selectOptions(screen.getByLabelText('Gender Identity'), 'Woman');
+    await userEvent.selectOptions(screen.getByLabelText('Gender'), 'Woman');
     await userEvent.click(screen.getByRole('button', { name: 'Create Sock Account' }));
 
     expect(api.post).toHaveBeenCalledWith('/users', {
@@ -90,7 +90,7 @@ describe('SuperUserPanel', () => {
     await userEvent.type(screen.getByLabelText('First Name'), 'Sam');
     await userEvent.type(screen.getByLabelText('Last Name'), 'Rivera');
     await userEvent.type(screen.getByLabelText(/Email/), 'pnair@mica.edu');
-    await userEvent.selectOptions(screen.getByLabelText('Gender Identity'), 'Woman');
+    await userEvent.selectOptions(screen.getByLabelText('Gender'), 'Woman');
     await userEvent.click(screen.getByRole('button', { name: 'Create Sock Account' }));
 
     expect(await screen.findByText('Email has already been taken')).toBeInTheDocument();

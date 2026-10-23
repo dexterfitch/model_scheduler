@@ -515,7 +515,7 @@ function FacultyDashboard({ user }) {
                       : <Badge bg="success">Clothed</Badge>}
                     {!hasModelSlots(s) && s.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(s.pref_skin_tone)}</Badge>}
                     {(s.models_needed || 1) > 1 && <Badge bg="primary">{formatModelCount(s.models_needed)}</Badge>}
-                    {!hasModelSlots(s) && s.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenderPreference(s)} Presentation</Badge>}
+                    {!hasModelSlots(s) && s.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">Gender: {formatGenderPreference(s)}</Badge>}
                     {!hasModelSlots(s) && s.pref_body_type && s.pref_body_type !== 'Any' && <Badge bg="light" text="dark" className="border">{formatBodyType(s.pref_body_type)}</Badge>}
                     {!hasModelSlots(s) && s.model_mode === 'nude' && s.pref_genitalia && s.pref_genitalia !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenitalia(s.pref_genitalia)}</Badge>}
                   </div>

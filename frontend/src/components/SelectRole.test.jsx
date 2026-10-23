@@ -36,7 +36,7 @@ describe('SelectRole (first login)', () => {
     const { container } = renderPage();
     await userEvent.click(screen.getByRole('button', { name: /I am a Model/ }));
 
-    await userEvent.selectOptions(screen.getByLabelText(/Gender Identity/), 'Woman');
+    await userEvent.selectOptions(screen.getByLabelText('Gender *'), 'Woman');
     await userEvent.click(screen.getByRole('radio', { name: 'Medium' }));
     await userEvent.click(screen.getByLabelText('I am willing to model nude'));
     await userEvent.selectOptions(screen.getByLabelText('Genitalia'), 'Intersex');
@@ -70,7 +70,7 @@ describe('SelectRole (first login)', () => {
   it('labels every field on the model setup form', async () => {
     renderPage();
     await userEvent.click(screen.getByRole('button', { name: /I am a Model/ }));
-    for (const label of [/Stage Name/, /Pronouns/, /Gender Identity/, 'Body Type']) {
+    for (const label of [/Stage Name/, /Pronouns/, 'Gender *', 'Body Type']) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
     expect(screen.getByRole('radiogroup', { name: /Skin Tone/ })).toBeInTheDocument();

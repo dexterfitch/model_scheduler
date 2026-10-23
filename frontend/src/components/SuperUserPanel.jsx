@@ -373,7 +373,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                 <input id="sock-stage-name" className="form-control" name="stage_name" value={sockForm.stage_name} onChange={handleSockFormChange} />
               </Col>
               <Col xs={12} md={6}>
-                <label className="form-label fw-bold" htmlFor="sock-gender">Gender Identity</label>
+                <label className="form-label fw-bold" htmlFor="sock-gender">Gender</label>
                 <select id="sock-gender" className="form-select" name="gender_identity" value={sockForm.gender_identity} onChange={handleSockFormChange} required>
                   <option value="">Select...</option>
                   {GENDER_IDENTITIES.map(g => <option key={g} value={g}>{g}</option>)}

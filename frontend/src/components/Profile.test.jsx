@@ -83,7 +83,7 @@ describe('Profile', () => {
   
   it('labels every field so screen readers can announce them', () => {
     renderProfile(model);
-    for (const label of [/First Name/, /Last Name/, /Phone Number/, /Stage Name/, /Pronouns/, /Gender Presentation/]) {
+    for (const label of [/First Name/, /Last Name/, /Phone Number/, /Stage Name/, /Pronouns/, 'Gender *']) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
   });
