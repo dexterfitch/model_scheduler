@@ -35,6 +35,11 @@ faculty3 = User.create!(
   first_name: "Priya", last_name: "Nair", email: "pnair@mica.edu", role: :faculty
 )
 
+# --- Brand-new user who hasn't picked a role yet (for the Select Role page) ---
+User.create!(
+  first_name: "Nia", last_name: "Newcomer", email: "nnewcomer@mica.edu", role: nil
+)
+
 # --- Models ---
 model1 = User.create!(
   first_name: "Jordan", last_name: "Ellis", email: "jellis@mica.edu", role: :model,
