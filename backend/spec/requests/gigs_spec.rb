@@ -86,6 +86,22 @@ RSpec.describe "Gigs API", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
       expect(group_class.confirmed_gigs.count).to eq(2)
     end
+
+    it "puts the model in the open slot they fit best" do
+      group_class.request_series.model_slots.create!(position: 1, pref_body_type: "Fat")
+      group_class.request_series.model_slots.create!(position: 2, pref_body_type: "Muscular")
+      muscular_model = create(:user, :model, body_type: "Muscular")
+
+      book(create(:art_model_availability, user: muscular_model))
+
+      expect(response).to have_http_status(:created)
+      expect(Gig.last.model_slot_position).to eq(2)
+    end
+
+    it "leaves the slot empty for classes without per-model preferences" do
+      book(create(:art_model_availability))
+      expect(Gig.last.model_slot_position).to be_nil
+    end
   end
 
   describe "releasing a model" do

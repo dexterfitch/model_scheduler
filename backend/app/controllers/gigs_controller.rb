@@ -28,6 +28,12 @@ class GigsController < ApplicationController
     saved = Gig.transaction do
       # Lock the request so two admins can't over-fill the last open slot at once
       gig.faculty_request&.lock!
+
+      # Classes with per-model preferences: fill the open slot this model fits best
+      if gig.faculty_request && gig.art_model_availability
+        gig.model_slot_position = gig.faculty_request.best_open_slot_for(gig.art_model_availability.user)
+      end
+      
       # context: :create runs the new-booking checks (room in the class, not
       # already booked, still bookable) even when reusing an old record
       gig.save(context: :create)
