@@ -50,3 +50,11 @@ export const calculateMatchScore = (user, target) => {
   if (target.model_mode === "nude" && user.genitalia && user.genitalia === target.pref_genitalia) score++;
   return score;
 };
+
+// "Any Skintone, Woman, Fat Build" (plus genitalia for nude sessions) for one set of preferences
+export const formatPreferenceSummary = (prefs, modelMode) => [
+  formatSkinTone(prefs.pref_skin_tone),
+  formatGenderPreference({ ...prefs, model_mode: modelMode }),
+  formatBodyType(prefs.pref_body_type),
+  ...(modelMode === 'nude' ? [formatGenitalia(prefs.pref_genitalia)] : [])
+].join(', ');

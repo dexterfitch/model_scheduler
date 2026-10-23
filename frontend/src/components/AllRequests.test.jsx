@@ -108,4 +108,14 @@ describe('AllRequests (admin requests page)', () => {
     renderPage();
     expect((await screen.findAllByText('Needs Attention: Jordan Ellis dropped out')).length).toBeGreaterThan(0);
   });
+
+  it("lists each model's preferences for classes that set them separately", async () => {
+    const any = { pref_skin_tone: 'Any', pref_gender: 'Any', pref_genitalia: 'Any' };
+    api.get.mockResolvedValue({ data: [{
+      ...series,
+      model_slots: [{ position: 1, ...any, pref_body_type: 'Fat' }, { position: 2, ...any, pref_body_type: 'Muscular' }]
+    }] });
+    renderPage();
+    expect((await screen.findAllByText(/Model 2: .*Muscular Build/)).length).toBeGreaterThan(0);
+  });
 });

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from "react-bootstrap";
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
-import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages } from "../utils/formatters";
+import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
 import ModelPreferenceFields, {
@@ -12,6 +12,9 @@ import ModelPreferenceFields, {
 const PREFERENCE_KEYS = Object.keys(DEFAULT_MODEL_PREFERENCES);
 const pickPreferences = (obj) =>
   Object.fromEntries(PREFERENCE_KEYS.map(k => [k, obj[k] ?? DEFAULT_MODEL_PREFERENCES[k]]));
+
+// Classes where faculty set preferences for each model separately
+const hasModelSlots = (s) => (s.model_slots || []).length > 0;
 
 const emptyDate = () => ({ date: "", start_time: "", end_time: "" });
 
@@ -510,12 +513,21 @@ function FacultyDashboard({ user }) {
                     {s.model_mode === 'nude'
                       ? <Badge bg="danger">Nude Required</Badge>
                       : <Badge bg="success">Clothed</Badge>}
-                    {s.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(s.pref_skin_tone)}</Badge>}
+                    {!hasModelSlots(s) && s.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(s.pref_skin_tone)}</Badge>}
                     {(s.models_needed || 1) > 1 && <Badge bg="primary">{formatModelCount(s.models_needed)}</Badge>}
-                    {s.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenderPreference(s)} Presentation</Badge>}
-                    {s.pref_body_type && s.pref_body_type !== 'Any' && <Badge bg="light" text="dark" className="border">{formatBodyType(s.pref_body_type)}</Badge>}
-                    {s.model_mode === 'nude' && s.pref_genitalia && s.pref_genitalia !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenitalia(s.pref_genitalia)}</Badge>}
+                    {!hasModelSlots(s) && s.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenderPreference(s)} Presentation</Badge>}
+                    {!hasModelSlots(s) && s.pref_body_type && s.pref_body_type !== 'Any' && <Badge bg="light" text="dark" className="border">{formatBodyType(s.pref_body_type)}</Badge>}
+                    {!hasModelSlots(s) && s.model_mode === 'nude' && s.pref_genitalia && s.pref_genitalia !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenitalia(s.pref_genitalia)}</Badge>}
                   </div>
+                  {hasModelSlots(s) && (
+                    <ul className="list-unstyled small mb-3">
+                      {s.model_slots.map(slot => (
+                        <li key={slot.position}>
+                          <strong>Model {slot.position}:</strong> {formatPreferenceSummary(slot, s.model_mode)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
 
                   {s.notes && (
                     <div className="mt-1 text-muted small fst-italic">

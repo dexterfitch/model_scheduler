@@ -2,21 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Container, Card, Button, ListGroup, Badge, Spinner, Alert } from "react-bootstrap";
 import api from "../services/api";
-import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, calculateMatchScore } from "../utils/formatters";
+import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, calculateMatchScore, formatPreferenceSummary } from "../utils/formatters";
 import { formatTime, formatDateWithWeekday, formatDateTime, availabilityCoversRequest, hasSchedulingConflict } from "../utils/time";
 
 const modelName = (user) => `${user?.first_name} ${user?.last_name}`;
 // Earliest date first
 const byStart = (a, b) => new Date(a.starts_at) - new Date(b.starts_at);
-
-// "Medium Skintone, Woman, Fat Build" for one set of preferences
-const preferenceSummary = (prefs, modelMode) => {
-  const withMode = { ...prefs, model_mode: modelMode };
-  return [
-    formatSkinTone(prefs.pref_skin_tone), formatGenderPreference(withMode), formatBodyType(prefs.pref_body_type),
-    ...(modelMode === 'nude' ? [formatGenitalia(prefs.pref_genitalia)] : [])
-  ].join(', ');
-};
 
 function GigCreator() {
   const { requestId } = useParams();
@@ -309,7 +300,7 @@ function GigCreator() {
               : <Badge bg="success">Clothed</Badge>}
             {!(displayData.model_slots?.length > 0) && (
               <Badge bg="info" text="dark">
-                Pref: {preferenceSummary(displayData, displayData.model_mode)}
+                Pref: {formatPreferenceSummary(displayData, displayData.model_mode)}
               </Badge>
             )}
           </div>
@@ -317,7 +308,7 @@ function GigCreator() {
             <ul className="list-unstyled small mt-2 mb-0">
               {displayData.model_slots.map(slot => (
                 <li key={slot.position}>
-                  <strong>Model {slot.position}:</strong> {preferenceSummary(slot, displayData.model_mode)}
+                  <strong>Model {slot.position}:</strong> {formatPreferenceSummary(slot, displayData.model_mode)}
                 </li>
               ))}
             </ul>

@@ -164,4 +164,17 @@ describe('FacultyDashboard', () => {
     const modal = await screen.findByRole('dialog');
     expect(within(modal).getByLabelText('Same for every model')).toBeChecked();
   });
+
+  it("lists each model's preferences on the class card", async () => {
+    const any = { pref_skin_tone: 'Any', pref_gender: 'Any', pref_genitalia: 'Any' };
+    api.get.mockResolvedValue({ data: [{
+      ...series,
+      model_slots: [{ position: 1, ...any, pref_body_type: 'Fat' }, { position: 2, ...any, pref_body_type: 'Muscular' }]
+    }] });
+    render(<FacultyDashboard user={{ id: 1 }} />);
+
+    const line = (pattern) => (_, el) => el.tagName === 'LI' && pattern.test(el.textContent);
+    expect(await screen.findByText(line(/Model 1: .*Fat Build/))).toBeInTheDocument();
+    expect(screen.getByText(line(/Model 2: .*Muscular Build/))).toBeInTheDocument();
+  });
 });
