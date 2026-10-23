@@ -1,6 +1,7 @@
 class FacultyRequest < ApplicationRecord
   belongs_to :user
-  belongs_to :request_series, optional: true
+  # Every dated request belongs to a series; that's how the app lists and groups classes
+  belongs_to :request_series
   # A request can now be staffed by several models. Cancelled/completed gigs stay
   # in `gigs` for history and billing; only confirmed ones count toward staffing.
   has_many :gigs

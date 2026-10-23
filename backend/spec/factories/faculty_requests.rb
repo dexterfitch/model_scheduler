@@ -1,6 +1,7 @@
 FactoryBot.define do
   factory :faculty_request do
     association :user
+    request_series { association :request_series, user: user }
     class_name { "Figure Drawing I" }
     department { "Drawing" }
     building { "Main" }

@@ -41,6 +41,12 @@ RSpec.describe FacultyRequest, type: :model do
     expect(req.pref_genitalia).to eq("Any")
   end
 
+  it "must belong to a series" do
+    request = build(:faculty_request, request_series: nil)
+    expect(request).not_to be_valid
+    expect(request.errors[:request_series]).to be_present
+  end
+
   describe ".wrap_standalone_requests_in_series!" do
     it "gives each request without a series its own series, with the same class details" do
       loose = create(:faculty_request, class_name: "Portrait Lab", department: "Painting",

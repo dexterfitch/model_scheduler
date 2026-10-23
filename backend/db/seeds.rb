@@ -89,12 +89,17 @@ def book!(faculty_request, availability, confirmed_by:)
 end
 
 # ============================================================
-# SCENARIO A: Fresh pending single-date request (standalone, no series)
+# SCENARIO A: Fresh pending single-date request (a one-date series)
 # ============================================================
-FacultyRequest.create!(
+series_a = RequestSeries.create!(
   user: faculty1, class_name: "Figure Drawing 101", department: "Drawing",
   building: "Fox", room_number: "201", model_mode: :clothed,
-  pref_skin_tone: "Any", pref_gender: "Any",
+  pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+)
+FacultyRequest.create!(
+  request_series: series_a, user: faculty1, class_name: series_a.class_name,
+  department: series_a.department, building: series_a.building, room_number: series_a.room_number,
+  model_mode: series_a.model_mode, pref_skin_tone: series_a.pref_skin_tone, pref_gender: series_a.pref_gender,
   starts_at: 5.days.from_now.change(hour: 10, min: 0),
   ends_at: 5.days.from_now.change(hour: 12, min: 0),
   status: :pending
