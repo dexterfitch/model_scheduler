@@ -145,11 +145,11 @@ function ModelDashboard({ user }) {
     if (editingId) {
       api.patch(`/art_model_availabilities/${editingId}`, { art_model_availability: payload })
         .then(() => { setPageSuccess("Availability updated!"); setTimeout(() => setPageSuccess(''), 3000); setShowModal(false); fetchData(); })
-        .catch(() => setModalError("Error saving availability. Please try again."));
+        .catch((err) => setModalError(extractErrorMessages(err, "Error saving availability. Please try again.")));
     } else {
       api.post("/art_model_availabilities", { art_model_availability: payload })
         .then(() => { setPageSuccess("Availability added!"); setTimeout(() => setPageSuccess(''), 3000); setShowModal(false); fetchData(); })
-        .catch(() => setModalError("Error saving availability. Please try again."));
+        .catch((err) => setModalError(extractErrorMessages(err, "Error saving availability. Please try again.")));
     }
   };
 
@@ -157,7 +157,7 @@ function ModelDashboard({ user }) {
     if (!editingId || !confirm("Delete this availability slot?")) return;
     api.delete(`/art_model_availabilities/${editingId}`)
       .then(() => { setPageSuccess("Availability deleted!"); setTimeout(() => setPageSuccess(''), 3000); setShowModal(false); fetchData(); })
-      .catch(() => setModalError("Error deleting. Please try again."));
+      .catch((err) => setModalError(extractErrorMessages(err, "Error deleting. Please try again.")));
   };
 
   const cancelGig = (availabilityId, gig, cancelRemainingSeries = false) => {
@@ -467,14 +467,14 @@ function ModelDashboard({ user }) {
           ) : (
             <Form onSubmit={handleSubmitAvailability}>
               <Row>
-                <Col>
+                <Form.Group as={Col} controlId="availability-start">
                   <Form.Label>Start Time</Form.Label>
                   <Form.Control type="time" name="start" value={times.start} onChange={handleTimeChange} onBlur={handleBlur} required />
-                </Col>
-                <Col>
+                </Form.Group>
+                <Form.Group as={Col} controlId="availability-end">
                   <Form.Label>End Time</Form.Label>
                   <Form.Control type="time" name="end" value={times.end} onChange={handleTimeChange} onBlur={handleBlur} required />
-                </Col>
+                </Form.Group>
               </Row>
               
               <div className="mt-4 d-flex justify-content-between">

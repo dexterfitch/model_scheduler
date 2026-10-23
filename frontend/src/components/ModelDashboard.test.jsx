@@ -6,7 +6,11 @@ import { daysFromNow } from '../test/dates';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 // The calendar library needs a real browser, so a placeholder stands in for it here
-vi.mock('./SharedCalendar', () => ({ default: () => <div>calendar</div> }));
+vi.mock('./SharedCalendar', () => ({
+  default: ({ onDateSelect }) => (
+    <button onClick={() => onDateSelect({ startStr: '2099-01-05' })}>Pick a date</button>
+  )
+}));
 
 const model = { id: 10, first_name: 'Jordan', willing_to_model_nude: false };
 
@@ -92,5 +96,18 @@ describe('ModelDashboard', () => {
     const card = (await screen.findAllByText('Gesture Drawing'))[0].closest('.card');
     expect(within(card).getByText('Completed')).toBeInTheDocument();
     expect(within(card).queryByRole('button', { name: 'Cancel' })).toBeNull();
+  });
+
+  it("explains why the server wouldn't save an availability slot", async () => {
+    api.post.mockRejectedValue({ response: { data: { errors: ['Overlaps another availability slot'] } } });
+    render(<ModelDashboard user={model} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Manage Availability' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Pick a date' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Start Time')).toHaveValue('09:00');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add Availability' }));
+
+    expect(await within(dialog).findByText('Overlaps another availability slot')).toBeInTheDocument();
   });
 });
