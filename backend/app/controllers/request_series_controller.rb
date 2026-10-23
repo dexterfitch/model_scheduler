@@ -7,13 +7,14 @@ class RequestSeriesController < ApplicationController
   def index
     preload = { faculty_requests: { confirmed_gigs: [:confirmed_by, { art_model_availability: :user }] } }
     @series = if current_user.role_admin?
-      RequestSeries.all.includes(:user, preload)
+      RequestSeries.all.includes(:user, :model_slots, preload)
     else
-      RequestSeries.where(user_id: current_user.id).includes(:user, preload)
+      RequestSeries.where(user_id: current_user.id).includes(:user, :model_slots, preload)
     end
 
     render json: @series, include: {
       user: {},
+      model_slots: { only: [:position, :pref_skin_tone, :pref_gender, :pref_body_type, :pref_genitalia] },
       faculty_requests: {
         # Only admins see which model dropped out
         methods: current_user.role_admin? ? [:dropped_out_model_name] : [],
@@ -61,6 +62,11 @@ class RequestSeriesController < ApplicationController
     @series.user_id = current_user.id unless current_user.role_admin?
     @series.status = :pending
 
+    slots = model_slot_params
+    if slots.present? && slots.length != @series.models_needed
+      return render json: { error: slot_count_error(@series.models_needed) }, status: :unprocessable_content
+    end
+
     dates = params[:dates]
 
     unless dates.is_a?(Array) && dates.any?
@@ -90,6 +96,7 @@ class RequestSeriesController < ApplicationController
 
     ActiveRecord::Base.transaction do
       @series.save!
+      @series.assign_model_slots!(slots) if slots.present?
 
       times.each_with_index do |(starts_at, ends_at), i|
         faculty_request = FacultyRequest.new(
@@ -152,6 +159,12 @@ class RequestSeriesController < ApplicationController
       end
     end
 
+    slots = model_slot_params
+    needed = (series_params[:models_needed] || @series.models_needed).to_i
+    if slots.present? && slots.length != needed
+      return render json: { error: slot_count_error(needed) }, status: :unprocessable_content
+    end
+
     ActiveRecord::Base.transaction do
       @series.update!(series_params)
 
@@ -161,6 +174,12 @@ class RequestSeriesController < ApplicationController
       changed_keys |= ["pref_genitalia"] if changed_keys.include?("model_mode")
       shared_attrs = @series.attributes.slice(*(changed_keys & RequestSeries::SHARED_ATTRIBUTES))
       @series.faculty_requests.update_all(shared_attrs) if shared_attrs.present?
+
+      if slots
+        @series.assign_model_slots!(slots)
+      elsif shared_attrs.key?("models_needed")
+        @series.resize_model_slots!
+      end
 
       if shared_attrs.key?("models_needed")
         @series.faculty_requests.where.not(status: :archived).find_each(&:refresh_match_status!)
@@ -198,6 +217,19 @@ class RequestSeriesController < ApplicationController
       .where(willing_to_model_nude: false)
       .distinct
       .map { |u| "#{u.first_name} #{u.last_name}" }
+  end
+
+  # Per-model preferences sent with the request, or nil when they weren't sent at all
+  def model_slot_params
+    return nil unless params.key?(:model_slots)
+
+    Array(params[:model_slots]).map do |slot|
+      slot.permit(:pref_skin_tone, :pref_gender, :pref_body_type, :pref_genitalia).to_h
+    end
+  end
+
+  def slot_count_error(needed)
+    "Give preferences for each of the #{needed} models, or choose \"Same for every model\"."
   end
 
   def series_params

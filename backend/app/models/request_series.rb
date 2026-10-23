@@ -36,6 +36,31 @@ class RequestSeries < ApplicationRecord
       "request_series.model_mode = 'clothed' OR ?", model_user.willing_to_model_nude
     )
   }
+  
+  # Replace the per-model preferences, in order. An empty list means the same
+  # preferences for every model (the series' own).
+  def assign_model_slots!(list)
+    model_slots.destroy_all
+    list.each_with_index { |prefs, i| model_slots.create!(prefs.merge(position: i + 1)) }
+    release_slot_positions_beyond!(list.length)
+  end
+
+  # When the number of models changes, keep one slot per model: drop extras,
+  # and add new ones that accept anyone
+  def resize_model_slots!
+    return if model_slots.empty?
+
+    model_slots.where("position > ?", models_needed).destroy_all
+    ((model_slots.count + 1)..models_needed).each { |position| model_slots.create!(position: position) }
+    release_slot_positions_beyond!(models_needed)
+  end
+
+  # Bookings in slots that no longer exist stay booked, just not tied to a slot
+  def release_slot_positions_beyond!(count)
+    Gig.where(faculty_request_id: faculty_requests.select(:id))
+       .where("model_slot_position > ?", count)
+       .update_all(model_slot_position: nil)
+  end
 
   def update_status!
     active_requests = faculty_requests.where.not(status: :archived)
