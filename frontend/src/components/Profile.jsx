@@ -91,18 +91,18 @@ const Profile = ({ currentUser, setCurrentUser }) => {
             <h5 className="mb-3 text-primary">Basic Information</h5>
             <div className="row mb-3">
               <div className="col-md-6">
-                <label className="form-label">First Name</label>
-                <input type="text" className="form-control" name="first_name" value={formData.first_name} onChange={handleChange} required />
+                <label className="form-label" htmlFor="profile-first-name">First Name</label>
+                <input id="profile-first-name" type="text" className="form-control" name="first_name" value={formData.first_name} onChange={handleChange} required autoComplete="given-name" />
               </div>
               <div className="col-md-6">
-                <label className="form-label">Last Name</label>
-                <input type="text" className="form-control" name="last_name" value={formData.last_name} onChange={handleChange} required />
+                <label className="form-label" htmlFor="profile-last-name">Last Name</label>
+                <input id="profile-last-name" type="text" className="form-control" name="last_name" value={formData.last_name} onChange={handleChange} required autoComplete="family-name" />
               </div>
             </div>
 
             <div className="mb-3">
-              <label className="form-label">Phone Number</label>
-              <input type="text" className="form-control" name="phone" value={formData.phone} onChange={handleChange} placeholder="e.g. 555-123-4567" />
+              <label className="form-label" htmlFor="profile-phone">Phone Number</label>
+              <input id="profile-phone" type="tel" className="form-control" name="phone" value={formData.phone} onChange={handleChange} placeholder="e.g. 555-123-4567" autoComplete="tel" />
             </div>
 
             {currentUser.role === 'model' && (
@@ -112,19 +112,19 @@ const Profile = ({ currentUser, setCurrentUser }) => {
                 
                 <div className="row mb-3">
                   <div className="col-md-6">
-                    <label className="form-label">Stage Name (Optional)</label>
-                    <input type="text" className="form-control" name="stage_name" value={formData.stage_name} onChange={handleChange} />
+                    <label className="form-label" htmlFor="profile-stage-name">Stage Name (Optional)</label>
+                    <input id="profile-stage-name" type="text" className="form-control" name="stage_name" value={formData.stage_name} onChange={handleChange} />
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label">Pronouns</label>
-                    <input type="text" className="form-control" name="pronouns" value={formData.pronouns} onChange={handleChange} placeholder="e.g. they/them" />
+                    <label className="form-label" htmlFor="profile-pronouns">Pronouns</label>
+                    <input id="profile-pronouns" type="text" className="form-control" name="pronouns" value={formData.pronouns} onChange={handleChange} placeholder="e.g. they/them" />
                   </div>
                 </div>
 
                 <div className="row mb-3">
                   <div className="col-md-6">
-                    <label className="form-label">Gender Presentation *</label>
-                    <select className="form-select" name="gender_identity" value={formData.gender_identity} onChange={handleChange} required>
+                    <label className="form-label" htmlFor="profile-gender">Gender Presentation *</label>
+                    <select id="profile-gender" className="form-select" name="gender_identity" value={formData.gender_identity} onChange={handleChange} required>
                       <option value="">Select...</option>
                       {GENDER_IDENTITIES.map(g => <option key={g} value={g}>{g}</option>)}
                     </select>

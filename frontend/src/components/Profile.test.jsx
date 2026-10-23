@@ -80,4 +80,11 @@ describe('Profile', () => {
 
     expect(await screen.findByText(/booked for 2 nude sessions/)).toBeInTheDocument();
   });
+  
+  it('labels every field so screen readers can announce them', () => {
+    renderProfile(model);
+    for (const label of [/First Name/, /Last Name/, /Phone Number/, /Stage Name/, /Pronouns/, /Gender Presentation/]) {
+      expect(screen.getByLabelText(label)).toBeInTheDocument();
+    }
+  });
 });
