@@ -87,4 +87,15 @@ describe('Profile', () => {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
   });
+
+  it('lets a model choose a skin tone as a radio button and saves it', async () => {
+    api.patch.mockResolvedValue({ data: { ...model, skin_tone: 'Dark' } });
+    renderProfile(model);
+
+    expect(screen.getByRole('radio', { name: 'Medium' })).toBeChecked();
+    await userEvent.click(screen.getByRole('radio', { name: 'Dark' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+
+    expect(api.patch).toHaveBeenCalledWith('/users/10', { user: expect.objectContaining({ skin_tone: 'Dark' }) });
+  });
 });

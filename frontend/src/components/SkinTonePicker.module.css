@@ -1,0 +1,43 @@
+.swatch {
+  position: relative;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* The real radio button: invisible, but still focusable and announced */
+.input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* 44px circles: big enough to tap comfortably on a phone */
+.circle {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #a7a8aa;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Selected: MICA blue ring */
+.input:checked + .circle {
+  box-shadow: 0 0 0 3px #ffffff, 0 0 0 6px #0047bb;
+  transform: scale(1.05);
+}
+
+/* Keyboard focus: clear black outline */
+.input:focus-visible + .circle {
+  outline: 3px solid #000000;
+  outline-offset: 7px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circle {
+    transition: none;
+  }
+}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { GENDER_IDENTITIES, SKIN_TONE_OPTIONS } from '../utils/constants';
+import { GENDER_IDENTITIES } from '../utils/constants';
+import SkinTonePicker from './SkinTonePicker';
 import ModelBodyFields from './ModelBodyFields';
 import { extractErrorMessages } from '../utils/formatters';
 
@@ -131,26 +132,7 @@ const Profile = ({ currentUser, setCurrentUser }) => {
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">Skin Tone *</label>
-                    <div className="d-flex gap-2">
-                      {SKIN_TONE_OPTIONS.map((tone) => (
-                        <div
-                          key={tone.label}
-                          onClick={() => handleSkinToneSelect(tone.label)}
-                          className="rounded-circle"
-                          title={tone.label}
-                          style={{
-                            width: '40px',
-                            height: '40px',
-                            backgroundColor: tone.color,
-                            cursor: 'pointer',
-                            border: formData.skin_tone === tone.label ? '4px solid #0d6efd' : '1px solid #dee2e6',
-                            transform: formData.skin_tone === tone.label ? 'scale(1.1)' : 'scale(1)',
-                            transition: 'all 0.2s ease'
-                          }}
-                        ></div>
-                      ))}
-                    </div>
+                    <SkinTonePicker value={formData.skin_tone} onChange={handleSkinToneSelect} required />
                   </div>
                 </div>
 
