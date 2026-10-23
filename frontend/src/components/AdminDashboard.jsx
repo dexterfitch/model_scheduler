@@ -64,6 +64,9 @@ function AdminDashboard() {
                   if (!firstReq) return null;
 
                   const needsAttention = pendingRequests.some(r => r.needs_attention);
+                  // Group sessions: how many of the next date's models are booked
+                  const needed = firstReq.models_needed || series.models_needed || 1;
+                  const booked = (firstReq.confirmed_gigs || []).length;
 
                   return (
                     <Card key={series.id} className="mb-2 border-start border-4 border-primary">
@@ -74,6 +77,15 @@ function AdminDashboard() {
                             {pendingRequests.length > 1 && (
                               <Badge bg="info" text="dark" className={`${styles.badge}`}>
                                 <i className="bi bi-calendar me-1"></i> {pendingRequests.length} dates
+                              </Badge>
+                            )}
+                            {needed > 1 && (
+                              <Badge
+                                bg={booked > 0 ? 'warning' : 'info'}
+                                className={`${styles.badge}`}
+                                title={`Models booked for ${formatDateWithWeekday(firstReq.starts_at)}`}
+                              >
+                                {booked}/{needed} models booked
                               </Badge>
                             )}
                             {needsAttention && (
