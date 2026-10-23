@@ -91,8 +91,13 @@ function AdminCalendar() {
           />
         </Col>
         <Col md={3} className="order-1 order-md-2">
-          <h4 className="mb-3 text-secondary">Upcoming Model Availability</h4>
-          <div style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+          <h4 id="upcoming-availability-heading" className="mb-3 text-secondary">Upcoming Model Availability</h4>
+          <div
+            style={{ maxHeight: '80vh', overflowY: 'auto' }}
+            tabIndex={0}
+            role="region"
+            aria-labelledby="upcoming-availability-heading"
+          >
             {availabilities.length === 0 ? <p>No upcoming availability.</p> : (
               <ListGroup variant="flush">
                 {availabilities.map(avail => (
