@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import {
   GENDER_PREFERENCE_OPTIONS, SKIN_TONES, BODY_TYPES, GENITALIA_OPTIONS, MAX_MODELS_PER_REQUEST
@@ -26,58 +26,60 @@ function ModelPreferenceFields({ values, onChange }) {
   const isNude = values.model_mode === "nude";
   const genitalia = isNude ? values.pref_genitalia : null;
   const handle = (e) => onChange(e.target.name, e.target.value);
+  // Unique ids: this appears in both the New Request and Edit Request windows.
+  const id = useId();
 
   return (
     <>
       <Row>
-        <Col md={4} className="mb-3">
+        <Form.Group as={Col} md={4} className="mb-3" controlId={`${id}-mode`}>
           <Form.Label>Nudity</Form.Label>
           <Form.Select name="model_mode" value={values.model_mode} onChange={handle}>
             <option value="clothed">Clothed</option>
             <option value="nude">Nude</option>
           </Form.Select>
-        </Col>
-        <Col md={4} className="mb-3">
+        </Form.Group>
+        <Form.Group as={Col} md={4} className="mb-3" controlId={`${id}-count`}>
           <Form.Label>Number of Models</Form.Label>
           <Form.Select name="models_needed" value={values.models_needed} onChange={handle}>
             {Array.from({ length: MAX_MODELS_PER_REQUEST }, (_, i) => i + 1).map(n => (
               <option key={n} value={n}>{n}</option>
             ))}
           </Form.Select>
-        </Col>
-        <Col md={4} className="mb-3">
+        </Form.Group>
+        <Form.Group as={Col} md={4} className="mb-3" controlId={`${id}-skin`}>
           <Form.Label>Skin Tone</Form.Label>
           <Form.Select name="pref_skin_tone" value={values.pref_skin_tone} onChange={handle}>
             <option value="Any">Any</option>
             {SKIN_TONES.map(t => <option key={t} value={t}>{t}</option>)}
           </Form.Select>
-        </Col>
+        </Form.Group>
       </Row>
 
       <Row>
-        <Col md={4} className="mb-3">
+        <Form.Group as={Col} md={4} className="mb-3" controlId={`${id}-gender`}>
           <Form.Label>Gender Presentation</Form.Label>
           <Form.Select name="pref_gender" value={values.pref_gender} onChange={handle}>
             {GENDER_PREFERENCE_OPTIONS.map(g => (
               <option key={g} value={g}>{genderOptionLabel(g, genitalia)}</option>
             ))}
           </Form.Select>
-        </Col>
-        <Col md={4} className="mb-3">
+        </Form.Group>
+        <Form.Group as={Col} md={4} className="mb-3" controlId={`${id}-body`}>
           <Form.Label>Body Type</Form.Label>
           <Form.Select name="pref_body_type" value={values.pref_body_type} onChange={handle}>
             <option value="Any">Any</option>
             {BODY_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
           </Form.Select>
-        </Col>
+        </Form.Group>
         {isNude && (
-          <Col md={4} className="mb-3">
+          <Form.Group as={Col} md={4} className="mb-3" controlId={`${id}-genitalia`}>
             <Form.Label>Genitalia</Form.Label>
             <Form.Select name="pref_genitalia" value={values.pref_genitalia} onChange={handle}>
               <option value="Any">Any</option>
               {GENITALIA_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
             </Form.Select>
-          </Col>
+          </Form.Group>
         )}
       </Row>
       {values.models_needed > 1 && (

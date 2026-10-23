@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelPreferenceFields, {
   DEFAULT_MODEL_PREFERENCES, applyPreferenceChange
@@ -48,5 +48,12 @@ describe('ModelPreferenceFields', () => {
     const { container } = render(<Harness />);
     const options = [...select(container, 'pref_body_type').options].map(o => o.value);
     expect(options).toEqual(['Any', 'Muscular', 'Average', 'Fat']);
+  });
+
+  it('labels every preference so screen readers can announce them', () => {
+    render(<Harness initial={{ model_mode: 'nude' }} />);
+    for (const label of ['Nudity', 'Number of Models', 'Skin Tone', 'Gender Presentation', 'Body Type', 'Genitalia']) {
+      expect(screen.getByLabelText(label)).toBeInTheDocument();
+    }
   });
 });
