@@ -348,32 +348,32 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
           <form onSubmit={handleCreateSockAccount}>
             <Row className="mb-3">
               <Col xs={12} md={6} className="mb-3 mb-md-0">
-                <label className="form-label fw-bold">First Name</label>
-                <input required className="form-control" name="first_name" value={sockForm.first_name} onChange={handleSockFormChange} />
+                <label className="form-label fw-bold" htmlFor="sock-first-name">First Name</label>
+                <input id="sock-first-name" required className="form-control" name="first_name" value={sockForm.first_name} onChange={handleSockFormChange} />
               </Col>
               <Col xs={12} md={6}>
-                <label className="form-label fw-bold">Last Name</label>
-                <input required className="form-control" name="last_name" value={sockForm.last_name} onChange={handleSockFormChange} />
+                <label className="form-label fw-bold" htmlFor="sock-last-name">Last Name</label>
+                <input id="sock-last-name" required className="form-control" name="last_name" value={sockForm.last_name} onChange={handleSockFormChange} />
               </Col>
             </Row>
             <Row className="mb-3">
               <Col xs={12} md={6} className="mb-3 mb-md-0">
-                <label className="form-label fw-bold">Email (@mica.edu)</label>
-                <input required type="email" className="form-control" name="email" value={sockForm.email} onChange={handleSockFormChange} />
+                <label className="form-label fw-bold" htmlFor="sock-email">Email (@mica.edu)</label>
+                <input id="sock-email" required type="email" className="form-control" name="email" value={sockForm.email} onChange={handleSockFormChange} />
               </Col>
               <Col xs={12} md={6}>
-                <label className="form-label fw-bold">Phone</label>
-                <input className="form-control" name="phone" value={sockForm.phone} onChange={handleSockFormChange} />
+                <label className="form-label fw-bold" htmlFor="sock-phone">Phone</label>
+                <input id="sock-phone" type="tel" className="form-control" name="phone" value={sockForm.phone} onChange={handleSockFormChange} />
               </Col>
             </Row>
             <Row className="mb-3">
               <Col xs={12} md={6} className="mb-3 mb-md-0">
-                <label className="form-label fw-bold">Stage Name</label>
-                <input className="form-control" name="stage_name" value={sockForm.stage_name} onChange={handleSockFormChange} />
+                <label className="form-label fw-bold" htmlFor="sock-stage-name">Stage Name</label>
+                <input id="sock-stage-name" className="form-control" name="stage_name" value={sockForm.stage_name} onChange={handleSockFormChange} />
               </Col>
               <Col xs={12} md={6}>
-                <label className="form-label fw-bold">Gender Identity</label>
-                <select className="form-select" name="gender_identity" value={sockForm.gender_identity} onChange={handleSockFormChange} required>
+                <label className="form-label fw-bold" htmlFor="sock-gender">Gender Identity</label>
+                <select id="sock-gender" className="form-select" name="gender_identity" value={sockForm.gender_identity} onChange={handleSockFormChange} required>
                   <option value="">Select...</option>
                   {GENDER_IDENTITIES.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
@@ -381,16 +381,16 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
             </Row>
             <Row className="mb-3">
               <Col xs={12} md={6} className="mb-3 mb-md-0">
-                <label className="form-label fw-bold">Skin Tone</label>
-                <select required className="form-select" name="skin_tone" value={sockForm.skin_tone} onChange={handleSockFormChange}>
+                <label className="form-label fw-bold" htmlFor="sock-skin-tone">Skin Tone</label>
+                <select id="sock-skin-tone" required className="form-select" name="skin_tone" value={sockForm.skin_tone} onChange={handleSockFormChange}>
                   {SKIN_TONES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </Col>
               <Col xs={12} md={6} className="d-flex align-items-end pb-1">
                 <div className="form-check">
-                  <input className="form-check-input" type="checkbox" name="willing_to_model_nude" id="nudeCheck"
+                  <input className="form-check-input" type="checkbox" name="willing_to_model_nude" id="sock-nude-check"
                     checked={sockForm.willing_to_model_nude} onChange={handleSockFormChange} />
-                  <label className="form-check-label fw-bold" htmlFor="nudeCheck">Willing to Model Nude</label>
+                  <label className="form-check-label fw-bold" htmlFor="sock-nude-check">Willing to Model Nude</label>
                 </div>
               </Col>
             </Row>

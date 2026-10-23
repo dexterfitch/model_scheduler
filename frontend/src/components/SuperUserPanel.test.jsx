@@ -66,13 +66,13 @@ describe('SuperUserPanel', () => {
   });
 
   it('creates a sock account for an offline model', async () => {
-    const { container } = renderPanel();
+    renderPanel();
     await screen.findAllByText('pnair@mica.edu');
 
-    await userEvent.type(container.querySelector('input[name="first_name"]'), 'Sam');
-    await userEvent.type(container.querySelector('input[name="last_name"]'), 'Rivera');
-    await userEvent.type(container.querySelector('input[name="email"]'), 'srivera@mica.edu');
-    await userEvent.selectOptions(container.querySelector('select[name="gender_identity"]'), 'Woman');
+    await userEvent.type(screen.getByLabelText('First Name'), 'Sam');
+    await userEvent.type(screen.getByLabelText('Last Name'), 'Rivera');
+    await userEvent.type(screen.getByLabelText(/Email/), 'srivera@mica.edu');
+    await userEvent.selectOptions(screen.getByLabelText('Gender Identity'), 'Woman');
     await userEvent.click(screen.getByRole('button', { name: 'Create Sock Account' }));
 
     expect(api.post).toHaveBeenCalledWith('/users', {
@@ -83,13 +83,13 @@ describe('SuperUserPanel', () => {
 
   it("shows the server's reason when a sock account can't be created", async () => {
     api.post.mockRejectedValue({ response: { data: { errors: ['Email has already been taken'] } } });
-    const { container } = renderPanel();
+    renderPanel();
     await screen.findAllByText('pnair@mica.edu');
 
-    await userEvent.type(container.querySelector('input[name="first_name"]'), 'Sam');
-    await userEvent.type(container.querySelector('input[name="last_name"]'), 'Rivera');
-    await userEvent.type(container.querySelector('input[name="email"]'), 'pnair@mica.edu');
-    await userEvent.selectOptions(container.querySelector('select[name="gender_identity"]'), 'Woman');
+    await userEvent.type(screen.getByLabelText('First Name'), 'Sam');
+    await userEvent.type(screen.getByLabelText('Last Name'), 'Rivera');
+    await userEvent.type(screen.getByLabelText(/Email/), 'pnair@mica.edu');
+    await userEvent.selectOptions(screen.getByLabelText('Gender Identity'), 'Woman');
     await userEvent.click(screen.getByRole('button', { name: 'Create Sock Account' }));
 
     expect(await screen.findByText('Email has already been taken')).toBeInTheDocument();
