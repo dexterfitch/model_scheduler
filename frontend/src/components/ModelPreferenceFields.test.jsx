@@ -27,12 +27,12 @@ describe('ModelPreferenceFields', () => {
     expect(select(container, 'pref_genitalia')).toBeInTheDocument();
   });
 
-  it('relabels Woman as Trans Woman when male genitalia is chosen', async () => {
+  it('relabels Woman as Woman (Trans) when male genitalia is chosen', async () => {
     const { container } = render(<Harness initial={{ model_mode: 'nude' }} />);
     await userEvent.selectOptions(select(container, 'pref_genitalia'), 'Male');
 
     const woman = select(container, 'pref_gender').querySelector('option[value="Woman"]');
-    expect(woman).toHaveTextContent('Trans Woman');
+    expect(woman).toHaveTextContent('Woman (Trans)');
   });
 
   it('clears the genitalia choice when switching back to clothed', async () => {

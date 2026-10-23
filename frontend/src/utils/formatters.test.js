@@ -5,12 +5,12 @@ import {
 import { CALENDAR_COLORS } from './constants';
 
 describe('genderOptionLabel', () => {
-  it('shows Trans Woman for Woman with male genitalia', () => {
-    expect(genderOptionLabel('Woman', 'Male')).toBe('Trans Woman');
+  it('shows Woman (Trans) for Woman with male genitalia', () => {
+    expect(genderOptionLabel('Woman', 'Male')).toBe('Woman (Trans)');
   });
 
-  it('shows Trans Man for Man with female genitalia', () => {
-    expect(genderOptionLabel('Man', 'Female')).toBe('Trans Man');
+  it('shows Man (Trans) for Man with female genitalia', () => {
+    expect(genderOptionLabel('Man', 'Female')).toBe('Man (Trans)');
   });
 
   it('leaves other combinations unchanged', () => {

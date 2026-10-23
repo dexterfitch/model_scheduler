@@ -20,7 +20,7 @@ test('faculty create a nude request and the gender label updates as they choose'
   // Choosing nude reveals the genitalia field; choosing Male relabels "Woman"
   await form.locator('select[name="model_mode"]').selectOption('nude');
   await form.locator('select[name="pref_genitalia"]').selectOption('Male');
-  await form.locator('select[name="pref_gender"]').selectOption({ label: 'Trans Woman' });
+  await form.locator('select[name="pref_gender"]').selectOption({ label: 'Woman (Trans)' });
 
   await form.locator('input[type="date"]').fill(tenDaysOut());
   const times = form.locator('input[type="time"]');
@@ -30,13 +30,13 @@ test('faculty create a nude request and the gender label updates as they choose'
 
   await expect(page.getByText('Request submitted successfully!')).toBeVisible();
   const card = page.locator('.card').filter({ hasText: 'Life Drawing Lab' });
-  await expect(card).toContainText('Gender: Trans Woman');
+  await expect(card).toContainText('Gender: Woman (Trans)');
   await expect(card).toContainText('Male Genitalia');
 });
 
 test('the seeded trans woman request shows its full preferences', async ({ page }) => {
   await loginAs(page, 'achen@mica.edu');
   const card = page.locator('.card').filter({ hasText: 'Advanced Figure Painting' });
-  await expect(card).toContainText('Gender: Trans Woman');
+  await expect(card).toContainText('Gender: Woman (Trans)');
   await expect(card).toContainText('Fat Build');
 });

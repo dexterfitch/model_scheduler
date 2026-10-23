@@ -22,8 +22,8 @@ export const extractErrorMessages = (err, fallback) => {
 // (pref_gender + pref_genitalia) so matching against a model's own profile isn't
 // affected by how the option is labeled. Pass genitalia only for nude sessions.
 export const genderOptionLabel = (gender, genitalia) => {
-  if (gender === "Woman" && genitalia === "Male") return "Trans Woman";
-  if (gender === "Man" && genitalia === "Female") return "Trans Man";
+  if (gender === "Woman" && genitalia === "Male") return "Woman (Trans)";
+  if (gender === "Man" && genitalia === "Female") return "Man (Trans)";
   return gender;
 };
 
