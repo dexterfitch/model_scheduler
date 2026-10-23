@@ -1,0 +1,63 @@
+import { availabilityEvents } from './time';
+import { CALENDAR_COLORS } from './constants';
+
+// Available 9 AM–5 PM (Eastern), Nov 2
+const slot = { id: 7, status: 'active', starts_at: '2026-11-02T14:00:00Z', ends_at: '2026-11-02T22:00:00Z' };
+const gigAt = (id, start, end, extra = {}) => ({
+  id, status: 'confirmed', art_model_availability: { id: 7 },
+  faculty_request: { starts_at: start, ends_at: end, building: 'Fox', room_number: '201' },
+  ...extra
+});
+const summary = (events) => events.map(e => [e.title, new Date(e.start).toISOString(), new Date(e.end).toISOString()]);
+
+describe('availabilityEvents', () => {
+  it('shows an unbooked block as one Free event', () => {
+    const [event] = availabilityEvents(slot, []);
+    expect(event).toEqual(expect.objectContaining({ title: 'Free', backgroundColor: CALENDAR_COLORS.green }));
+    expect(summary([event])).toEqual([['Free', '2026-11-02T14:00:00.000Z', '2026-11-02T22:00:00.000Z']]);
+  });
+
+  it("shows the gig at the class's real times, with the time around it free", () => {
+    const events = availabilityEvents(slot, [gigAt(1, '2026-11-02T15:00:00Z', '2026-11-02T17:00:00Z')]);
+    expect(summary(events)).toEqual([
+      ['Free',                    '2026-11-02T14:00:00.000Z', '2026-11-02T15:00:00.000Z'],
+      ['Confirmed Gig — Fox 201', '2026-11-02T15:00:00.000Z', '2026-11-02T17:00:00.000Z'],
+      ['Free',                    '2026-11-02T17:00:00.000Z', '2026-11-02T22:00:00.000Z'],
+    ]);
+    expect(events[1].backgroundColor).toBe(CALENDAR_COLORS.blue);
+  });
+
+  it('handles two gigs in one block', () => {
+    const events = availabilityEvents(slot, [
+      gigAt(2, '2026-11-02T19:00:00Z', '2026-11-02T22:00:00Z'),
+      gigAt(1, '2026-11-02T14:00:00Z', '2026-11-02T16:00:00Z'),
+    ]);
+    expect(events.map(e => e.title)).toEqual(['Confirmed Gig — Fox 201', 'Free', 'Confirmed Gig — Fox 201']);
+  });
+
+  it('ignores cancelled gigs and gigs from other blocks', () => {
+    const events = availabilityEvents(slot, [
+      gigAt(1, '2026-11-02T15:00:00Z', '2026-11-02T17:00:00Z', { status: 'cancelled' }),
+      gigAt(2, '2026-11-02T15:00:00Z', '2026-11-02T17:00:00Z', { art_model_availability: { id: 99 } }),
+    ]);
+    expect(events.map(e => e.title)).toEqual(['Free']);
+  });
+
+  it('shows a cancelled block as Cancelled, in grey', () => {
+    const [event] = availabilityEvents({ ...slot, status: 'cancelled' }, []);
+    expect(event).toEqual(expect.objectContaining({ title: 'Cancelled', backgroundColor: CALENDAR_COLORS.grey }));
+  });
+
+  it('can call free time something else, like Available on the admin view', () => {
+    const [event] = availabilityEvents(slot, [], { freeLabel: 'Available' });
+    expect(event.title).toBe('Available');
+  });
+
+  it('keeps the whole block in each event, so clicking any part edits the block', () => {
+    const events = availabilityEvents(slot, [gigAt(1, '2026-11-02T15:00:00Z', '2026-11-02T17:00:00Z')]);
+    for (const e of events) {
+      expect(e.id).toBe(7);
+      expect(e.extendedProps.starts_at).toBe(slot.starts_at);
+    }
+  });
+});

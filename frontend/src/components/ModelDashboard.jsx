@@ -2,9 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Badge, Tab, Tabs, Button, Modal, Form, Alert, ListGroup } from "react-bootstrap";
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
-import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability } from "../utils/time";
-import { CALENDAR_COLORS } from "../utils/constants";
+import { extractErrorMessages } from "../utils/formatters";
+import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability, availabilityEvents } from "../utils/time";
 
 function ModelDashboard({ user }) {
   const [myGigs, setMyGigs] = useState([]);
@@ -34,24 +33,7 @@ function ModelDashboard({ user }) {
   useEffect(() => {
     const events = myAvailabilities
       .filter(a => a.status === 'active')
-      .map(a => {
-        const gig = myGigs.find(g =>
-          g.art_model_availability.id === a.id && g.status === 'confirmed'
-        );
-        const location = gig && [gig.faculty_request.building, gig.faculty_request.room_number].filter(Boolean).join(' ');
-        const label = gig ? `Confirmed Gig${location ? ` — ${location}` : ''}` : 'Free';
-        const color = gig ? CALENDAR_COLORS.blue : CALENDAR_COLORS.green;
-
-        return {
-          id: a.id,
-          title: label,
-          start: a.starts_at,
-          end: a.ends_at,
-          backgroundColor: color,
-          display: 'block',
-          extendedProps: { ...a }
-        };
-      });
+      .flatMap(a => availabilityEvents(a, myGigs));
     setCalendarEvents(events);
   }, [myAvailabilities, myGigs]);
 

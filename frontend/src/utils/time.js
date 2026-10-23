@@ -1,3 +1,5 @@
+import { CALENDAR_COLORS } from './constants';
+
 export const roundToNearest5 = (timeStr) => {
   if (!timeStr) return "";
   const [h, m] = timeStr.split(':').map(Number);
@@ -60,4 +62,38 @@ export const findActiveGigForAvailability = (gigsList, availabilityId) => {
   return gigsList.find(g =>
     g.art_model_availability.id === availabilityId && g.status === 'confirmed'
   );
+};
+
+// Calendar events for one availability block: each confirmed gig at the class's
+// real start and end, and the time around it as free. Every piece keeps the
+// block's id and details, so clicking any part still opens that block.
+export const availabilityEvents = (availability, gigs, { freeLabel = 'Free' } = {}) => {
+  const piece = (title, start, end, backgroundColor) => ({
+    id: availability.id, title, start, end, backgroundColor, display: 'block',
+    extendedProps: { ...availability }
+  });
+
+  if (availability.status !== 'active') {
+    return [piece('Cancelled', availability.starts_at, availability.ends_at, CALENDAR_COLORS.grey)];
+  }
+
+  const booked = gigs
+    .filter(g => g.status === 'confirmed' && g.art_model_availability.id === availability.id)
+    .sort((a, b) => new Date(a.faculty_request.starts_at) - new Date(b.faculty_request.starts_at));
+
+  const events = [];
+  let cursor = new Date(availability.starts_at);
+  const blockEnd = new Date(availability.ends_at);
+
+  booked.forEach(gig => {
+    const gigStart = new Date(gig.faculty_request.starts_at);
+    const gigEnd = new Date(gig.faculty_request.ends_at);
+    if (gigStart > cursor) events.push(piece(freeLabel, cursor.toISOString(), gigStart.toISOString(), CALENDAR_COLORS.green));
+    const location = [gig.faculty_request.building, gig.faculty_request.room_number].filter(Boolean).join(' ');
+    events.push(piece(`Confirmed Gig${location ? ` — ${location}` : ''}`, gig.faculty_request.starts_at, gig.faculty_request.ends_at, CALENDAR_COLORS.blue));
+    if (gigEnd > cursor) cursor = gigEnd;
+  });
+
+  if (cursor < blockEnd) events.push(piece(freeLabel, cursor.toISOString(), blockEnd.toISOString(), CALENDAR_COLORS.green));
+  return events;
 };

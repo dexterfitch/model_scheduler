@@ -4,8 +4,7 @@ import { Container, Row, Col, Card, Badge, Button, Alert, Spinner, Modal, Form }
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { formatSkinTone } from "../utils/formatters";
-import { formatTimeForInput, findActiveGigForAvailability } from "../utils/time";
-import { CALENDAR_COLORS } from "../utils/constants";
+import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents } from "../utils/time";
 
 function ModelDetail() {
   const { id } = useParams();
@@ -28,21 +27,7 @@ function ModelDetail() {
   }, [id]);
 
   useEffect(() => {
-    const events = availabilities.map(a => {
-      const gig = gigs.find(g => g.art_model_availability.id === a.id && g.status === 'confirmed');
-      const label = a.status !== 'active' ? 'Cancelled' : gig ? 'Confirmed Gig' : 'Available';
-      const color = a.status !== 'active' ? CALENDAR_COLORS.grey : gig ? CALENDAR_COLORS.blue : CALENDAR_COLORS.green;
-
-      return {
-        id: a.id,
-        title: label,
-        start: a.starts_at,
-        end: a.ends_at,
-        backgroundColor: color,
-        display: 'block',
-        extendedProps: { ...a }
-      };
-    });
+    const events = availabilities.flatMap(a => availabilityEvents(a, gigs, { freeLabel: 'Available' }));
     setCalendarEvents(events);
   }, [availabilities, gigs]);
 
