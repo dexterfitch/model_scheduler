@@ -40,4 +40,33 @@ RSpec.describe User, type: :model do
       expect(user.first_name).to eq("GoogleFirst")
     end
   end
+
+  describe ".bring_all_profile_values_up_to_date!" do
+    it "fixes old spellings and clears values that no longer exist" do
+      model = create(:user, :model)
+      model.update_columns(gender_identity: "Non-Binary", skin_tone: "dark ", body_type: "Slim")
+      faculty = create(:user)
+      faculty.update_columns(gender_identity: "Retired option")
+
+      User.bring_all_profile_values_up_to_date!
+
+      model.reload
+      expect(model.gender_identity).to eq("Non-binary")
+      expect(model.skin_tone).to eq("Dark")
+      expect(model.body_type).to be_nil
+      expect(faculty.reload.gender_identity).to be_nil
+    end
+
+    it "gives a model whose gender no longer exists 'Prefer not to say', so their profile still works" do
+      model = create(:user, :model)
+      model.update_columns(gender_identity: "Retired option")
+      User.bring_all_profile_values_up_to_date!
+      expect(model.reload.gender_identity).to eq("Prefer not to say")
+    end
+
+    it "leaves profiles that are already up to date alone" do
+      model = create(:user, :model, gender_identity: "Woman", skin_tone: "Medium")
+      expect { User.bring_all_profile_values_up_to_date! }.not_to(change { model.reload.updated_at })
+    end
+  end
 end

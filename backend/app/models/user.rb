@@ -42,6 +42,28 @@ class User < ApplicationRecord
     super({ except: [:created_at, :updated_at] }.merge(options))
   end
 
+  # The matching option from today's list, ignoring capitals and spaces, or nil
+  def self.current_option(value, options)
+    options.find { |option| option.casecmp?(value.to_s.strip) }
+  end
+
+  # One-time cleanup for profiles saved under older option lists. Old spellings
+  # (like "Non-Binary") become today's spelling; values that no longer exist are
+  # cleared, except a model's gender, which becomes "Prefer not to say".
+  def self.bring_all_profile_values_up_to_date!
+    find_each do |user|
+      user.gender_identity = current_option(user.gender_identity, GENDER_IDENTITIES)
+      user.gender_identity ||= "Prefer not to say" if user.role_model?
+      user.skin_tone = current_option(user.skin_tone, SKIN_TONES)
+      user.body_type = current_option(user.body_type, BODY_TYPES)
+      user.genitalia = current_option(user.genitalia, GENITALIA)
+
+      # Skip validation: a model whose skin tone was cleared should still be
+      # saved, and will be asked to choose one on their profile
+      user.save!(validate: false) if user.changed?
+    end
+  end
+
   private
 
   def no_upcoming_nude_bookings
