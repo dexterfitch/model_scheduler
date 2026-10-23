@@ -98,4 +98,14 @@ describe('AllRequests (admin requests page)', () => {
     }
     expect(within(dialog).getByRole('button', { name: 'Remove date 1' })).toBeInTheDocument();
   });
+
+  it('flags the date a model dropped out of, and names them', async () => {
+    const dropped = {
+      ...series,
+      faculty_requests: [{ ...series.faculty_requests[0], needs_attention: true, dropped_out_model_name: 'Jordan Ellis' }]
+    };
+    api.get.mockResolvedValue({ data: [dropped] });
+    renderPage();
+    expect((await screen.findAllByText('Needs Attention: Jordan Ellis dropped out')).length).toBeGreaterThan(0);
+  });
 });

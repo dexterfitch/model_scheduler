@@ -271,6 +271,11 @@ function AllRequests() {
           {(req.confirmed_gigs || []).length}/{req.models_needed} models
         </Badge>
       )}
+      {req.needs_attention && req.status !== 'archived' && (
+        <Badge bg="danger" className={`ms-2 ${styles.badge}`}>
+          Needs Attention: {req.dropped_out_model_name || 'a model'} dropped out
+        </Badge>
+      )}
       {req.status !== 'archived' && (req.confirmed_gigs || []).length > 0 && (
         <>
           {' ('}
