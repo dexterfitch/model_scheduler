@@ -202,14 +202,14 @@ function Reports() {
         <Card.Header className="bg-primary text-white fw-bold">Model Hours Report</Card.Header>
         <Card.Body>
           <Row className="g-2 align-items-end">
-            <Col xs={12} sm={6} md={4}>
+            <Form.Group as={Col} xs={12} sm={6} md={4} controlId="report-start-date">
               <Form.Label>Start Date</Form.Label>
               <Form.Control type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-            </Col>
-            <Col xs={12} sm={6} md={4}>
+            </Form.Group>
+            <Form.Group as={Col} xs={12} sm={6} md={4} controlId="report-end-date">
               <Form.Label>End Date</Form.Label>
               <Form.Control type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-            </Col>
+            </Form.Group>
             <Col xs={12} md={4}>
               <Button variant="primary" className="w-100 mb-2" onClick={generateReport}>
                 Generate Report

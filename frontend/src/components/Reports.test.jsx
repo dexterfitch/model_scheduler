@@ -30,9 +30,10 @@ const gigs = [
 ];
 
 async function runReport(start, end) {
-  const { container } = render(<Reports />);
+  render(<Reports />);
   await waitForGigsToLoad();
-  const [startInput, endInput] = container.querySelectorAll('input[type="date"]');
+  const startInput = screen.getByLabelText('Start Date');
+  const endInput = screen.getByLabelText('End Date');
   fireEvent.change(startInput, { target: { value: start } });
   fireEvent.change(endInput, { target: { value: end } });
   await userEvent.click(screen.getByRole('button', { name: 'Generate Report' }));
