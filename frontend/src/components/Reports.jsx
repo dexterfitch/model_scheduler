@@ -9,7 +9,7 @@ function Reports() {
   const [fetchError, setFetchError] = useState('');
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [report, setReport] = useState(null);\
+  const [report, setReport] = useState(null);
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
