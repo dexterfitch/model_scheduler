@@ -336,13 +336,13 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
           {sockSuccess && (
             <div className="alert alert-success alert-dismissible fade show" role="alert">
               Sock account created successfully!
-              <button type="button" className="btn-close" onClick={() => setSockSuccess(false)}></button>
+              <button type="button" className="btn-close" aria-label="Close" onClick={() => setSockSuccess(false)}></button>
             </div>
           )}
           {sockErrors.length > 0 && (
             <div className="alert alert-danger alert-dismissible fade show" role="alert">
               {sockErrors.map((e, i) => <div key={i}>{e}</div>)}
-              <button type="button" className="btn-close" onClick={() => setSockErrors([])}></button>
+              <button type="button" className="btn-close" aria-label="Close" onClick={() => setSockErrors([])}></button>
             </div>
           )}
           <form onSubmit={handleCreateSockAccount}>
@@ -412,8 +412,8 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
         </div>
         <div className="card-body">
           <div className="mb-4">
-            <label className="form-label fw-bold">Select Model</label>
-            <select className="form-select" value={selectedModelId} onChange={handleModelSelect}>
+            <label className="form-label fw-bold" htmlFor="avail-model">Select Model</label>
+            <select id="avail-model" className="form-select" value={selectedModelId} onChange={handleModelSelect}>
               <option value="">-- Choose a model --</option>
               {models.map(m => (
                 <option key={m.id} value={m.id}>
@@ -440,9 +440,11 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                         </span>
                         <button
                           className="btn btn-sm btn-outline-danger ms-2"
+                          aria-label={`${activeGig ? 'Cancel gig' : 'Delete availability'} on ${formatDateTime(slot.starts_at)}`}
+                          title={activeGig ? 'Cancel gig' : 'Delete availability'}
                           onClick={() => activeGig ? handleCancelSlotGig(slot.id) : handleDeleteSlot(slot.id)}
                         >
-                          ✕
+                          <span aria-hidden="true">✕</span>
                         </button>
                       </div>
                     );
@@ -458,13 +460,13 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
               {availSuccess && (
                 <div className="alert alert-success alert-dismissible fade show" role="alert">
                   Availability saved!
-                  <button type="button" className="btn-close" onClick={() => setAvailSuccess(false)}></button>
+                  <button type="button" className="btn-close" aria-label="Close" onClick={() => setAvailSuccess(false)}></button>
                 </div>
               )}
               {availErrors.length > 0 && (
                 <div className="alert alert-danger alert-dismissible fade show" role="alert">
                   {availErrors.map((e, i) => <div key={i}>{e}</div>)}
-                  <button type="button" className="btn-close" onClick={() => setAvailErrors([])}></button>
+                  <button type="button" className="btn-close" aria-label="Close" onClick={() => setAvailErrors([])}></button>
                 </div>
               )}
 
@@ -473,24 +475,26 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                   <div className="card-body py-2 px-3">
                     <Row className="g-2 align-items-end">
                       <Col xs={12} sm={4}>
-                        <label className="form-label small mb-1">Date</label>
-                        <input type="date" className="form-control form-control-sm" value={slot.date}
+                        <label className="form-label small mb-1" htmlFor={`new-slot-${i}-date`}>Date</label>
+                        <input id={`new-slot-${i}-date`} type="date" className="form-control form-control-sm" value={slot.date}
                           onChange={e => updateNewSlot(i, 'date', e.target.value)} />
                       </Col>
                       <Col xs={5} sm={3}>
-                        <label className="form-label small mb-1">Start</label>
-                        <input type="time" className="form-control form-control-sm" value={slot.start}
+                        <label className="form-label small mb-1" htmlFor={`new-slot-${i}-start`}>Start</label>
+                        <input id={`new-slot-${i}-start`} type="time" className="form-control form-control-sm" value={slot.start}
                           onChange={e => updateNewSlot(i, 'start', e.target.value)}
                           onBlur={e => updateNewSlot(i, 'start', roundToNearest5(e.target.value))} />
                       </Col>
                       <Col xs={5} sm={3}>
-                        <label className="form-label small mb-1">End</label>
-                        <input type="time" className="form-control form-control-sm" value={slot.end}
+                        <label className="form-label small mb-1" htmlFor={`new-slot-${i}-end`}>End</label>
+                        <input id={`new-slot-${i}-end`} type="time" className="form-control form-control-sm" value={slot.end}
                           onChange={e => updateNewSlot(i, 'end', e.target.value)}
                           onBlur={e => updateNewSlot(i, 'end', roundToNearest5(e.target.value))} />
                       </Col>
                       <Col xs={2} sm={2} className="d-flex align-items-end">
-                        <button type="button" className="btn btn-sm btn-outline-danger w-100" onClick={() => removeNewSlot(i)}>✕</button>
+                        <button type="button" className="btn btn-sm btn-outline-danger w-100" aria-label={`Remove new slot ${i + 1}`} title="Remove slot" onClick={() => removeNewSlot(i)}>
+                          <span aria-hidden="true">✕</span>
+                        </button>
                       </Col>
                     </Row>
                   </div>

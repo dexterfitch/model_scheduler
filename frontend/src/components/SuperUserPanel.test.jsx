@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import SuperUserPanel from './SuperUserPanel';
 import api from '../services/api';
+import { daysFromNow } from '../test/dates';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
 
@@ -93,5 +94,27 @@ describe('SuperUserPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create Sock Account' }));
 
     expect(await screen.findByText('Email has already been taken')).toBeInTheDocument();
+  });
+
+  it('names every control in the availability manager', async () => {
+    const jordan = { id: 4, role: 'model', first_name: 'Jordan', last_name: 'Ellis', email: 'jellis@mica.edu' };
+    const slot = { id: 50, starts_at: daysFromNow(3, 15), ends_at: daysFromNow(3, 17), status: 'open' };
+    api.get.mockImplementation((url) => Promise.resolve({
+      data: url === '/users' ? [me, priya, jordan]
+          : url.startsWith('/art_model_availabilities') ? [slot]
+          : []
+    }));
+    renderPanel();
+
+    await screen.findByRole('option', { name: /Jordan Ellis/ });
+    await userEvent.selectOptions(screen.getByLabelText('Select Model'), '4');
+
+    expect(await screen.findByRole('button', { name: /Delete availability/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '+ Add Slot' }));
+    expect(screen.getByLabelText('Date')).toBeInTheDocument();
+    expect(screen.getByLabelText('Start')).toBeInTheDocument();
+    expect(screen.getByLabelText('End')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove new slot 1' })).toBeInTheDocument();
   });
 });
