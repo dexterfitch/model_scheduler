@@ -130,7 +130,7 @@ function Reports() {
             dept.cancelled.forEach(c => deptRows.push({
               modelName: modelData.name, department: dept.name, className: c.className,
               facultyName: c.facultyName, date: c.date, timeRange: c.timeRange,
-              mode: c.mode === 'nude' ? "Nude" : "Clothed", status: "Cancelled (Billable)", hours: c.hours
+              mode: c.mode === 'nude' ? "Nude" : "Clothed", status: "Late cancel (billable)", hours: c.hours
             }));
 
             deptRows.sort((a, b) => new Date(a.date) - new Date(b.date) || a.mode.localeCompare(b.mode));
@@ -187,6 +187,61 @@ function Reports() {
       </div>
     </div>
   );
+
+  // The printable table. Columns match their headings, late cancellations are
+  // labeled, and each model gets a total row, plus a grand total at the end.
+  const renderPrintTable = () => {
+    const rows = flattenReportRows();
+    const totalFor = (name) => rows.filter(r => r.modelName === name).reduce((sum, r) => sum + r.hours, 0);
+    const grandTotal = rows.reduce((sum, r) => sum + r.hours, 0);
+
+    return (
+      <table className={`table table-sm table-bordered ${styles.printTable}`}>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Department</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Mode</th>
+            <th>Status</th>
+            <th className="text-end">Hours</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => {
+            const isNewModel = i === 0 || rows[i - 1].modelName !== row.modelName;
+            const isLastForModel = i === rows.length - 1 || rows[i + 1].modelName !== row.modelName;
+            return (
+              <React.Fragment key={i}>
+                <tr className={isNewModel ? styles.newModelRow : undefined}>
+                  <td>{row.modelName}</td>
+                  <td>{row.department}</td>
+                  <td>{row.date}</td>
+                  <td>{row.timeRange}</td>
+                  <td>{row.mode}</td>
+                  <td>{row.status}</td>
+                  <td className="text-end">{row.hours}</td>
+                </tr>
+                {isLastForModel && (
+                  <tr className="fw-bold">
+                    <td colSpan={6}>Total for {row.modelName}</td>
+                    <td className="text-end">{totalFor(row.modelName)}</td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          <tr className="fw-bold">
+            <td colSpan={6}>Grand total</td>
+            <td className="text-end">{grandTotal}</td>
+          </tr>
+        </tfoot>
+      </table>
+    );
+  };
 
   return (
     <Container className="py-4">
@@ -260,33 +315,7 @@ function Reports() {
           <div className={`${styles.printOnly} mb-2`}>
             <strong>Report Period:</strong> {startDate} – {endDate}
           </div>
-          <table className={`table table-sm table-bordered ${styles.printTable}`}>
-            <thead>
-              <tr>
-                <th>Model</th>
-                <th>Department</th>
-                <th>Mode</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th className="text-end">Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              {flattenReportRows().map((row, i, arr) => {
-                const isNewModel = i === 0 || arr[i - 1].modelName !== row.modelName;
-                return (
-                  <tr key={i} className={isNewModel ? styles.newModelRow : undefined}>
-                    <td>{row.modelName}</td>
-                    <td>{row.department}</td>
-                    <td>{row.date}</td>
-                    <td>{row.timeRange}</td>
-                    <td>{row.mode}</td>
-                    <td className="text-end">{row.hours}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          {renderPrintTable()}
         </>
       )}
     </Container>

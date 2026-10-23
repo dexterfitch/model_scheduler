@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Reports from './Reports';
 import api from '../services/api';
@@ -62,6 +62,27 @@ describe('Reports (model hours)', () => {
     await runReport('2026-11-01', '2026-11-30');
     // 1 hour 20 minutes rounds to 1.25
     expect(await screen.findByText('Payable Total: 1.25 hrs')).toBeInTheDocument();
+  });
+
+  it('prints a table whose columns match their headings, with a status and totals', async () => {
+    await runReport('2026-11-01', '2026-11-30');
+    const table = await screen.findByRole('table');
+
+    const headings = within(table).getAllByRole('columnheader').map(h => h.textContent);
+    expect(headings).toEqual(['Model', 'Department', 'Date', 'Time', 'Mode', 'Status', 'Hours']);
+
+    const rows = within(table).getAllByRole('row').slice(1)
+      .map(r => within(r).getAllByRole('cell').map(c => c.textContent));
+
+    // The late cancellation is labeled, and its Mode column really shows the mode
+    const lateCancel = rows.find(r => r[5] === 'Late cancel (billable)');
+    expect(lateCancel[4]).toBe('Clothed');
+    expect(lateCancel[6]).toBe('2');
+
+    // A total under each model, and one for the whole report (7 + 1.25)
+    expect(rows).toContainEqual(['Total for Jordan Ellis', '7']);
+    expect(rows).toContainEqual(['Total for Riley Park', '1.25']);
+    expect(rows).toContainEqual(['Grand total', '8.25']);
   });
 
   it('says so when nothing falls in the range', async () => {
