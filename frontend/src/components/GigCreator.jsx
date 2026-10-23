@@ -6,6 +6,8 @@ import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia
 import { formatTime, formatDateWithWeekday, formatDateTime, availabilityCoversRequest, hasSchedulingConflict } from "../utils/time";
 
 const modelName = (user) => `${user?.first_name} ${user?.last_name}`;
+// Earliest date first
+const byStart = (a, b) => new Date(a.starts_at) - new Date(b.starts_at);
 
 function GigCreator() {
   const { requestId } = useParams();
@@ -48,7 +50,7 @@ function GigCreator() {
       setSeries(targetSeries);
 
       if (targetSeries) {
-        const pendingRequests = targetSeries.faculty_requests?.filter(r => r.status === 'pending') || [];
+        const pendingRequests = (targetSeries.faculty_requests?.filter(r => r.status === 'pending') || []).sort(byStart);
         const isNudeReq = targetSeries.model_mode === "nude";
 
         const confirmedGigs = gigsRes.data.filter(g => g.status === 'confirmed');
@@ -209,7 +211,7 @@ function GigCreator() {
 
   const displayData = isSeries ? series : request;
   const pendingRequests = isSeries
-    ? series.faculty_requests?.filter(r => r.status === 'pending') || []
+    ? (series.faculty_requests?.filter(r => r.status === 'pending') || []).sort(byStart)
     : (request.status === 'pending' ? [request] : []);
   const modelsNeeded = displayData.models_needed || 1;
   const isMultiModel = modelsNeeded > 1;
