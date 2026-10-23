@@ -38,6 +38,24 @@ RSpec.describe "Faculty request permissions", type: :request do
     expect(faculty_request.reload.user_id).to eq(faculty.id)
   end
 
+  it "only changes the day and times when one date is edited; class details stay with the series" do
+    faculty_request = create(:faculty_request, user: faculty, class_name: "Figure Drawing I", building: "Main")
+    new_start = 8.days.from_now.change(hour: 13)
+
+    patch "/faculty_requests/#{faculty_request.id}",
+      params: { faculty_request: {
+        class_name: "Something Else", building: "Fox",
+        starts_at: new_start.iso8601, ends_at: (new_start + 2.hours).iso8601
+      } },
+      headers: auth_headers(faculty), as: :json
+
+    expect(response).to have_http_status(:ok)
+    faculty_request.reload
+    expect(faculty_request.starts_at).to eq(new_start)
+    expect(faculty_request.class_name).to eq("Figure Drawing I")
+    expect(faculty_request.building).to eq("Main")
+  end
+
   describe "viewing, editing and cancelling single dates" do
     let(:my_request) { create(:faculty_request, user: faculty) }
 

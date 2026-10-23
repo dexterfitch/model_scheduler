@@ -36,7 +36,7 @@ class FacultyRequestsController < ApplicationController
       return render json: { error: "This request can no longer be edited because a model has already been booked or it was archived" }, status: :forbidden
     end
 
-    new_starts_at = request_params[:starts_at] ? Time.zone.parse(request_params[:starts_at].to_s) : @request.starts_at
+    new_starts_at = update_params[:starts_at] ? Time.zone.parse(update_params[:starts_at].to_s) : @request.starts_at
 
     if new_starts_at && new_starts_at.to_date <= Date.current
       return render json: { error: "Requests must be for a future date (tomorrow or later)" }, status: :unprocessable_content
@@ -46,7 +46,7 @@ class FacultyRequestsController < ApplicationController
       return render json: { error: "Cannot be more than 4 months in the future" }, status: :unprocessable_content
     end
 
-    if @request.update(request_params)
+    if @request.update(update_params)
       @request.request_series&.update_status!
       render json: @request
     else
@@ -76,6 +76,12 @@ class FacultyRequestsController < ApplicationController
   end
 
   private
+  
+  # Editing one date changes only its day and times. Class details and
+  # preferences live on the series, so every date stays consistent.
+  def update_params
+    params.require(:faculty_request).permit(:starts_at, :ends_at)
+  end
 
   def request_params
     permitted = [
