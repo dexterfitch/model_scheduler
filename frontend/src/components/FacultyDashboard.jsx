@@ -5,7 +5,9 @@ import api from "../services/api";
 import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
-import ModelPreferenceFields, { DEFAULT_MODEL_PREFERENCES, applyPreferenceChange } from "./ModelPreferenceFields";
+import ModelPreferenceFields, {
+  DEFAULT_MODEL_PREFERENCES, DEFAULT_SLOT_STATE, applyPreferenceChange, modelSlotsPayload, slotFormState
+} from "./ModelPreferenceFields";
 
 const PREFERENCE_KEYS = Object.keys(DEFAULT_MODEL_PREFERENCES);
 const pickPreferences = (obj) =>
@@ -40,6 +42,7 @@ function FacultyDashboard({ user }) {
     department: "",
     building: "",
     ...DEFAULT_MODEL_PREFERENCES,
+    ...DEFAULT_SLOT_STATE,
     notes: "",
     room_number: ""
   });
@@ -145,7 +148,8 @@ function FacultyDashboard({ user }) {
         date: d.date,
         start_time: d.start_time,
         end_time: d.end_time
-      }))
+      })),
+      model_slots: modelSlotsPayload(formData)
     };
 
     api.post("/request_series", payload)
@@ -156,7 +160,7 @@ function FacultyDashboard({ user }) {
         fetchSeries();
         setFormData({
           class_name: "", department: "", building: "",
-          ...DEFAULT_MODEL_PREFERENCES, notes: "", room_number: ""
+          ...DEFAULT_MODEL_PREFERENCES, ...DEFAULT_SLOT_STATE, notes: "", room_number: ""
         });
         setDates([emptyDate()]);
       })
@@ -252,6 +256,7 @@ function FacultyDashboard({ user }) {
       building: s.building || "",
       room_number: s.room_number || "",
       ...pickPreferences(s),
+      ...slotFormState(s),
       notes: s.notes || ""
     });
     setClassError('');
@@ -272,7 +277,8 @@ function FacultyDashboard({ user }) {
         room_number: classFormData.room_number,
         ...pickPreferences(classFormData),
         notes: classFormData.notes
-      }
+      },
+      model_slots: modelSlotsPayload(classFormData)
     })
       .then(() => {
         setSubmitSuccess('Class updated for every date!');

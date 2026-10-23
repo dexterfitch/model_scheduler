@@ -119,14 +119,49 @@ describe('FacultyDashboard', () => {
     await userEvent.type(name, 'Anatomy Lab');
     await userEvent.click(within(modal).getByRole('button', { name: 'Save Changes' }));
 
-    expect(api.patch).toHaveBeenCalledWith('/request_series/2', {
+    expect(api.patch).toHaveBeenCalledWith('/request_series/2', expect.objectContaining({
       request_series: expect.objectContaining({ class_name: 'Anatomy Lab', department: 'Drawing' })
-    });
+    }));
   });
 
   it("doesn't offer Edit Class once a model is booked, since only an admin can change it then", async () => {
     render(<FacultyDashboard user={{ id: 1 }} />);
     await screen.findByText('Figure Drawing I');
     expect(screen.queryByRole('button', { name: 'Edit Class' })).toBeNull();
+  });
+
+  it('sends separate preferences for each model in a new request', async () => {
+    api.post.mockResolvedValue({ data: {} });
+    render(<FacultyDashboard user={{ id: 1 }} />);
+    await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
+    const modal = await screen.findByRole('dialog');
+    const field = (label) => within(modal).getByLabelText(label);
+
+    await userEvent.type(field('Class Name'), 'Group Pose Lab');
+    await userEvent.selectOptions(field('Department'), 'Drawing');
+    await userEvent.selectOptions(field('Building'), 'Main');
+    fireEvent.change(field('Date'), { target: { value: nextWeek } });
+    fireEvent.change(field('Start Time'), { target: { value: '10:00' } });
+    fireEvent.change(field('End Time'), { target: { value: '12:00' } });
+    await userEvent.selectOptions(field('Number of Models'), '2');
+    const model2 = within(modal).getByRole('group', { name: 'Model 2' });
+    await userEvent.selectOptions(within(model2).getByLabelText('Body Type'), 'Fat');
+    await userEvent.click(within(modal).getByRole('button', { name: 'Submit Request' }));
+
+    expect(api.post).toHaveBeenCalledWith('/request_series', expect.objectContaining({
+      model_slots: [
+        expect.objectContaining({ pref_body_type: 'Any' }),
+        expect.objectContaining({ pref_body_type: 'Fat' })
+      ]
+    }));
+  });
+
+  it('opens Edit Class with "Same for every model" on for classes saved without per-model preferences', async () => {
+    const unbooked = { ...series, id: 2, building: 'Main', faculty_requests: [series.faculty_requests[1]] };
+    api.get.mockResolvedValue({ data: [unbooked] });
+    render(<FacultyDashboard user={{ id: 1 }} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit Class' }));
+    const modal = await screen.findByRole('dialog');
+    expect(within(modal).getByLabelText('Same for every model')).toBeChecked();
   });
 });
