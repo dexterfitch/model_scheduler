@@ -2,6 +2,7 @@ puts "🌱 Seeding Database..."
 
 Gig.delete_all
 FacultyRequest.delete_all
+ModelSlot.delete_all
 RequestSeries.delete_all
 ArtModelAvailability.delete_all
 User.where.not(email: "dfitch@mica.edu").delete_all
@@ -81,7 +82,8 @@ puts "Building scenarios..."
 
 # Helper to create a matched gig cleanly (mirrors gigs_controller#create side effects)
 def book!(faculty_request, availability, confirmed_by:)
-  gig = Gig.create!(faculty_request: faculty_request, art_model_availability: availability, confirmed_by: confirmed_by)
+  gig = Gig.create!(faculty_request: faculty_request, art_model_availability: availability, confirmed_by: confirmed_by,
+                    model_slot_position: faculty_request.best_open_slot_for(availability.user))
   faculty_request.refresh_match_status!
   faculty_request.update!(needs_attention: false) if faculty_request.matched?
   faculty_request.request_series&.update_status!
@@ -373,6 +375,9 @@ series_n = RequestSeries.create!(
   building: "Main", room_number: "305", model_mode: :clothed,
   pref_skin_tone: "Any", pref_gender: "Any", models_needed: 2, status: :pending
 )
+# Faculty asked for one muscular and one fat model
+series_n.model_slots.create!(position: 1, pref_body_type: "Muscular")
+series_n.model_slots.create!(position: 2, pref_body_type: "Fat")
 fr_n = FacultyRequest.create!(
   request_series: series_n, user: faculty3, class_name: series_n.class_name,
   department: series_n.department, building: series_n.building, room_number: series_n.room_number,
