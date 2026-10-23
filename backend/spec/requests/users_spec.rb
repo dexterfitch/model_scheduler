@@ -64,6 +64,32 @@ RSpec.describe "User profile permissions", type: :request do
       expect(user.reload).to be_role_model
     end
 
+    it "brings outdated profile values up to date when switching someone to model" do
+      user.update_columns(gender_identity: "Non-Binary", skin_tone: "medium", body_type: "Slim")
+      post "/users/#{user.id}/promote", params: { role: "model" }, headers: auth_headers(admin), as: :json
+
+      expect(response).to have_http_status(:ok)
+      user.reload
+      expect(user).to be_role_model
+      expect(user.gender_identity).to eq("Non-binary") # same answer, today's spelling
+      expect(user.skin_tone).to eq("Medium")
+      expect(user.body_type).to be_nil                 # no longer an option, and optional
+    end
+
+    it "uses Prefer not to say for a gender value that no longer exists" do
+      user.update_columns(gender_identity: "Retired option")
+      post "/users/#{user.id}/promote", params: { role: "model" }, headers: auth_headers(admin), as: :json
+      expect(user.reload.gender_identity).to eq("Prefer not to say")
+    end
+
+    it "explains why a role switch failed" do
+      user.update_columns(email: "old.address@gmail.com")
+      post "/users/#{user.id}/promote", params: { role: "model" }, headers: auth_headers(admin), as: :json
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["errors"]).to include("Email must be a MICA email address")
+    end
+
     it "only lets superusers grant superuser status" do
       other_admin = create(:user, :admin)
       post "/users/#{other_admin.id}/promote_to_superuser", headers: auth_headers(admin)

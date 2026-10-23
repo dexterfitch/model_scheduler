@@ -49,7 +49,7 @@ class UsersController < ApplicationController
       render json: user
     else
       Rails.logger.error("Promote Failed: #{user.errors.full_messages}")
-      render json: { error: user.errors.full_messages }, status: :unprocessable_content
+      render json: { errors: user.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -86,7 +86,7 @@ class UsersController < ApplicationController
     if current_user.save
       render json: current_user
     else
-      render json: { error: current_user.errors.full_messages }, status: :unprocessable_content
+      render json: { errors: current_user.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -108,9 +108,18 @@ class UsersController < ApplicationController
     params.require(:user).permit(permitted)
   end
 
+  # Bring a profile up to date before it becomes a model profile: match old
+  # spellings (like "Non-Binary") to today's options, and fill in anything missing
   def apply_model_defaults(user)
-    user.skin_tone ||= User::SKIN_TONES.first
-    user.gender_identity ||= User::GENDER_IDENTITIES.last
+    user.gender_identity = current_option(user.gender_identity, User::GENDER_IDENTITIES) || "Prefer not to say"
+    user.skin_tone       = current_option(user.skin_tone, User::SKIN_TONES) || User::SKIN_TONES.first
+    user.body_type       = current_option(user.body_type, User::BODY_TYPES)
+    user.genitalia       = current_option(user.genitalia, User::GENITALIA)
     user.willing_to_model_nude = false if user.willing_to_model_nude.nil?
+  end
+
+  # The matching option from today's list, ignoring capitals and spaces, or nil
+  def current_option(value, options)
+    options.find { |option| option.casecmp?(value.to_s.strip) }
   end
 end
