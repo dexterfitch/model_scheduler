@@ -19,13 +19,18 @@ class GigsController < ApplicationController
   end
 
   def create
-    gig = Gig.new(gig_params)
+    gig = reusable_cancelled_gig || Gig.new
+    gig.assign_attributes(gig_params)
+    gig.status = :confirmed
+    gig.billable = nil
     gig.confirmed_by = current_user
 
     saved = Gig.transaction do
       # Lock the request so two admins can't over-fill the last open slot at once
       gig.faculty_request&.lock!
-      gig.save
+      # context: :create runs the new-booking checks (room in the class, not
+      # already booked, still bookable) even when reusing an old record
+      gig.save(context: :create)
     end
 
     if saved
@@ -59,6 +64,20 @@ class GigsController < ApplicationController
   end
 
   private
+
+  # Rebooking a model who was released from this class reuses their old record,
+  # so each model has one record per date and a same-day release isn't paid twice
+  def reusable_cancelled_gig
+    availability = ArtModelAvailability.find_by(id: gig_params[:art_model_availability_id])
+    return unless availability
+
+    Gig.cancelled
+      .joins(:art_model_availability)
+      .where(faculty_request_id: gig_params[:faculty_request_id],
+             art_model_availabilities: { user_id: availability.user_id })
+      .order(updated_at: :desc)
+      .first
+  end
 
   def gig_params
     params.require(:gig).permit(:faculty_request_id, :art_model_availability_id)

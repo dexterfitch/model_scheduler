@@ -60,6 +60,32 @@ RSpec.describe "Gigs API", type: :request do
       book(slot, as: slot.user)
       expect(response).to have_http_status(:forbidden)
     end
+
+    it "reuses the cancelled record when the same model is rebooked, so a same-day release isn't paid twice" do
+      slot = create(:art_model_availability)
+      book(slot)
+      first = Gig.last
+      first.update_columns(status: "cancelled", billable: true) # released on the day of class
+
+      book(slot)
+
+      expect(response).to have_http_status(:created)
+      expect(Gig.where(faculty_request: group_class).count).to eq(1)
+      expect(first.reload).to be_confirmed
+      expect(first.billable).to be_nil
+    end
+
+    it "still checks the class has room when reusing a cancelled record" do
+      slot = create(:art_model_availability)
+      book(slot)
+      Gig.last.update_columns(status: "cancelled")
+      2.times { book(create(:art_model_availability)) } # class is full again
+
+      book(slot)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(group_class.confirmed_gigs.count).to eq(2)
+    end
   end
 
   describe "releasing a model" do
