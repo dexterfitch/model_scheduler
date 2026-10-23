@@ -56,6 +56,18 @@ class FacultyRequest < ApplicationRecord
   def fully_staffed?
     booked_count >= models_needed
   end
+  
+  # For classes with per-model preferences: the open slot (by position) this model
+  # fits best, or nil if the class has no per-model preferences or no open slot.
+  # Ties go to the lowest-numbered slot.
+  def best_open_slot_for(user)
+    slots = request_series&.model_slots.to_a
+    return nil if slots.empty?
+
+    taken = confirmed_gigs.pluck(:model_slot_position).compact
+    open = slots.reject { |slot| taken.include?(slot.position) }
+    open.max_by { |slot| [slot.match_score(user, nude: nude?), -slot.position] }&.position
+  end
 
   # Who dropped out, for the admin's "Needs Attention" note: the model whose
   # booking on this date was cancelled most recently

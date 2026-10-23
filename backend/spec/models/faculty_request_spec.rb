@@ -72,4 +72,27 @@ RSpec.describe FacultyRequest, type: :model do
         .not_to(change { request.reload.request_series_id })
     end
   end
+
+  describe "#best_open_slot_for" do
+    let(:series)  { create(:request_series, models_needed: 2) }
+    let(:request) { create(:faculty_request, request_series: series, user: series.user, models_needed: 2) }
+
+    before do
+      series.model_slots.create!(position: 1, pref_body_type: "Muscular")
+      series.model_slots.create!(position: 2, pref_body_type: "Fat")
+    end
+
+    it "picks the open slot the model fits best" do
+      expect(request.best_open_slot_for(build(:user, :model, body_type: "Fat"))).to eq(2)
+    end
+
+    it "skips slots that are already filled" do
+      create(:gig, faculty_request: request, model_slot_position: 2)
+      expect(request.best_open_slot_for(build(:user, :model, body_type: "Fat"))).to eq(1)
+    end
+
+    it "is nil for classes without per-model preferences" do
+      expect(create(:faculty_request).best_open_slot_for(build(:user, :model))).to be_nil
+    end
+  end
 end

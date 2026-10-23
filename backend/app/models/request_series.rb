@@ -1,6 +1,7 @@
 class RequestSeries < ApplicationRecord
   belongs_to :user
   has_many :faculty_requests, dependent: :destroy
+  has_many :model_slots, -> { order(:position) }, dependent: :destroy
 
   enum :status, { pending: 0, matched: 1, archived: 2 }
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_23_144534) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_23_174231) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -58,9 +58,23 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_23_144534) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "confirmed_by_id"
+    t.integer "model_slot_position"
     t.index ["art_model_availability_id"], name: "index_gigs_on_art_model_availability_id"
     t.index ["confirmed_by_id"], name: "index_gigs_on_confirmed_by_id"
     t.index ["faculty_request_id"], name: "index_gigs_on_faculty_request_id"
+  end
+
+  create_table "model_slots", force: :cascade do |t|
+    t.bigint "request_series_id", null: false
+    t.integer "position", null: false
+    t.string "pref_skin_tone", default: "Any", null: false
+    t.string "pref_gender", default: "Any", null: false
+    t.string "pref_body_type", default: "Any", null: false
+    t.string "pref_genitalia", default: "Any", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["request_series_id", "position"], name: "index_model_slots_on_request_series_id_and_position", unique: true
+    t.index ["request_series_id"], name: "index_model_slots_on_request_series_id"
   end
 
   create_table "request_series", force: :cascade do |t|
@@ -108,5 +122,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_23_144534) do
   add_foreign_key "gigs", "art_model_availabilities"
   add_foreign_key "gigs", "faculty_requests"
   add_foreign_key "gigs", "users", column: "confirmed_by_id"
+  add_foreign_key "model_slots", "request_series"
   add_foreign_key "request_series", "users"
 end
