@@ -3,11 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Layout from './Layout';
 import api from '../services/api';
+import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({ default: { post: vi.fn() } }));
 
 function renderLayout(user, { onLogout = vi.fn(), refreshUser = vi.fn() } = {}) {
-  render(
+  renderWithDialogs(
     <MemoryRouter>
       <Layout currentUser={user} onLogout={onLogout} refreshUser={refreshUser} />
     </MemoryRouter>
@@ -69,5 +70,13 @@ describe('Layout (navigation)', () => {
   it('gives the bug report button a name screen readers can announce', () => {
     renderLayout(faculty);
     expect(screen.getByRole('button', { name: 'Report a bug' })).toBeInTheDocument();
+  });
+
+  it('explains if restoring the admin role fails', async () => {
+    api.post.mockRejectedValue({ response: { data: { errors: ['Email must be a MICA email address'] } } });
+    renderLayout({ ...model, superuser: true });
+    await userEvent.click(screen.getByRole('button', { name: 'Restore Admin Role' }));
+    expect(await screen.findByRole('dialog', { name: "Couldn't restore admin role" }))
+      .toHaveTextContent('Email must be a MICA email address');
   });
 });

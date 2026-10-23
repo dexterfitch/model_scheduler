@@ -3,9 +3,12 @@ import { Navbar, Nav, Container, Button, Modal, Form } from 'react-bootstrap';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import styles from './Layout.module.css';
+import { useDialog } from './DialogProvider';
+import { extractErrorMessages } from '../utils/formatters';
 
 function Layout({ currentUser, onLogout, refreshUser }) {
   const location = useLocation();
+  const { notify } = useDialog();
 
   const [navExpanded, setNavExpanded] = useState(false);
   const [showBugModal, setShowBugModal] = useState(false);
@@ -16,7 +19,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
       const res =await api.post(`/users/${currentUser.id}/promote`, { role: 'admin' });
       refreshUser(res.data);
     } catch (err) {
-      alert("Failed to restore admin role. Check console.");
+      notify({ title: "Couldn't restore admin role", message: extractErrorMessages(err, 'Please try again.') });
       console.error(err);
     }
   };

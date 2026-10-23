@@ -9,7 +9,8 @@ function Reports() {
   const [fetchError, setFetchError] = useState('');
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [report, setReport] = useState(null);
+  const [report, setReport] = useState(null);\
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     api.get("/gigs")
@@ -24,9 +25,10 @@ function Reports() {
 
   const generateReport = () => {
     if (!startDate || !endDate) {
-      alert("Please select both a start and end date.");
+      setFormError("Please select both a start and end date.");
       return;
     }
+    setFormError('');
 
     const start = new Date(startDate + "T00:00:00");
     const end = new Date(endDate + "T23:59:59");
@@ -276,6 +278,7 @@ function Reports() {
               )}
             </Col>
           </Row>
+          {formError && <Alert variant="danger" className="mt-3 mb-0">{formError}</Alert>}
         </Card.Body>
       </Card>
 

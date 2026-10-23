@@ -90,10 +90,9 @@ describe('Reports (model hours)', () => {
     expect(await screen.findByText('No gigs found in this date range.')).toBeInTheDocument();
   });
 
-  it('asks for both dates before generating', async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+  it('asks for both dates before generating, right under the fields', async () => {
     render(<Reports />);
     await userEvent.click(screen.getByRole('button', { name: 'Generate Report' }));
-    expect(alertSpy).toHaveBeenCalledWith('Please select both a start and end date.');
+    expect(screen.getByText('Please select both a start and end date.')).toBeInTheDocument();
   });
 });
