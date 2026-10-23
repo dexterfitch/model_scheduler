@@ -68,13 +68,14 @@ export const findActiveGigForAvailability = (gigsList, availabilityId) => {
 // real start and end, and the time around it as free. Every piece keeps the
 // block's id and details, so clicking any part still opens that block.
 export const availabilityEvents = (availability, gigs, { freeLabel = 'Free' } = {}) => {
-  const piece = (title, start, end, backgroundColor) => ({
-    id: availability.id, title, start, end, backgroundColor, display: 'block',
+  // kind is 'free', 'gig' or 'cancelled', for code that needs just one of them
+  const piece = (kind, title, start, end, backgroundColor) => ({
+    id: availability.id, kind, title, start, end, backgroundColor, display: 'block',
     extendedProps: { ...availability }
   });
 
   if (availability.status !== 'active') {
-    return [piece('Cancelled', availability.starts_at, availability.ends_at, CALENDAR_COLORS.grey)];
+    return [piece('cancelled', 'Cancelled', availability.starts_at, availability.ends_at, CALENDAR_COLORS.grey)];
   }
 
   const booked = gigs
@@ -88,12 +89,12 @@ export const availabilityEvents = (availability, gigs, { freeLabel = 'Free' } = 
   booked.forEach(gig => {
     const gigStart = new Date(gig.faculty_request.starts_at);
     const gigEnd = new Date(gig.faculty_request.ends_at);
-    if (gigStart > cursor) events.push(piece(freeLabel, cursor.toISOString(), gigStart.toISOString(), CALENDAR_COLORS.green));
+    if (gigStart > cursor) events.push(piece('free', freeLabel, cursor.toISOString(), gigStart.toISOString(), CALENDAR_COLORS.green));
     const location = [gig.faculty_request.building, gig.faculty_request.room_number].filter(Boolean).join(' ');
-    events.push(piece(`Confirmed Gig${location ? ` — ${location}` : ''}`, gig.faculty_request.starts_at, gig.faculty_request.ends_at, CALENDAR_COLORS.blue));
+    events.push(piece('gig', `Confirmed Gig${location ? ` — ${location}` : ''}`, gig.faculty_request.starts_at, gig.faculty_request.ends_at, CALENDAR_COLORS.blue));
     if (gigEnd > cursor) cursor = gigEnd;
   });
 
-  if (cursor < blockEnd) events.push(piece(freeLabel, cursor.toISOString(), blockEnd.toISOString(), CALENDAR_COLORS.green));
+  if (cursor < blockEnd) events.push(piece('free', freeLabel, cursor.toISOString(), blockEnd.toISOString(), CALENDAR_COLORS.green));
   return events;
 };

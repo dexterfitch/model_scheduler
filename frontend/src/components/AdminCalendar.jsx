@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, ListGroup, Badge, Alert } from "react-bootstrap";
 import api from "../services/api";
-import { formatDateWithWeekday, formatTime } from "../utils/time";
+import { formatDateWithWeekday, formatTime, availabilityEvents } from "../utils/time";
 import { CALENDAR_COLORS } from "../utils/constants";
 import SharedCalendar from "./SharedCalendar";
 
@@ -46,11 +46,15 @@ function AdminCalendar() {
         }));
 
       const availRes = await api.get("/art_model_availabilities");
-      const futureAvail = availRes.data.filter(a => new Date(a.starts_at) >= new Date());
-      futureAvail.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+      // Only time a model can actually be booked into: active blocks, minus booked classes
+      const now = new Date();
+      const openTime = availRes.data
+        .flatMap(a => availabilityEvents(a, gigsRes.data))
+        .filter(piece => piece.kind === 'free' && new Date(piece.end) > now)
+        .sort((a, b) => new Date(a.start) - new Date(b.start));
 
       setCalendarEvents([...gigs, ...requests]);
-      setAvailabilities(futureAvail);
+      setAvailabilities(openTime);
 
     } catch (err) {
       console.error("Error loading calendar data", err);
@@ -100,17 +104,17 @@ function AdminCalendar() {
           >
             {availabilities.length === 0 ? <p>No upcoming availability.</p> : (
               <ListGroup variant="flush">
-                {availabilities.map(avail => (
-                  <ListGroup.Item key={avail.id} className="bg-light mb-2 rounded border">
+                {availabilities.map(({ start, end, extendedProps: avail }) => (
+                  <ListGroup.Item key={`${avail.id}-${start}`} className="bg-light mb-2 rounded border">
                     <div className="d-flex justify-content-between align-items-center mb-1">
                       <strong>{avail.user.first_name} {avail.user.last_name}</strong>
                       {avail.user.willing_to_model_nude ? <Badge bg="danger">Nude OK</Badge> : <Badge bg="success">Clothed</Badge>}
                     </div>
                     <div className="small text-muted">
-                      {formatDateWithWeekday(avail.starts_at)}
+                      {formatDateWithWeekday(start)}
                     </div>
                     <div className="small fw-bold">
-                      {formatTime(avail.starts_at)} - {formatTime(avail.ends_at)}
+                      {formatTime(start)} - {formatTime(end)}
                     </div>
                   </ListGroup.Item>
                 ))}
