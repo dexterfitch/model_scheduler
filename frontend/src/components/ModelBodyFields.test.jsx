@@ -28,4 +28,10 @@ describe('ModelBodyFields', () => {
     await userEvent.selectOptions(select(container, 'body_type'), 'Average');
     expect(onChange).toHaveBeenCalledWith('body_type', 'Average');
   });
+  
+  it('labels both questions so screen readers can announce them', () => {
+    render(<ModelBodyFields values={{ willing_to_model_nude: true }} onChange={() => {}} />);
+    expect(screen.getByLabelText('Body Type')).toBeInTheDocument();
+    expect(screen.getByLabelText('Genitalia')).toBeInTheDocument();
+  });
 });
