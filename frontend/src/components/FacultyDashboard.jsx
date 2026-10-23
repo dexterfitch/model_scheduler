@@ -21,12 +21,16 @@ function FacultyDashboard({ user }) {
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingRequest, setEditingRequest] = useState(null);
-  const [editFormData, setEditFormData] = useState({
-    class_name: "", department: "", building: "", room_number: "",
-    ...DEFAULT_MODEL_PREFERENCES, notes: "",
-    starts_at: "", starts_time: "", ends_time: ""
-  });
+  // Edit Date: one date's day and times only
+  const [editFormData, setEditFormData] = useState({ starts_at: "", starts_time: "", ends_time: "" });
   const [editError, setEditError] = useState('');
+  // Edit Class: class details and preferences, shared by every date in the series
+  const [editingSeries, setEditingSeries] = useState(null);
+  const [classFormData, setClassFormData] = useState({
+    class_name: "", department: "", building: "", room_number: "",
+    ...DEFAULT_MODEL_PREFERENCES, notes: ""
+  });
+  const [classError, setClassError] = useState('');
   const [addingDateSeriesId, setAddingDateSeriesId] = useState(null);
   const [newDateForm, setNewDateForm] = useState({ date: '', start_time: '', end_time: '' });
   const [addDateError, setAddDateError] = useState(''); 
@@ -72,8 +76,8 @@ function FacultyDashboard({ user }) {
     setFormData(prev => applyPreferenceChange(prev, name, value));
   };
 
-  const handleEditPreferenceChange = (name, value) => {
-    setEditFormData(prev => applyPreferenceChange(prev, name, value));
+  const handleClassPreferenceChange = (name, value) => {
+    setClassFormData(prev => applyPreferenceChange(prev, name, value));
   };
 
   const handleDateChange = (index, field, value) => {
@@ -195,12 +199,6 @@ function FacultyDashboard({ user }) {
 
     setEditingRequest(req);
     setEditFormData({
-      class_name: req.class_name,
-      department: req.department,
-      building: req.building,
-      room_number: req.room_number || "",
-      ...pickPreferences(req),
-      notes: req.notes || "",
       starts_at: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
       starts_time: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
       ends_time: `${pad(end.getHours())}:${pad(end.getMinutes())}`
@@ -232,19 +230,10 @@ function FacultyDashboard({ user }) {
     }
 
     api.patch(`/faculty_requests/${editingRequest.id}`, {
-      faculty_request: {
-        class_name: editFormData.class_name,
-        department: editFormData.department,
-        building: editFormData.building,
-        room_number: editFormData.room_number,
-        ...pickPreferences(editFormData),
-        notes: editFormData.notes,
-        starts_at: startDateTime,
-        ends_at: endDateTime
-      }
+      faculty_request: { starts_at: startDateTime, ends_at: endDateTime }
     })
       .then(() => {
-        setSubmitSuccess('Request updated successfully!');
+        setSubmitSuccess('Date updated successfully!');
         setTimeout(() => setSubmitSuccess(''), 3000);
         setShowEditModal(false);
         fetchSeries();
@@ -252,6 +241,48 @@ function FacultyDashboard({ user }) {
       .catch((err) => {
         console.error(err);
         setEditError(extractErrorMessages(err, "Error updating request. Please try again."));
+      });
+  };
+
+  const openClassModal = (s) => {
+    setEditingSeries(s);
+    setClassFormData({
+      class_name: s.class_name || "",
+      department: s.department || "",
+      building: s.building || "",
+      room_number: s.room_number || "",
+      ...pickPreferences(s),
+      notes: s.notes || ""
+    });
+    setClassError('');
+  };
+
+  const handleClassInputChange = (e) => {
+    const { name, value } = e.target;
+    setClassFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleClassSubmit = (e) => {
+    e.preventDefault();
+    api.patch(`/request_series/${editingSeries.id}`, {
+      request_series: {
+        class_name: classFormData.class_name,
+        department: classFormData.department,
+        building: classFormData.building,
+        room_number: classFormData.room_number,
+        ...pickPreferences(classFormData),
+        notes: classFormData.notes
+      }
+    })
+      .then(() => {
+        setSubmitSuccess('Class updated for every date!');
+        setTimeout(() => setSubmitSuccess(''), 3000);
+        setEditingSeries(null);
+        fetchSeries();
+      })
+      .catch((err) => {
+        console.error(err);
+        setClassError(extractErrorMessages(err, "Error updating class. Please try again."));
       });
   };
 
@@ -396,7 +427,7 @@ function FacultyDashboard({ user }) {
                           <div className="d-flex gap-1">
                             {req.status === 'pending' && (req.confirmed_gigs || []).length === 0 && (
                               <Button variant="outline-secondary" size="sm" onClick={() => openEditModal(req)}>
-                                <i className="bi bi-pencil"></i> Edit
+                                <i className="bi bi-pencil" aria-hidden="true"></i> Edit Date
                               </Button>
                             )}
                             {req.status !== 'archived' && (
@@ -486,6 +517,16 @@ function FacultyDashboard({ user }) {
                     </div>
                   )}
 
+                  {s.status !== 'archived' && !requests.some(r => (r.confirmed_gigs || []).length > 0) && (
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      className="w-100 mt-2"
+                      onClick={() => openClassModal(s)}
+                    >
+                      <i className="bi bi-pencil me-1" aria-hidden="true"></i>Edit Class
+                    </Button>
+                  )}
                   {s.status !== 'archived' && (
                     <Button
                       variant={s.status === 'matched' ? "danger" : "outline-danger"}
@@ -619,9 +660,10 @@ function FacultyDashboard({ user }) {
         </Modal.Body>
       </Modal>
 
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+      {/* Edit Date: just this one date's day and times */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Edit Request</Modal.Title>
+          <Modal.Title>Edit Date</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {editError && (
@@ -629,35 +671,10 @@ function FacultyDashboard({ user }) {
               {editError}
             </Alert>
           )}
+          <p className="small text-muted">
+            To change the class name, room or model preferences for every date, use <strong>Edit Class</strong> on the class card.
+          </p>
           <Form onSubmit={handleEditSubmit}>
-            <Row>
-              <Form.Group as={Col} md={6} className="mb-3" controlId="edit-class-name">
-                <Form.Label>Class Name</Form.Label>
-                <Form.Control required name="class_name" value={editFormData.class_name} onChange={handleEditInputChange} />
-              </Form.Group>
-              <Form.Group as={Col} md={6} className="mb-3" controlId="edit-department">
-                <Form.Label>Department</Form.Label>
-                <Form.Select required name="department" value={editFormData.department} onChange={handleEditInputChange}>
-                  <option value="">-- Select --</option>
-                  {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
-                </Form.Select>
-              </Form.Group>
-            </Row>
-
-            <Row>
-              <Form.Group as={Col} md={4} className="mb-3" controlId="edit-building">
-                <Form.Label>Building</Form.Label>
-                <Form.Select required name="building" value={editFormData.building} onChange={handleEditInputChange}>
-                  <option value="">-- Select --</option>
-                  {BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
-                </Form.Select>
-              </Form.Group>
-              <Form.Group as={Col} md={4} className="mb-3" controlId="edit-room">
-                <Form.Label>Room Number</Form.Label>
-                <Form.Control name="room_number" value={editFormData.room_number} onChange={handleEditInputChange} placeholder="e.g. 413" />
-              </Form.Group>
-            </Row>
-
             <Row>
               <Form.Group as={Col} md={4} className="mb-3" controlId="edit-date">
                 <Form.Label>Date</Form.Label>
@@ -673,17 +690,66 @@ function FacultyDashboard({ user }) {
               </Form.Group>
             </Row>
 
+            <div className="d-flex justify-content-end gap-2 mt-3">
+              <Button variant="secondary" onClick={() => setShowEditModal(false)}>Close</Button>
+              <Button variant="primary" type="submit">Save Changes</Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Edit Class: details and preferences shared by every date */}
+      <Modal show={!!editingSeries} onHide={() => setEditingSeries(null)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Class</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {classError && (
+            <Alert variant="danger" dismissible onClose={() => setClassError('')}>
+              {classError}
+            </Alert>
+          )}
+          <p className="small text-muted">Changes here apply to every date of this class.</p>
+          <Form onSubmit={handleClassSubmit}>
+            <Row>
+              <Form.Group as={Col} md={6} className="mb-3" controlId="class-name">
+                <Form.Label>Class Name</Form.Label>
+                <Form.Control required name="class_name" value={classFormData.class_name} onChange={handleClassInputChange} />
+              </Form.Group>
+              <Form.Group as={Col} md={6} className="mb-3" controlId="class-department">
+                <Form.Label>Department</Form.Label>
+                <Form.Select required name="department" value={classFormData.department} onChange={handleClassInputChange}>
+                  <option value="">-- Select --</option>
+                  {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
+                </Form.Select>
+              </Form.Group>
+            </Row>
+
+            <Row>
+              <Form.Group as={Col} md={4} className="mb-3" controlId="class-building">
+                <Form.Label>Building</Form.Label>
+                <Form.Select required name="building" value={classFormData.building} onChange={handleClassInputChange}>
+                  <option value="">-- Select --</option>
+                  {BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
+                </Form.Select>
+              </Form.Group>
+              <Form.Group as={Col} md={4} className="mb-3" controlId="class-room">
+                <Form.Label>Room Number</Form.Label>
+                <Form.Control name="room_number" value={classFormData.room_number} onChange={handleClassInputChange} placeholder="e.g. 413" />
+              </Form.Group>
+            </Row>
+
             <hr />
             <h5>Model Preferences</h5>
-            <ModelPreferenceFields values={editFormData} onChange={handleEditPreferenceChange} />
+            <ModelPreferenceFields values={classFormData} onChange={handleClassPreferenceChange} />
 
-            <Form.Group className="mb-3" controlId="edit-notes">
+            <Form.Group className="mb-3" controlId="class-notes">
               <Form.Label>Notes for Admin</Form.Label>
-              <Form.Control as="textarea" rows={3} name="notes" value={editFormData.notes} onChange={handleEditInputChange} />
+              <Form.Control as="textarea" rows={3} name="notes" value={classFormData.notes} onChange={handleClassInputChange} />
             </Form.Group>
 
             <div className="d-flex justify-content-end gap-2 mt-3">
-              <Button variant="secondary" onClick={() => setShowEditModal(false)}>Close</Button>
+              <Button variant="secondary" onClick={() => setEditingSeries(null)}>Close</Button>
               <Button variant="primary" type="submit">Save Changes</Button>
             </div>
           </Form>

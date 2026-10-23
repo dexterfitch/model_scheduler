@@ -27,6 +27,10 @@ const pages = [
     open: (page) => openDialog(page, /New Request/) },
   { name: 'edit gig window',    as: 'preyes@mica.edu',    path: '/requests',
     open: (page) => openDialog(page, 'Edit Gig') },
+  { name: 'edit date window',   as: 'achen@mica.edu',     path: '/',
+    open: (page) => openDialog(page, 'Edit Date') },
+  { name: 'edit class window',  as: 'achen@mica.edu',     path: '/',
+    open: (page) => openDialog(page, 'Edit Class') },
 ];
 
 // Clicks the first visible button with this name and waits for its pop-up to finish opening
