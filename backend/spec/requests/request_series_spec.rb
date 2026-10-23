@@ -34,6 +34,34 @@ RSpec.describe "Request series permissions", type: :request do
     expect(series.reload.model_mode).to eq("clothed")
   end
 
+  describe "listing series" do
+    # The booked model cancels their own gig, which flags the date for an admin
+    def model_drops_out
+      gig = booked_date.confirmed_gigs.first
+      model = gig.art_model_availability.user
+      post "/art_model_availabilities/#{gig.art_model_availability_id}/cancel",
+        params: { gig_id: gig.id }, headers: auth_headers(model), as: :json
+      model
+    end
+
+    it "tells admins which model dropped out of a date that needs attention" do
+      model = model_drops_out
+      get "/request_series", headers: auth_headers(admin)
+
+      date = response.parsed_body.first["faculty_requests"].first
+      expect(date["needs_attention"]).to be true
+      expect(date["dropped_out_model_name"]).to eq("#{model.first_name} #{model.last_name}")
+    end
+
+    it "doesn't share the model's name with faculty" do
+      model_drops_out
+      get "/request_series", headers: auth_headers(faculty)
+
+      date = response.parsed_body.first["faculty_requests"].first
+      expect(date).not_to have_key("dropped_out_model_name")
+    end
+  end
+
   describe "release and rematch" do
     it "frees every booked model and reopens the dates" do
       post "/request_series/#{series.id}/release_remaining", headers: auth_headers(admin)

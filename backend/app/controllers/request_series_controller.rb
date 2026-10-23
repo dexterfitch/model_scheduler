@@ -15,6 +15,8 @@ class RequestSeriesController < ApplicationController
     render json: @series, include: {
       user: {},
       faculty_requests: {
+        # Only admins see which model dropped out
+        methods: current_user.role_admin? ? [:dropped_out_model_name] : [],
         include: {
           confirmed_gigs: current_user.role_admin? ? {
             include: { art_model_availability: { include: :user } }

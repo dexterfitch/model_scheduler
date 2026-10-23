@@ -57,6 +57,15 @@ class FacultyRequest < ApplicationRecord
     booked_count >= models_needed
   end
 
+  # Who dropped out, for the admin's "Needs Attention" note: the model whose
+  # booking on this date was cancelled most recently
+  def dropped_out_model_name
+    return unless needs_attention?
+
+    user = gigs.cancelled.order(updated_at: :desc).first&.art_model_availability&.user
+    user && "#{user.first_name} #{user.last_name}"
+  end
+
   # matched = every requested model is booked; pending = at least one slot still open
   def refresh_match_status!
     return if archived?
