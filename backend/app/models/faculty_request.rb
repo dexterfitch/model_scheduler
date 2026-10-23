@@ -64,6 +64,21 @@ class FacultyRequest < ApplicationRecord
     update_columns(status: FacultyRequest.statuses[fully_staffed? ? :matched : :pending], updated_at: Time.current)
   end
 
+  # One-time cleanup: requests made before series existed get a series of their
+  # own, copying their class details, so they show up on My Classes, Requests and
+  # the dashboard. Saved without validation so old values can't block the move.
+  def self.wrap_standalone_requests_in_series!
+    where(request_series_id: nil).find_each do |request|
+      series = RequestSeries.new(request.attributes.slice(*RequestSeries::SHARED_ATTRIBUTES))
+      series.user_id = request.user_id
+      # Older requests may have no preference saved; the series records that as "Any"
+      %w[pref_skin_tone pref_gender pref_body_type pref_genitalia].each { |pref| series[pref] ||= "Any" }
+      series.status = request.archived? ? :archived : (request.matched? ? :matched : :pending)
+      series.save!(validate: false)
+      request.update_columns(request_series_id: series.id)
+    end
+  end
+
   # Cancels every booked model on this date (billable if same-day), then archives
   # or deletes the request. Returns whether the cancellation was late (billable).
   def cancel_with_billing!
