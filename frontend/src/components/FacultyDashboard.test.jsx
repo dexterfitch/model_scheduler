@@ -3,8 +3,9 @@ import userEvent from '@testing-library/user-event';
 import FacultyDashboard from './FacultyDashboard';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
+import { renderWithDialogs } from '../test/render';
 
-vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }));
+vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }));
 
 // One 2-model series: the first date has a model booked, the second doesn't yet
 const series = {
@@ -45,33 +46,33 @@ beforeEach(() => {
 
 describe('FacultyDashboard', () => {
   it('shows how many models the class needs and how many are booked', async () => {
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     expect(await screen.findByText('2 models')).toBeInTheDocument();
     expect(screen.getByText('1 of 2 Models Confirmed')).toBeInTheDocument();
   });
 
   it('only offers Edit Date on dates nobody is booked on yet', async () => {
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await screen.findByText('Figure Drawing I');
     expect(screen.getAllByRole('button', { name: 'Edit Date' })).toHaveLength(1);
   });
 
   it('shows the fallback message when the server sends no explanation', async () => {
     api.post.mockRejectedValue({});
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await submitNewRequest();
     expect(await screen.findByText('Error submitting request. Please try again.')).toBeInTheDocument();
   });
 
   it("shows the server's explanation when there is one", async () => {
     api.post.mockRejectedValue({ response: { data: { error: 'Date #1 (Nov 9): Starts at must be in the future' } } });
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await submitNewRequest();
     expect(await screen.findByText(/Date #1 \(Nov 9\)/)).toBeInTheDocument();
   });
 
   it('labels the New Request form, including the remove button on each date', async () => {
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
     const modal = await screen.findByRole('dialog');
 
@@ -85,7 +86,7 @@ describe('FacultyDashboard', () => {
 
   it('edits just the day and times of one date', async () => {
     api.patch.mockResolvedValue({ data: {} });
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Edit Date' }));
     const modal = await screen.findByRole('dialog');
 
@@ -107,7 +108,7 @@ describe('FacultyDashboard', () => {
     const unbooked = { ...series, id: 2, building: 'Main', faculty_requests: [series.faculty_requests[1]] };
     api.get.mockResolvedValue({ data: [unbooked] });
     api.patch.mockResolvedValue({ data: {} });
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Edit Class' }));
     const modal = await screen.findByRole('dialog');
 
@@ -125,14 +126,14 @@ describe('FacultyDashboard', () => {
   });
 
   it("doesn't offer Edit Class once a model is booked, since only an admin can change it then", async () => {
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await screen.findByText('Figure Drawing I');
     expect(screen.queryByRole('button', { name: 'Edit Class' })).toBeNull();
   });
 
   it('sends separate preferences for each model in a new request', async () => {
     api.post.mockResolvedValue({ data: {} });
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
     const modal = await screen.findByRole('dialog');
     const field = (label) => within(modal).getByLabelText(label);
@@ -159,7 +160,7 @@ describe('FacultyDashboard', () => {
   it('opens Edit Class with "Same for every model" on for classes saved without per-model preferences', async () => {
     const unbooked = { ...series, id: 2, building: 'Main', faculty_requests: [series.faculty_requests[1]] };
     api.get.mockResolvedValue({ data: [unbooked] });
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Edit Class' }));
     const modal = await screen.findByRole('dialog');
     expect(within(modal).getByLabelText('Same for every model')).toBeChecked();
@@ -171,10 +172,39 @@ describe('FacultyDashboard', () => {
       ...series,
       model_slots: [{ position: 1, ...any, pref_body_type: 'Fat' }, { position: 2, ...any, pref_body_type: 'Muscular' }]
     }] });
-    render(<FacultyDashboard user={{ id: 1 }} />);
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
 
     const line = (pattern) => (_, el) => el.tagName === 'LI' && pattern.test(el.textContent);
     expect(await screen.findByText(line(/Model 1: .*Fat Build/))).toBeInTheDocument();
     expect(screen.getByText(line(/Model 2: .*Muscular Build/))).toBeInTheDocument();
+  });
+
+  it('asks before cancelling a whole class, then cancels it', async () => {
+    api.delete.mockResolvedValue({});
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancel Class' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Cancel this class?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel Class' }));
+
+    expect(api.delete).toHaveBeenCalledWith('/request_series/1');
+  });
+
+  it('keeps the class if they choose Keep Class', async () => {
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancel Class' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Keep Class' }));
+    expect(api.delete).not.toHaveBeenCalled();
+  });
+
+  it("explains why a date couldn't be cancelled", async () => {
+    api.delete.mockRejectedValue({ response: { data: { error: "This session has already started, so it can't be cancelled." } } });
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+    const [cancelDate] = await screen.findAllByRole('button', { name: /^Cancel$/ });
+    await userEvent.click(cancelDate);
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel Date' }));
+
+    expect(await screen.findByRole('dialog', { name: "Couldn't cancel this date" }))
+      .toHaveTextContent('already started');
   });
 });

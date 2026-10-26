@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from "react-bootstrap";
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
+import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
@@ -19,6 +20,7 @@ const hasModelSlots = (s) => (s.model_slots || []).length > 0;
 const emptyDate = () => ({ date: "", start_time: "", end_time: "" });
 
 function FacultyDashboard({ user }) {
+  const { confirm, notify } = useDialog();
   const [series, setSeries] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -173,8 +175,18 @@ function FacultyDashboard({ user }) {
       });
   };
 
-  const handleCancelDate = (req) => {
-    if (!confirm("Cancel this date?")) return;
+  const handleCancelDate = async (req) => {
+    const booked = (req.confirmed_gigs || []).length > 0;
+    const confirmed = await confirm({
+      title: `Cancel ${formatDateWithWeekday(req.starts_at)}?`,
+      message: booked
+        ? 'The model booked for this date will be released. The rest of the class stays as it is.'
+        : 'Only this date is cancelled. The rest of the class stays as it is.',
+      confirmLabel: 'Cancel Date',
+      cancelLabel: 'Keep Date',
+      danger: true
+    });
+    if (!confirmed) return;
 
     api.delete(`/faculty_requests/${req.id}`)
       .then(() => {
@@ -182,21 +194,26 @@ function FacultyDashboard({ user }) {
         setTimeout(() => setSubmitSuccess(''), 3000);
         fetchSeries();
       })
-      .catch((err) => {
-        console.error(err);
-        setSubmitSuccess('');
-      });
+      .catch((err) => notify({ title: "Couldn't cancel this date", message: extractErrorMessages(err, 'Please try again.') }));
   };
 
-  const handleCancelSeries = (seriesId) => {
-    if (!confirm("Cancel this entire request? All dates will be cancelled.")) return;
+  const handleCancelSeries = async (seriesId) => {
+    const confirmed = await confirm({
+      title: 'Cancel this class?',
+      message: 'All of its dates will be cancelled, and any booked models released.',
+      confirmLabel: 'Cancel Class',
+      cancelLabel: 'Keep Class',
+      danger: true
+    });
+    if (!confirmed) return;
+
     api.delete(`/request_series/${seriesId}`)
       .then(() => {
-        setSubmitSuccess("Request cancelled.");
+        setSubmitSuccess("Class cancelled.");
         setTimeout(() => setSubmitSuccess(''), 3000);
         fetchSeries();
       })
-      .catch(err => console.error(err));
+      .catch((err) => notify({ title: "Couldn't cancel this class", message: extractErrorMessages(err, 'Please try again.') }));
   };
 
   const openEditModal = (req) => {
