@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Container, Card, Button, ListGroup, Badge, Spinner, Alert } from "react-bootstrap";
 import api from "../services/api";
+import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, calculateMatchScore, formatPreferenceSummary } from "../utils/formatters";
 import { formatTime, formatDateWithWeekday, formatDateTime, availabilityCoversRequest, hasSchedulingConflict } from "../utils/time";
 
@@ -14,6 +15,7 @@ function GigCreator() {
   const [searchParams] = useSearchParams();
   const isSeries = searchParams.get('type') === 'series';
   const navigate = useNavigate();
+  const { confirm } = useDialog();
 
   const [series, setSeries] = useState(null);
   const [request, setRequest] = useState(null);
@@ -164,12 +166,16 @@ function GigCreator() {
 
   const openSlotsFor = (req) => Math.max((req.models_needed || 1) - (bookedByRequest[req.id]?.length || 0), 0);
 
-  const handleBook = (model) => {
+  const handleBook = async (model) => {
     const requestsToBook = isSeries ? model.requestsToBook : [request];
-    const prompt = requestsToBook.length > 1
-      ? `Book ${modelName(model.user)} for ${requestsToBook.length} dates in this series?`
-      : `Book ${modelName(model.user)} for this class?`;
-    if (!confirm(prompt)) return;
+    const confirmed = await confirm({
+      title: `Book ${modelName(model.user)}?`,
+      message: requestsToBook.length > 1
+        ? `They'll be booked for all ${requestsToBook.length} open dates of ${displayData.class_name}.`
+        : `They'll be booked for ${displayData.class_name} on ${formatDateWithWeekday(requestsToBook[0].starts_at)}.`,
+      confirmLabel: 'Confirm Booking'
+    });
+    if (!confirmed) return;
 
     setBooking(true);
     setError('');

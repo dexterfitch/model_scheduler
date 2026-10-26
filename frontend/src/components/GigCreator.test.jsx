@@ -5,6 +5,7 @@ import GigCreator from './GigCreator';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
 import { formatDateWithWeekday } from '../utils/time';
+import { renderWithDialogs } from '../test/render';
 
 // Replace the real backend connection with a fake one
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
@@ -33,16 +34,21 @@ function fakeBackend(modelsNeeded) {
 }
 
 function renderMatchingScreen() {
-  render(
+  renderWithDialogs(
     <MemoryRouter initialEntries={['/gigs/new/1']}>
       <Routes><Route path="/gigs/new/:requestId" element={<GigCreator />} /></Routes>
     </MemoryRouter>
   );
 }
 
+// Click Book Model, then confirm in the window that opens
+async function bookAndConfirm() {
+  await userEvent.click(await screen.findByRole('button', { name: 'Book Model' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Confirm Booking' }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
 
 describe('GigCreator (matching screen)', () => {
@@ -60,17 +66,28 @@ describe('GigCreator (matching screen)', () => {
     fakeBackend(2);
     renderMatchingScreen();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Book Model' }));
+    await bookAndConfirm();
     expect(api.post).toHaveBeenCalledWith('/gigs', {
       gig: { faculty_request_id: 1, art_model_availability_id: 2 }
     });
+  });
+
+  it("asks before booking, and books nothing if they go back", async () => {
+    fakeBackend(2);
+    renderMatchingScreen();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Book Model' }));
+    expect(await screen.findByRole('dialog', { name: 'Book Blair Free?' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+
+    expect(api.post).not.toHaveBeenCalled();
   });
 
   it('stays open after a booking when the class still needs more models', async () => {
     fakeBackend(3);
     renderMatchingScreen();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Book Model' }));
+    await bookAndConfirm();
     expect(await screen.findByText(/still needs more models/i)).toBeInTheDocument();
   });
 
@@ -78,7 +95,7 @@ describe('GigCreator (matching screen)', () => {
     fakeBackend(2);
     renderMatchingScreen();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Book Model' }));
+    await bookAndConfirm();
     expect(await screen.findByText(/Gig confirmed/i)).toBeInTheDocument();
   });
 
@@ -93,7 +110,7 @@ describe('GigCreator (matching screen)', () => {
       faculty_requests: [date(21, later), date(22, sooner)]   // stored out of order
     };
     api.get.mockImplementation((url) => Promise.resolve({ data: url === '/request_series' ? [series] : [] }));
-    render(
+    renderWithDialogs(
       <MemoryRouter initialEntries={['/gigs/new/1?type=series']}>
         <Routes><Route path="/gigs/new/:requestId" element={<GigCreator />} /></Routes>
       </MemoryRouter>
@@ -128,7 +145,7 @@ describe('GigCreator (matching screen)', () => {
         : url === '/art_model_availabilities' ? [slot(1, alex), slot(2, blair), slot(3, casey)]
         : gigs
       }));
-      render(
+      renderWithDialogs(
         <MemoryRouter initialEntries={['/gigs/new/1?type=series']}>
           <Routes><Route path="/gigs/new/:requestId" element={<GigCreator />} /></Routes>
         </MemoryRouter>
