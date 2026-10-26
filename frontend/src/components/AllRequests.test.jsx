@@ -4,10 +4,15 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import AllRequests from './AllRequests';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
+import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }
 }));
+
+// Answer the confirmation window that opens
+const confirmWith = async (buttonName) =>
+  userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: buttonName }));
 
 // A 2-model class with one model (Alex) booked so far
 const faculty = { first_name: 'Priya', last_name: 'Nair' };
@@ -23,7 +28,7 @@ const series = {
 };
 
 function renderPage() {
-  render(
+  renderWithDialogs(
     <MemoryRouter initialEntries={['/requests']}>
       <Routes>
         <Route path="/requests" element={<AllRequests />} />
@@ -35,7 +40,6 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.spyOn(window, 'confirm').mockReturnValue(true);
   api.get.mockResolvedValue({ data: [series] });
   api.post.mockResolvedValue({ data: {} });
   api.delete.mockResolvedValue({ data: {} });
@@ -53,6 +57,7 @@ describe('AllRequests (admin requests page)', () => {
     const [releaseButton] = await screen.findAllByRole('button', { name: 'Release Alex Booked from this date and find someone else' });
     expect(releaseButton.tagName).toBe('BUTTON');   // real buttons can be reached with Tab
     await userEvent.click(releaseButton);
+    await confirmWith('Release Model');
     expect(api.delete).toHaveBeenCalledWith('/gigs/100');
   });
 
@@ -60,6 +65,7 @@ describe('AllRequests (admin requests page)', () => {
     renderPage();
     const [button] = await screen.findAllByRole('button', { name: 'Release Models and Rematch' });
     await userEvent.click(button);
+    await confirmWith('Release and Rematch');
     expect(api.post).toHaveBeenCalledWith('/request_series/1/release_remaining');
   });
 
@@ -117,5 +123,28 @@ describe('AllRequests (admin requests page)', () => {
     }] });
     renderPage();
     expect((await screen.findAllByText(/Model 2: .*Muscular Build/)).length).toBeGreaterThan(0);
+  });
+
+  it('asks before cancelling a class, and keeps it if they go back', async () => {
+    renderPage();
+    const [cancel] = await screen.findAllByRole('button', { name: 'Cancel Class' });
+
+    await userEvent.click(cancel);
+    await confirmWith('Keep Class');
+    expect(api.delete).not.toHaveBeenCalled();
+
+    await userEvent.click(cancel);
+    await confirmWith('Cancel Class');
+    expect(api.delete).toHaveBeenCalledWith('/request_series/1');
+  });
+
+  it("explains why a model couldn't be released", async () => {
+    api.delete.mockRejectedValue({ response: { data: { error: "This session has already started, so the model can't be released from it." } } });
+    renderPage();
+    const [releaseButton] = await screen.findAllByRole('button', { name: /Release Alex Booked/ });
+    await userEvent.click(releaseButton);
+    await confirmWith('Release Model');
+
+    expect(await screen.findByRole('dialog', { name: "Couldn't release the model" })).toHaveTextContent('already started');
   });
 });

@@ -6,10 +6,13 @@ import { formatDateTime, formatTime, roundToNearest5, findActiveGigForAvailabili
 import { GENDER_IDENTITIES, SKIN_TONES } from "../utils/constants";
 import ModelBodyFields from "./ModelBodyFields";
 import { extractErrorMessages } from "../utils/formatters";
+import { useDialog } from "./DialogProvider";
 
 const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [users, setUsers] = useState([]);
   const navigate = useNavigate();
+  const { confirm, notify } = useDialog();
+  const showError = (title, err) => notify({ title, message: extractErrorMessages(err, 'Please try again.') });
 
   const [sockForm, setSockForm] = useState({
     first_name: "", last_name: "", email: "", phone: "",
@@ -77,22 +80,37 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
   };
 
   const handleDeleteSlot = async (slotId) => {
-    if (!confirm("Delete this availability slot?")) return;
+    const confirmed = await confirm({
+      title: 'Delete this availability?',
+      message: "This time won't be offered to classes anymore.",
+      confirmLabel: 'Delete',
+      cancelLabel: 'Keep It',
+      danger: true
+    });
+    if (!confirmed) return;
     try {
       await api.delete(`/art_model_availabilities/${slotId}`);
       fetchModelAvailability(selectedModelId);
     } catch (err) {
-      alert("Failed to delete slot.");
+      showError("Couldn't delete this availability", err);
     }
   };
 
-  const handleCancelSlotGig = async (slotId) => {
-    if (!confirm("Cancel this model's participation in this gig? The faculty request will go back to pending.")) return;
+  const handleCancelSlotGig = async (slotId, gig) => {
+    const confirmed = await confirm({
+      title: `Release this model from ${gig?.faculty_request?.class_name || 'this gig'}?`,
+      message: "The class's date goes back to pending so you can book someone else.",
+      confirmLabel: 'Release Model',
+      cancelLabel: 'Keep Booking',
+      danger: true
+    });
+    if (!confirmed) return;
     try {
-      await api.post(`/art_model_availabilities/${slotId}/cancel`);
+      // Name the exact gig, in case one availability block holds two classes
+      await api.post(`/art_model_availabilities/${slotId}/cancel`, { gig_id: gig?.id });
       fetchModelAvailability(selectedModelId);
     } catch (err) {
-      alert("Failed to cancel gig.");
+      showError("Couldn't release the model", err);
     }
   };
 
@@ -138,17 +156,24 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
       await api.post(`/users/${userId}/promote`, { role: newRole });
       fetchUsers();
     } catch (err) {
-      alert(extractErrorMessages(err, "Failed to update role."));
+      showError("Couldn't change their role", err);
     }
   };
 
   const handlePromoteToSuperUser = async (userId) => {
-    if (!confirm("Promote this user to SuperUser? This grants full god-mode access.")) return;
+    const person = users.find(u => u.id === userId);
+    const confirmed = await confirm({
+      title: `Make ${person ? `${person.first_name} ${person.last_name}` : 'this admin'} a SuperUser?`,
+      message: 'SuperUsers can do everything in the app, including granting SuperUser to others and switching roles.',
+      confirmLabel: 'Make SuperUser',
+      cancelLabel: 'Go Back'
+    });
+    if (!confirmed) return;
     try {
       await api.post(`/users/${userId}/promote_to_superuser`);
       fetchUsers();
     } catch (err) {
-      alert("Failed to promote to SuperUser");
+      showError("Couldn't make them a SuperUser", err);
     }
   };
 
@@ -156,10 +181,13 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     try {
       const res = await api.post(`/users/${currentUser.id}/promote`, { role: targetRole });
       refreshUser(res.data);
-      alert(`Switched to ${targetRole} mode!`);
+      notify({
+        title: `You're now using the app as ${targetRole === 'admin' ? 'an admin' : `a ${targetRole}`}`,
+        message: targetRole === 'admin' ? undefined : 'Use Restore Admin Role in the pink banner to switch back.'
+      });
     } catch (err) {
       console.error(err);
-      alert(extractErrorMessages(err, "Couldn't switch roles."));
+      showError("Couldn't switch roles", err);
     }
   };
 
@@ -443,7 +471,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                           className="btn btn-sm btn-outline-danger ms-2"
                           aria-label={`${activeGig ? 'Cancel gig' : 'Delete availability'} on ${formatDateTime(slot.starts_at)}`}
                           title={activeGig ? 'Cancel gig' : 'Delete availability'}
-                          onClick={() => activeGig ? handleCancelSlotGig(slot.id) : handleDeleteSlot(slot.id)}
+                          onClick={() => activeGig ? handleCancelSlotGig(slot.id, activeGig) : handleDeleteSlot(slot.id)}
                         >
                           <span aria-hidden="true">✕</span>
                         </button>

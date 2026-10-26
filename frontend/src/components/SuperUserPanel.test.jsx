@@ -4,6 +4,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import SuperUserPanel from './SuperUserPanel';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
+import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
 
@@ -12,7 +13,7 @@ const priya   = { id: 2, role: 'faculty', first_name: 'Priya', last_name: 'Nair'
 const otherAdmin = { id: 3, role: 'admin', first_name: 'Sam', last_name: 'Lee', email: 'slee@mica.edu' };
 
 function renderPanel(user = me) {
-  return render(
+  return renderWithDialogs(
     <MemoryRouter initialEntries={['/superuser']}>
       <Routes>
         <Route path="/superuser" element={<SuperUserPanel currentUser={user} refreshUser={vi.fn()} />} />
@@ -30,8 +31,6 @@ async function rowFor(email) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.spyOn(window, 'confirm').mockReturnValue(true);
-  vi.spyOn(window, 'alert').mockImplementation(() => {});
   api.get.mockResolvedValue({ data: [me, priya, otherAdmin] });
   api.post.mockResolvedValue({ data: {} });
 });
@@ -56,6 +55,8 @@ describe('SuperUserPanel', () => {
 
     const adminRow = await rowFor('slee@mica.edu');
     await userEvent.click(within(adminRow).getByRole('button', { name: /Make SuperUser/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Make Sam Lee a SuperUser?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Make SuperUser' }));
     expect(api.post).toHaveBeenCalledWith('/users/3/promote_to_superuser');
   });
 
@@ -122,7 +123,7 @@ describe('SuperUserPanel', () => {
     api.post.mockRejectedValue({ response: { data: { errors: ['Email must be a MICA email address'] } } });
     renderPanel();
     await userEvent.click(await screen.findByRole('button', { name: 'Become Model' }));
-    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Email must be a MICA email address'));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Email must be a MICA email address');
   });
 
   it("explains why changing someone else's role failed", async () => {
@@ -130,6 +131,15 @@ describe('SuperUserPanel', () => {
     renderPanel();
     const row = await rowFor('pnair@mica.edu');
     await userEvent.click(within(row).getByRole('button', { name: 'Model' }));
-    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Email must be a MICA email address'));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Email must be a MICA email address');
+  });
+
+  it('says how to switch back after becoming a model', async () => {
+    api.post.mockResolvedValue({ data: { ...me, role: 'model' } });
+    renderPanel();
+    await userEvent.click(await screen.findByRole('button', { name: 'Become Model' }));
+
+    expect(await screen.findByRole('dialog', { name: "You're now using the app as a model" }))
+      .toHaveTextContent('Restore Admin Role');
   });
 });

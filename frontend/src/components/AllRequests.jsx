@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert } from "react-bootstrap";
 import api from "../services/api";
 import styles from "./AllRequests.module.css";
+import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateShort } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 
 function AllRequests() {
   const navigate = useNavigate();
+  const { confirm, notify } = useDialog();
+  const sameDayNote = "Releases on the day of a class are still paid.";
   const [allSeries, setAllSeries] = useState([]);
   const [search, setSearch] = useState("");
   const today = new Date();
@@ -68,36 +71,56 @@ function AllRequests() {
   const [editError, setEditError] = useState('');
 
   const handleReleaseRemaining = async (seriesId) => {
-    if (!confirm("Release all remaining matched dates in this series back to pending? This will cancel those gigs and let you rematch the whole remaining series to a new model.")) return;
+    const confirmed = await confirm({
+      title: 'Release models and rematch?',
+      message: `Every booked model on this class's remaining dates is released, and those dates go back to pending so you can book someone new. ${sameDayNote}`,
+      confirmLabel: 'Release and Rematch',
+      cancelLabel: 'Keep Bookings',
+      danger: true
+    });
+    if (!confirmed) return;
     try {
       await api.post(`/request_series/${seriesId}/release_remaining`);
       api.get("/request_series").then(res => setAllSeries(res.data));
     } catch (err) {
-      alert("Failed to release remaining dates.");
+      notify({ title: "Couldn't release the models", message: extractErrorMessages(err, 'Please try again.') });
     }
   };
 
   const handleCancelSeries = async (seriesId, isSingle) => {
-    const message = isSingle
-      ? "Cancel this gig? If matched, the model will be released and the gig marked cancelled (billable if same-day)."
-      : "Cancel this entire request? All matched dates will be released and marked cancelled (billable if same-day), and any pending dates will be removed.";
-    if (!confirm(message)) return;
+    const confirmed = await confirm({
+      title: 'Cancel this class?',
+      message: isSingle
+        ? `The date is cancelled and any booked model released. ${sameDayNote}`
+        : `All of its dates are cancelled and any booked models released. ${sameDayNote}`,
+      confirmLabel: 'Cancel Class',
+      cancelLabel: 'Keep Class',
+      danger: true
+    });
+    if (!confirmed) return;
     try {
       await api.delete(`/request_series/${seriesId}`);
       api.get("/request_series").then(res => setAllSeries(res.data));
     } catch (err) {
-      alert("Failed to cancel this series.");
+      notify({ title: "Couldn't cancel this class", message: extractErrorMessages(err, 'Please try again.') });
     }
   };
 
   const handleFindNewModel = async (gig) => {
     const modelName = `${gig.art_model_availability?.user?.first_name} ${gig.art_model_availability?.user?.last_name}`;
-    if (!confirm(`Release ${modelName} from this date and reopen their spot for rematching? Their availability for this time slot will remain intact.`)) return;
+    const confirmed = await confirm({
+      title: `Release ${modelName} from this date?`,
+      message: `Their spot opens up so you can book someone else, and their availability stays as it is. ${sameDayNote}`,
+      confirmLabel: 'Release Model',
+      cancelLabel: 'Keep Booking',
+      danger: true
+    });
+    if (!confirmed) return;
     try {
       await api.delete(`/gigs/${gig.id}`);
       api.get("/request_series").then(res => setAllSeries(res.data));
     } catch (err) {
-      alert("Failed to release this date for rematching.");
+      notify({ title: "Couldn't release the model", message: extractErrorMessages(err, 'Please try again.') });
     }
   };
 
@@ -209,10 +232,16 @@ function AllRequests() {
 
   const handleRemoveExistingDate = async (d) => {
     const isMatched = d.status === 'matched' || d.booked > 0;
-    const message = isMatched
-      ? "Remove this matched date? The model will be released and the gig marked cancelled (billable if same-day). This cannot be undone."
-      : "Remove this pending date? This cannot be undone.";
-    if (!confirm(message)) return;
+    const confirmed = await confirm({
+      title: 'Remove this date?',
+      message: isMatched
+        ? `The date is removed from the class and the booked model released. ${sameDayNote} This can't be undone.`
+        : "The date is removed from the class. This can't be undone.",
+      confirmLabel: 'Remove Date',
+      cancelLabel: 'Keep Date',
+      danger: true
+    });
+    if (!confirmed) return;
 
     try {
       await api.delete(`/faculty_requests/${d.id}`);
@@ -222,7 +251,7 @@ function AllRequests() {
       }));
       api.get("/request_series").then(res => setAllSeries(res.data));
     } catch (err) {
-      alert("Failed to remove this date.");
+      notify({ title: "Couldn't remove this date", message: extractErrorMessages(err, 'Please try again.') });
     }
   };
 
