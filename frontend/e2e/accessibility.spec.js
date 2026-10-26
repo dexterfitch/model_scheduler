@@ -65,3 +65,31 @@ for (const [size, options] of Object.entries(sizes)) {
     }
   });
 }
+
+// On phone screens, every button and form field should be at least 44px tall
+test.describe('tap targets (phone)', () => {
+  test.use(sizes.phone);
+
+  for (const p of pages) {
+    test(p.name, async ({ page }) => {
+      if (p.as) await loginAs(page, p.as);
+      await page.goto(p.path);
+      await page.waitForLoadState('networkidle');
+      if (p.open) await p.open(page);
+
+      const tooSmall = await page.evaluate(() =>
+        [...document.querySelectorAll('button, a.btn, select, input:not([type=hidden]):not([type=checkbox]):not([type=radio])')]
+          .filter(el => {
+            const box = el.getBoundingClientRect();
+            return box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== 'hidden' && box.height < 43.5;
+          })
+          .map(el => {
+            const name = (el.getAttribute('aria-label') || el.textContent || el.getAttribute('name') || '').trim().slice(0, 40);
+            return `${el.tagName.toLowerCase()} "${name}" is ${Math.round(el.getBoundingClientRect().height)}px tall`;
+          })
+      );
+
+      expect(tooSmall, tooSmall.join('\n')).toEqual([]);
+    });
+  }
+});

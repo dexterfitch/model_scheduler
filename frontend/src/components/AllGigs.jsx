@@ -164,13 +164,13 @@ function AllGigs() {
                     <td className="align-middle">
                       {first.faculty_request?.class_name}
                       {group.gigs.length > 1 && (
-                        <Badge bg="info" text="dark" className="ms-2" style={{ fontSize: '0.6em' }}>{group.gigs.length} dates</Badge>
+                        <Badge bg="info" text="dark" className="ms-2">{group.gigs.length} dates</Badge>
                       )}
                       {first.faculty_request?.model_mode === 'nude' && (
-                        <Badge bg="danger" className="ms-2" style={{ fontSize: '0.6em' }}>NUDE</Badge>
+                        <Badge bg="danger" className="ms-2">NUDE</Badge>
                       )}
                       {first.faculty_request?.department && (
-                        <div><Badge bg="secondary" style={{ fontSize: '0.6em' }}>{first.faculty_request.department}</Badge></div>
+                        <div><Badge bg="secondary">{first.faculty_request.department}</Badge></div>
                       )}
                     </td>
                     <td className="align-middle">
@@ -198,14 +198,14 @@ function AllGigs() {
                       <div className="fw-bold">
                         {first.faculty_request?.class_name}
                         {group.gigs.length > 1 && (
-                          <Badge bg="info" text="dark" className="ms-2" style={{ fontSize: '0.65em' }}>{group.gigs.length} dates</Badge>
+                          <Badge bg="info" text="dark" className="ms-2">{group.gigs.length} dates</Badge>
                         )}
                       </div>
                       {first.faculty_request?.model_mode === 'nude' && (
-                        <Badge bg="danger" style={{ fontSize: '0.65em' }}>NUDE</Badge>
+                        <Badge bg="danger">NUDE</Badge>
                       )}
                       {first.faculty_request?.department && (
-                        <Badge bg="secondary" className="ms-1" style={{ fontSize: '0.65em' }}>
+                        <Badge bg="secondary" className="ms-1">
                           {first.faculty_request.department}
                         </Badge>
                       )}
