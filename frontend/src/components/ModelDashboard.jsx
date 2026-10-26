@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Badge, Tab, Tabs, Button, Modal, Form, Alert, ListGroup } from "react-bootstrap";
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
-import { extractErrorMessages } from "../utils/formatters";
+import { useDialog } from "./DialogProvider";
+import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability, availabilityEvents } from "../utils/time";
 
 function ModelDashboard({ user }) {
+  const { confirm, notify } = useDialog();
   const [myGigs, setMyGigs] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [pendingSeries, setPendingSeries] = useState([]);
@@ -153,23 +155,45 @@ function ModelDashboard({ user }) {
     }
   };
 
-  const handleDelete = () => {
-    if (!editingId || !confirm("Delete this availability slot?")) return;
+  const handleDelete = async () => {
+    if (!editingId) return;
+    const confirmed = await confirm({
+      title: 'Delete this availability?',
+      message: "This time won't be offered to classes anymore.",
+      confirmLabel: 'Delete',
+      cancelLabel: 'Keep It',
+      danger: true
+    });
+    if (!confirmed) return;
     api.delete(`/art_model_availabilities/${editingId}`)
       .then(() => { setPageSuccess("Availability deleted!"); setTimeout(() => setPageSuccess(''), 3000); setShowModal(false); fetchData(); })
       .catch((err) => setModalError(extractErrorMessages(err, "Error deleting. Please try again.")));
   };
 
-  const cancelGig = (availabilityId, gig, cancelRemainingSeries = false) => {
+  const cancelGig = async (availabilityId, gig, cancelRemainingSeries = false) => {
     const seriesCount = otherFutureSeriesGigsCount(gig);
+    const className = gig?.faculty_request?.class_name || 'this class';
+    const unpaid = "Gigs you cancel aren't paid.";
 
-    const message = cancelRemainingSeries
-      ? "Cancel your participation in this AND all remaining future dates in this series? The faculty member's requests will go back to pending so an admin can find a replacement. You will not be paid for these slots since you are cancelling."
+    const question = cancelRemainingSeries
+      ? {
+          title: 'Cancel this and all later dates?',
+          message: `You'll be taken off this date and every later date of ${className}. The faculty member's dates go back to pending so an admin can find a replacement. ${unpaid}`,
+          confirmLabel: 'Cancel All Remaining'
+        }
       : seriesCount > 0
-        ? "Cancel your participation in this single date? The faculty member's request for this date will go back to pending. Note: since this class wants the same model across all sessions, cancelling even one date may put your place in the rest of the series at risk. An admin may decide to rematch the remaining dates to a different model. You will not be paid for this slot since you are cancelling."
-        : "Cancel your participation in this date? The faculty member's request will go back to pending so an admin can find a replacement. You will not be paid for this slot since you are cancelling.";
+        ? {
+            title: 'Cancel just this date?',
+            message: `You'll be taken off this one date of ${className}. This class wants the same model for every date, so an admin may give your other dates to someone else too. ${unpaid}`,
+            confirmLabel: 'Cancel This Date'
+          }
+        : {
+            title: 'Cancel this gig?',
+            message: `The faculty member's date goes back to pending so an admin can find a replacement. ${unpaid}`,
+            confirmLabel: 'Cancel Gig'
+          };
 
-    if (!confirm(message)) return;
+    if (!(await confirm({ ...question, cancelLabel: 'Keep Gig', danger: true }))) return;
 
     api.post(`/art_model_availabilities/${availabilityId}/cancel`, {
       gig_id: gig?.id,
@@ -183,7 +207,7 @@ function ModelDashboard({ user }) {
       })
       .catch((err) => {
         const msg = extractErrorMessages(err, "Error cancelling. Please try again.");
-        if (showModal) setModalError(msg); else alert(msg);
+        if (showModal) setModalError(msg); else notify({ title: "Couldn't cancel", message: msg });
       });
   };
 

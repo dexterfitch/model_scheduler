@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import ModelDashboard from './ModelDashboard';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
+import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 // The calendar library needs a real browser, so a placeholder stands in for it here
@@ -33,7 +34,6 @@ const groupCall = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.spyOn(window, 'confirm').mockReturnValue(true);
   api.get.mockImplementation((url) => {
     if (url === '/gigs') return Promise.resolve({ data: [morning, afternoon, lateCancel] });
     if (url.startsWith('/art_model_availabilities')) return Promise.resolve({ data: [slot] });
@@ -44,10 +44,12 @@ beforeEach(() => {
 
 describe('ModelDashboard', () => {
   it('cancels the exact gig the model clicked, even when two share a slot', async () => {
-    render(<ModelDashboard user={model} />);
+    renderWithDialogs(<ModelDashboard user={model} />);
     const matches = await screen.findAllByText('Afternoon Portraits');
     const card = matches.map(el => el.closest('.card')).find(c => c && within(c).queryByRole('button', { name: 'Cancel' }));
     await userEvent.click(within(card).getByRole('button', { name: 'Cancel' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Cancel this gig?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel Gig' }));
 
     expect(api.post).toHaveBeenCalledWith(
       '/art_model_availabilities/5/cancel',
@@ -56,19 +58,19 @@ describe('ModelDashboard', () => {
   });
 
   it('labels late cancellations as paid', async () => {
-    render(<ModelDashboard user={model} />);
+    renderWithDialogs(<ModelDashboard user={model} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Cancelled' }));
     expect(screen.getByText('Cancelled (Paid — Late Cancellation)')).toBeInTheDocument();
   });
 
   it('shows group sessions in open calls', async () => {
-    render(<ModelDashboard user={model} />);
+    renderWithDialogs(<ModelDashboard user={model} />);
     await userEvent.click(screen.getByRole('tab', { name: 'Manage Availability' }));
     expect(await screen.findByText('Group session: 3 models')).toBeInTheDocument();
   });
 
   it("signs the model up for an open call's dates", async () => {
-    render(<ModelDashboard user={model} />);
+    renderWithDialogs(<ModelDashboard user={model} />);
     await userEvent.click(screen.getByRole('tab', { name: 'Manage Availability' }));
     await userEvent.click(await screen.findByRole('button', { name: "I'm Available" }));
 
@@ -86,7 +88,7 @@ describe('ModelDashboard', () => {
       if (url === '/gigs') return Promise.resolve({ data: [lastWeek] });
       return Promise.resolve({ data: [] });
     });
-    render(<ModelDashboard user={model} />);
+    renderWithDialogs(<ModelDashboard user={model} />);
 
     // Not listed with upcoming confirmed gigs
     expect(await screen.findByText('No confirmed gigs.')).toBeInTheDocument();
@@ -100,7 +102,7 @@ describe('ModelDashboard', () => {
 
   it("explains why the server wouldn't save an availability slot", async () => {
     api.post.mockRejectedValue({ response: { data: { errors: ['Overlaps another availability slot'] } } });
-    render(<ModelDashboard user={model} />);
+    renderWithDialogs(<ModelDashboard user={model} />);
     await userEvent.click(screen.getByRole('tab', { name: 'Manage Availability' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Pick a date' }));
 
@@ -109,5 +111,26 @@ describe('ModelDashboard', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add Availability' }));
 
     expect(await within(dialog).findByText('Overlaps another availability slot')).toBeInTheDocument();
+  });
+
+  it('keeps the gig if the model chooses Keep Gig', async () => {
+    renderWithDialogs(<ModelDashboard user={model} />);
+    const matches = await screen.findAllByText('Afternoon Portraits');
+    const card = matches.map(el => el.closest('.card')).find(c => c && within(c).queryByRole('button', { name: 'Cancel' }));
+    await userEvent.click(within(card).getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Keep Gig' }));
+
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it("explains why a gig couldn't be cancelled", async () => {
+    api.post.mockRejectedValue({ response: { data: { error: "This session has already started, so it can't be cancelled." } } });
+    renderWithDialogs(<ModelDashboard user={model} />);
+    const matches = await screen.findAllByText('Afternoon Portraits');
+    const card = matches.map(el => el.closest('.card')).find(c => c && within(c).queryByRole('button', { name: 'Cancel' }));
+    await userEvent.click(within(card).getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel Gig' }));
+
+    expect(await screen.findByRole('dialog', { name: "Couldn't cancel" })).toHaveTextContent('already started');
   });
 });

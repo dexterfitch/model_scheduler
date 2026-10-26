@@ -3,12 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Badge, Button, Alert, Spinner, Modal, Form } from "react-bootstrap";
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
+import { useDialog } from "./DialogProvider";
 import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents } from "../utils/time";
 
 function ModelDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { confirm } = useDialog();
   const [user, setUser] = useState(null);
   const [availabilities, setAvailabilities] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
@@ -100,8 +102,16 @@ function ModelDetail() {
       .catch((err) => setModalError(extractErrorMessages(err, "Error saving availability. Please try again.")));
   };
 
-  const handleDelete = () => {
-    if (!editingId || !confirm("Delete this availability slot?")) return;
+  const handleDelete = async () => {
+    if (!editingId) return;
+    const confirmed = await confirm({
+      title: 'Delete this availability?',
+      message: "This time won't be offered to classes anymore.",
+      confirmLabel: 'Delete',
+      cancelLabel: 'Keep It',
+      danger: true
+    });
+    if (!confirmed) return;
     api.delete(`/art_model_availabilities/${editingId}`)
       .then(() => {
         setPageSuccess("Availability deleted!");
@@ -112,9 +122,17 @@ function ModelDetail() {
       .catch((err) => setModalError(extractErrorMessages(err, "Error deleting. Please try again.")));
   };
 
-  const handleCancelGig = () => {
-    if (!editingId || !confirm("Cancel this model's participation in this gig? The faculty request will go back to pending.")) return;
-    api.post(`/art_model_availabilities/${editingId}/cancel`)
+  const handleCancelGig = async () => {
+    if (!editingId) return;
+    const confirmed = await confirm({
+      title: `Release ${user.first_name} from this gig?`,
+      message: "The class's date goes back to pending so you can book someone else.",
+      confirmLabel: 'Release Model',
+      cancelLabel: 'Keep Booking',
+      danger: true
+    });
+    if (!confirmed) return;
+    api.post(`/art_model_availabilities/${editingId}/cancel`, { gig_id: activeGig?.id })
       .then(() => {
         setPageSuccess("Gig cancelled.");
         setTimeout(() => setPageSuccess(''), 3000);

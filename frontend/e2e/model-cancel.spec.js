@@ -10,6 +10,7 @@ test('a model drops out and the admin sees the class flagged', async ({ page }) 
     .filter({ has: page.getByText('Drawing I', { exact: true }) })
     .filter({ has: page.getByRole('button', { name: 'Cancel' }) });
   await gigCard.getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Cancel (Gig|This Date)$/ }).click();
   await expect(page.getByText('Gig participation cancelled.')).toBeVisible();
 
   // The admin dashboard now lists that class with a warning
