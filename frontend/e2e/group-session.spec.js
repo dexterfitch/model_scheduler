@@ -17,6 +17,7 @@ test('admin fills the last spot in a group session', async ({ page }) => {
   await expect(page.getByText(/1\/2 booked: Devon Price/)).toBeVisible();
   const sam = page.locator('.list-group-item').filter({ hasText: 'Sam Woods' });
   await sam.getByRole('button', { name: 'Book Model' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirm Booking' }).click();
   await expect(page.getByText(/Gig confirmed/)).toBeVisible();
 
   // Back on Requests, the class is fully staffed with both models
