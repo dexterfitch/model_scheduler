@@ -1,12 +1,18 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { renderWithDialogs } from '../test/render';
 import { MemoryRouter } from 'react-router-dom';
 import AdminCalendar from './AdminCalendar';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn() } }));
-// Only the availability list beside the calendar is under test here
-vi.mock('./SharedCalendar', () => ({ default: () => null }));
+// A stand-in calendar: one button per event, so tests can "click" an event
+vi.mock('./SharedCalendar', () => ({
+  default: ({ events, onEventClick }) => events.map(e => (
+    <button key={e.id} onClick={() => onEventClick({ event: { extendedProps: e.extendedProps } })}>{e.title}</button>
+  ))
+}));
 
 const person = (id, first_name, last_name) => ({ id, first_name, last_name, willing_to_model_nude: false });
 const jordan = person(1, 'Jordan', 'Ellis');
@@ -37,7 +43,7 @@ beforeEach(() => {
 
 describe('AdminCalendar availability list', () => {
   it('only lists time a model can actually be booked into', async () => {
-    render(<MemoryRouter><AdminCalendar /></MemoryRouter>);
+    renderWithDialogs(<MemoryRouter><AdminCalendar /></MemoryRouter>);
     const list = await screen.findByRole('region', { name: 'Upcoming Model Availability' });
 
     // Jordan's day appears as the two open stretches around the class
@@ -45,5 +51,26 @@ describe('AdminCalendar availability list', () => {
     // Riley is fully booked, and Sam cancelled
     expect(within(list).queryByText('Riley Park')).toBeNull();
     expect(within(list).queryByText('Sam Woods')).toBeNull();
+  });
+
+  it("shows a booked class's details in a window, not a browser popup", async () => {
+    const booked = {
+      id: 300, status: 'confirmed',
+      art_model_availability: { id: 10, user: jordan },
+      faculty_request: {
+        class_name: 'Figure Drawing I', building: 'Fox', room_number: '201',
+        starts_at: daysFromNow(3, 16), ends_at: daysFromNow(3, 18),
+        user: { first_name: 'Priya', last_name: 'Nair' }
+      }
+    };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url === '/gigs' ? [booked] : [] }));
+    renderWithDialogs(<MemoryRouter><AdminCalendar /></MemoryRouter>);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Figure Drawing I/ }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Figure Drawing I' });
+    expect(dialog).toHaveTextContent('Jordan Ellis');
+    expect(dialog).toHaveTextContent('Priya Nair');
+    expect(dialog).toHaveTextContent('Fox 201');
   });
 });

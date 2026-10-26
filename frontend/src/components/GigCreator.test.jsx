@@ -99,8 +99,9 @@ describe('GigCreator (matching screen)', () => {
       </MemoryRouter>
     );
 
-    const soonerRow = await screen.findByText(new RegExp(formatDateWithWeekday(sooner)));
-    const laterRow = screen.getByText(new RegExp(formatDateWithWeekday(later)));
+    // \b so "Nov 1" doesn't also match "Nov 15"
+    const soonerRow = await screen.findByText(new RegExp(`${formatDateWithWeekday(sooner)}\\b`));
+    const laterRow = screen.getByText(new RegExp(`${formatDateWithWeekday(later)}\\b`));
     // The sooner date comes first on the page
     expect(soonerRow.compareDocumentPosition(laterRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

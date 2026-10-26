@@ -5,9 +5,11 @@ import api from "../services/api";
 import { formatDateWithWeekday, formatTime, availabilityEvents } from "../utils/time";
 import { CALENDAR_COLORS } from "../utils/constants";
 import SharedCalendar from "./SharedCalendar";
+import { useDialog } from "./DialogProvider";
 
 function AdminCalendar() {
   const navigate = useNavigate();
+  const { notify } = useDialog();
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [availabilities, setAvailabilities] = useState([]);
   const [error, setError] = useState(null);
@@ -68,14 +70,28 @@ function AdminCalendar() {
     if (props.type === 'request') {
       navigate(`/gigs/new/${props.seriesId}?type=series`);
     } else {
-      const location = [props.faculty_request.building, props.faculty_request.room_number]
-        .filter(Boolean)
-        .join(' ');
-      alert(
-        `Gig: ${props.faculty_request.class_name}\n` +
-        `Model: ${props.art_model_availability.user.first_name}` +
-        (location ? `\nLocation: ${location}` : '')
-      );
+      const request = props.faculty_request;
+      const model = props.art_model_availability.user;
+      const location = [request.building, request.room_number].filter(Boolean).join(' ');
+      notify({
+        title: request.class_name,
+        message: (
+          <dl className="row mb-0">
+            <dt className="col-4">When</dt>
+            <dd className="col-8">{formatDateWithWeekday(request.starts_at)}, {formatTime(request.starts_at)} – {formatTime(request.ends_at)}</dd>
+            <dt className="col-4">Model</dt>
+            <dd className="col-8">{model.first_name} {model.last_name}</dd>
+            {request.user && (<>
+              <dt className="col-4">Faculty</dt>
+              <dd className="col-8">{request.user.first_name} {request.user.last_name}</dd>
+            </>)}
+            {location && (<>
+              <dt className="col-4">Location</dt>
+              <dd className="col-8 mb-0">{location}</dd>
+            </>)}
+          </dl>
+        )
+      });
     }
   };
 
