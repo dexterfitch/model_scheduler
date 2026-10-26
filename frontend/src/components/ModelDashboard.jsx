@@ -85,7 +85,6 @@ function ModelDashboard({ user }) {
       );
 
       setPageSuccess(`Availability added for all ${pendingRequests.length} dates!`);
-      setTimeout(() => setPageSuccess(''), 4000);
       fetchData();
     } catch (err) {
       console.error(err);
@@ -146,11 +145,11 @@ function ModelDashboard({ user }) {
     const payload = { starts_at: startsAt, ends_at: endsAt };
     if (editingId) {
       api.patch(`/art_model_availabilities/${editingId}`, { art_model_availability: payload })
-        .then(() => { setPageSuccess("Availability updated!"); setTimeout(() => setPageSuccess(''), 3000); setShowModal(false); fetchData(); })
+        .then(() => { setPageSuccess("Availability updated!"); setShowModal(false); fetchData(); })
         .catch((err) => setModalError(extractErrorMessages(err, "Error saving availability. Please try again.")));
     } else {
       api.post("/art_model_availabilities", { art_model_availability: payload })
-        .then(() => { setPageSuccess("Availability added!"); setTimeout(() => setPageSuccess(''), 3000); setShowModal(false); fetchData(); })
+        .then(() => { setPageSuccess("Availability added!"); setShowModal(false); fetchData(); })
         .catch((err) => setModalError(extractErrorMessages(err, "Error saving availability. Please try again.")));
     }
   };
@@ -166,7 +165,7 @@ function ModelDashboard({ user }) {
     });
     if (!confirmed) return;
     api.delete(`/art_model_availabilities/${editingId}`)
-      .then(() => { setPageSuccess("Availability deleted!"); setTimeout(() => setPageSuccess(''), 3000); setShowModal(false); fetchData(); })
+      .then(() => { setPageSuccess("Availability deleted!"); setShowModal(false); fetchData(); })
       .catch((err) => setModalError(extractErrorMessages(err, "Error deleting. Please try again.")));
   };
 
@@ -201,7 +200,6 @@ function ModelDashboard({ user }) {
     })
       .then(() => {
         setPageSuccess(cancelRemainingSeries ? "Gig and remaining series dates cancelled." : "Gig participation cancelled.");
-        setTimeout(() => setPageSuccess(''), 3000);
         setShowModal(false);
         fetchData();
       })
@@ -257,7 +255,7 @@ function ModelDashboard({ user }) {
 
   return (
     <Container className="py-4">
-      {pageSuccess && <Alert variant="success" dismissible onClose={() => setPageSuccess('')}>{pageSuccess}</Alert>}
+      {pageSuccess && <Alert variant="success" role="status" dismissible onClose={() => setPageSuccess('')}>{pageSuccess}</Alert>}
       <Card className="mb-4 bg-light border-0 shadow-sm">
         <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
           <div>

@@ -95,7 +95,6 @@ function ModelDetail() {
     request
       .then(() => {
         setPageSuccess(editingId ? "Availability updated!" : "Availability added!");
-        setTimeout(() => setPageSuccess(''), 3000);
         setShowModal(false);
         fetchData();
       })
@@ -115,7 +114,6 @@ function ModelDetail() {
     api.delete(`/art_model_availabilities/${editingId}`)
       .then(() => {
         setPageSuccess("Availability deleted!");
-        setTimeout(() => setPageSuccess(''), 3000);
         setShowModal(false);
         fetchData();
       })
@@ -135,7 +133,6 @@ function ModelDetail() {
     api.post(`/art_model_availabilities/${editingId}/cancel`, { gig_id: activeGig?.id })
       .then(() => {
         setPageSuccess("Gig cancelled.");
-        setTimeout(() => setPageSuccess(''), 3000);
         setShowModal(false);
         fetchData();
       })
@@ -158,7 +155,7 @@ function ModelDetail() {
         </Alert>
       )}
       {pageSuccess && (
-        <Alert variant="success" dismissible onClose={() => setPageSuccess('')}>
+        <Alert variant="success" role="status" dismissible onClose={() => setPageSuccess('')}>
           {pageSuccess}
         </Alert>
       )}

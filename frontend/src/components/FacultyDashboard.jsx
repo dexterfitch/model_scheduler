@@ -160,7 +160,6 @@ function FacultyDashboard({ user }) {
     api.post("/request_series", payload)
       .then(() => {
         setSubmitSuccess('Request submitted successfully!');
-        setTimeout(() => setSubmitSuccess(''), 3000);
         setShowModal(false);
         fetchSeries();
         setFormData({
@@ -191,7 +190,6 @@ function FacultyDashboard({ user }) {
     api.delete(`/faculty_requests/${req.id}`)
       .then(() => {
         setSubmitSuccess("Date cancelled.");
-        setTimeout(() => setSubmitSuccess(''), 3000);
         fetchSeries();
       })
       .catch((err) => notify({ title: "Couldn't cancel this date", message: extractErrorMessages(err, 'Please try again.') }));
@@ -210,7 +208,6 @@ function FacultyDashboard({ user }) {
     api.delete(`/request_series/${seriesId}`)
       .then(() => {
         setSubmitSuccess("Class cancelled.");
-        setTimeout(() => setSubmitSuccess(''), 3000);
         fetchSeries();
       })
       .catch((err) => notify({ title: "Couldn't cancel this class", message: extractErrorMessages(err, 'Please try again.') }));
@@ -258,7 +255,6 @@ function FacultyDashboard({ user }) {
     })
       .then(() => {
         setSubmitSuccess('Date updated successfully!');
-        setTimeout(() => setSubmitSuccess(''), 3000);
         setShowEditModal(false);
         fetchSeries();
       })
@@ -302,7 +298,6 @@ function FacultyDashboard({ user }) {
     })
       .then(() => {
         setSubmitSuccess('Class updated for every date!');
-        setTimeout(() => setSubmitSuccess(''), 3000);
         setEditingSeries(null);
         fetchSeries();
       })
@@ -355,7 +350,6 @@ function FacultyDashboard({ user }) {
       });
       setAddingDateSeriesId(null);
       setSubmitSuccess("Date added!");
-      setTimeout(() => setSubmitSuccess(''), 3000);
       fetchSeries();
     } catch (err) {
       setAddDateError(extractErrorMessages(err, "Failed to add date."));
@@ -365,7 +359,7 @@ function FacultyDashboard({ user }) {
   return (
     <Container className={`py-4 ${styles.container}`}>
       {submitSuccess && (
-        <Alert variant="success" dismissible onClose={() => setSubmitSuccess('')}>
+        <Alert variant="success" role="status" dismissible onClose={() => setSubmitSuccess('')}>
           {submitSuccess}
         </Alert>
       )}

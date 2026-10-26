@@ -64,10 +64,7 @@ const Profile = ({ currentUser, setCurrentUser }) => {
     try {
       const res = await api.patch(`/users/${currentUser.id}`, { user: formData });
       setCurrentUser(res.data);
-      setMessage({ type: 'success', text: 'Profile updated successfully! Redirecting...' });
-      setTimeout(() => {
-        navigate('/');
-      }, 1500);
+      setMessage({ type: 'success', text: 'Profile saved.' });
     } catch (err) {
       console.error(err);
       setMessage({ type: 'danger', text: extractErrorMessages(err, 'Failed to update profile.') });
@@ -85,7 +82,14 @@ const Profile = ({ currentUser, setCurrentUser }) => {
         <div className="card-body">
           
           {message.text && (
-            <div className={`alert alert-${message.type}`}>{message.text}</div>
+            <div className={`alert alert-${message.type}`} role={message.type === 'success' ? 'status' : 'alert'}>
+              {message.text}
+              {message.type === 'success' && (
+                <button type="button" className="btn btn-link alert-link p-0 ms-2 align-baseline" onClick={() => navigate('/')}>
+                  Back to home
+                </button>
+              )}
+            </div>
           )}
 
           <form onSubmit={handleSubmit}>

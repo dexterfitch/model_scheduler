@@ -96,7 +96,9 @@ describe('GigCreator (matching screen)', () => {
     renderMatchingScreen();
 
     await bookAndConfirm();
-    expect(await screen.findByText(/Gig confirmed/i)).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(/Gig confirmed.*fully staffed/);
+    // Stays on the page with a clear next step, instead of leaving on a timer
+    expect(screen.getByRole('button', { name: 'Back to Requests' })).toBeInTheDocument();
   });
 
   it("lists a series' dates in calendar order", async () => {

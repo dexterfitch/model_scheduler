@@ -55,7 +55,9 @@ describe('Profile', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
 
     expect(api.patch).toHaveBeenCalledWith('/users/10', { user: expect.objectContaining({ body_type: 'Fat' }) });
-    expect(await screen.findByText(/Profile updated successfully/)).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent('Profile saved.');
+    // Stays on the page with a way back, instead of leaving on a timer
+    expect(screen.getByRole('button', { name: 'Back to home' })).toBeInTheDocument();
     expect(setCurrentUser).toHaveBeenCalledWith(expect.objectContaining({ body_type: 'Fat' }));
   });
 

@@ -188,6 +188,8 @@ describe('FacultyDashboard', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel Class' }));
 
     expect(api.delete).toHaveBeenCalledWith('/request_series/1');
+    // Announced to screen readers, and stays until dismissed
+    expect(await screen.findByRole('status')).toHaveTextContent('Class cancelled.');
   });
 
   it('keeps the class if they choose Keep Class', async () => {

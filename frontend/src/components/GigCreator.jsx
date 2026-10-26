@@ -25,6 +25,7 @@ function GigCreator() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [staffed, setStaffed] = useState(false);
   const [booking, setBooking] = useState(false);
 
   useEffect(() => {
@@ -204,10 +205,13 @@ function GigCreator() {
         setLoading(true);
         loadData();
       } else {
+        // Fully staffed: say so and offer the next step, instead of leaving the page on a timer
         setSuccessMsg(isSeries && requestsToBook.length > 1
-          ? `${requestsToBook.length} gigs confirmed! Redirecting...`
-          : 'Gig confirmed! Redirecting...');
-        setTimeout(() => navigate("/"), 1500);
+          ? `${requestsToBook.length} gigs confirmed! This class is fully staffed.`
+          : 'Gig confirmed! This class is fully staffed.');
+        setStaffed(true);
+        setLoading(true);
+        loadData();
       }
     }).catch(err => {
       console.error(err);
@@ -246,8 +250,13 @@ function GigCreator() {
         </Alert>
       )}
       {successMsg && (
-        <Alert variant="success" dismissible onClose={() => setSuccessMsg('')}>
-          {successMsg}
+        <Alert variant="success" role="status" dismissible onClose={() => setSuccessMsg('')}>
+          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>{successMsg}</span>
+            {staffed && (
+              <Button size="sm" variant="outline-dark" onClick={() => navigate('/requests')}>Back to Requests</Button>
+            )}
+          </div>
         </Alert>
       )}
 
