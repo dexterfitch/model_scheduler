@@ -225,7 +225,7 @@ function ModelDetail() {
                 {times.start} to {times.end}. Availability can't be edited while a gig is scheduled.
               </Alert>
               <div className="d-flex justify-content-end">
-                <Button variant="danger" onClick={handleCancelGig}>Cancel Gig</Button>
+                <Button variant="outline-danger" onClick={handleCancelGig}>Release Model</Button>
               </div>
             </>
           ) : (
@@ -243,7 +243,7 @@ function ModelDetail() {
               <div className="mt-4 d-flex justify-content-between">
                 <div>
                   {editingId && (
-                    <Button variant="danger" onClick={handleDelete}>Delete Slot</Button>
+                    <Button variant="outline-danger" onClick={handleDelete}>Delete Slot</Button>
                   )}
                 </div>
                 <div>

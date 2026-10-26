@@ -59,7 +59,7 @@ describe("ModelDetail (admin's view of a model)", () => {
     );
 
     await userEvent.click(await screen.findByRole('button', { name: /Confirmed Gig/ }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Cancel Gig' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Release Model' }));
     const dialog = await screen.findByRole('dialog', { name: 'Release Jordan from this gig?' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Release Model' }));
 

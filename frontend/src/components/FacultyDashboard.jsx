@@ -458,7 +458,7 @@ function FacultyDashboard({ user }) {
                             )}
                             {req.status !== 'archived' && (
                               <Button variant="outline-danger" size="sm" onClick={() => handleCancelDate(req)}>
-                                <i className="bi bi-x-lg"></i> Cancel
+                                <i className="bi bi-x-lg" aria-hidden="true"></i> Cancel Date
                               </Button>
                             )}
                           </div>
@@ -564,7 +564,7 @@ function FacultyDashboard({ user }) {
                   )}
                   {s.status !== 'archived' && (
                     <Button
-                      variant={s.status === 'matched' ? "danger" : "outline-danger"}
+                      variant="outline-danger"
                       size="sm"
                       className="w-100 mt-2"
                       onClick={() => handleCancelSeries(s.id)}

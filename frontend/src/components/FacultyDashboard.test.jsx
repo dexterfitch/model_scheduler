@@ -200,7 +200,7 @@ describe('FacultyDashboard', () => {
   it("explains why a date couldn't be cancelled", async () => {
     api.delete.mockRejectedValue({ response: { data: { error: "This session has already started, so it can't be cancelled." } } });
     renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
-    const [cancelDate] = await screen.findAllByRole('button', { name: /^Cancel$/ });
+    const [cancelDate] = await screen.findAllByRole('button', { name: 'Cancel Date' });
     await userEvent.click(cancelDate);
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel Date' }));
 

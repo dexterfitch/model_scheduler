@@ -265,8 +265,8 @@ function ModelDashboard({ user }) {
           </div>
           <div className="text-end">
             {user.willing_to_model_nude
-              ? <Badge bg="danger" className="p-2">⚠️ Willing to Model Nude</Badge>
-              : <Badge bg="success" className="p-2">Clothed Only</Badge>}
+              ? <Badge bg="info" className="p-2">Willing to Model Nude</Badge>
+              : <Badge bg="info" className="p-2">Clothed Only</Badge>}
           </div>
         </Card.Body>
         <div className="rainbow-bar"></div>
@@ -482,8 +482,8 @@ function ModelDashboard({ user }) {
                   Cancel {otherSeriesCount > 0 ? "Just This Date" : "This Date"}
                 </Button>
                 {otherSeriesCount > 0 && (
-                  <Button variant="danger" onClick={() => handleCancelGig(true)}>
-                    Cancel This &amp; Remaining Series
+                  <Button variant="outline-danger" onClick={() => handleCancelGig(true)}>
+                    Cancel This &amp; Later Dates
                   </Button>
                 )}
               </div>
@@ -504,7 +504,7 @@ function ModelDashboard({ user }) {
               <div className="mt-4 d-flex justify-content-between">
                 <div>
                   {editingId && (
-                    <Button variant="danger" onClick={handleDelete}>Delete Slot</Button>
+                    <Button variant="outline-danger" onClick={handleDelete}>Delete Slot</Button>
                   )}
                 </div>
                 <div>
