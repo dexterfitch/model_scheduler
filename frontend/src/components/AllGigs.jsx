@@ -1,17 +1,37 @@
 import React, { useState, useEffect } from "react";
 import { Table, Container, Badge, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import api from "../services/api";
-import { formatTime, formatDateNumeric } from "../utils/time";
+import { formatTime, formatDateWithWeekday } from "../utils/time";
+
+const personName = (person) => [person?.first_name, person?.last_name].filter(Boolean).join(' ');
+
+// Words first, colour second, so the status reads the same for everyone
+const statusLabel = (gig) => {
+  if (gig.status === 'cancelled') return gig.billable ? 'Cancelled (Billable)' : 'Cancelled';
+  return gig.status === 'confirmed' ? 'Confirmed' : 'Completed';
+};
+const statusColor = (gig) => {
+  if (gig.status === 'cancelled') return gig.billable ? 'warning' : 'secondary';
+  return gig.status === 'confirmed' ? 'primary' : 'success';
+};
+const StatusBadge = ({ gig }) => <Badge bg={statusColor(gig)}>{statusLabel(gig)}</Badge>;
+
+const ClassBadges = ({ request, className = '' }) => (
+  <span className={`d-inline-flex flex-wrap gap-1 ${className}`}>
+    {request?.model_mode === 'nude' && <Badge bg="danger">NUDE</Badge>}
+    {request?.department && <Badge bg="secondary">{request.department}</Badge>}
+  </span>
+);
 
 function AllGigs() {
   const [gigs, setGigs] = useState([]);
   const [search, setSearch] = useState("");
   const today = new Date();
   const [filterStart, setFilterStart] = useState(
-    new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
+    new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en-CA')
   );
   const [filterEnd, setFilterEnd] = useState(
-    new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
+    new Date(today.getFullYear(), today.getMonth() + 1, 0).toLocaleDateString('en-CA')
   );
   const [showAll, setShowAll] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -33,9 +53,9 @@ function AllGigs() {
 
   const filteredGigs = gigs.filter(gig => {
     const term = search.toLowerCase();
-    const modelName = `${gig.art_model_availability.user.first_name} ${gig.art_model_availability.user.last_name}`.toLowerCase();
-    const facultyName = `${gig.faculty_request.user.first_name} ${gig.faculty_request.user.last_name}`.toLowerCase();
-    const className = gig.faculty_request.class_name.toLowerCase();
+    const modelName = personName(gig.art_model_availability?.user).toLowerCase();
+    const facultyName = personName(gig.faculty_request?.user).toLowerCase();
+    const className = (gig.faculty_request?.class_name || '').toLowerCase();
     const matchesSearch = modelName.includes(term) || facultyName.includes(term) || className.includes(term);
 
     if (!matchesSearch) return false;
@@ -46,6 +66,7 @@ function AllGigs() {
     return gigDate >= new Date(filterStart + "T00:00:00") && gigDate <= new Date(filterEnd + "T23:59:59");
   });
 
+  // Phones show one card per class, with that class's gigs listed inside
   const groupedGigs = (() => {
     const groups = [];
     const seriesMap = {};
@@ -67,21 +88,7 @@ function AllGigs() {
     return groups;
   })();
 
-  const renderGigRow = (gig) => (
-    <div key={gig.id} className="small py-1">
-      <span className="font-bold">
-        {formatDateNumeric(gig.faculty_request?.starts_at)}{'  |  '}
-        {formatTime(gig.faculty_request?.starts_at)} &ndash; {formatTime(gig.faculty_request?.ends_at)}{'  |  '}
-      </span>
-      Model: {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-      <span className="font-bold">
-        {'  |  '}
-      </span>
-      Status: <span className={gig.status === 'confirmed' ? 'text-primary fw-bold' : 'text-muted'}>
-        {gig.status === 'cancelled' ? (gig.billable ? 'Cancelled (Billable)' : 'Cancelled') : gig.status === 'confirmed' ? 'Confirmed' : 'Completed'}
-      </span>
-    </div>
-  );
+  const gigTime = (gig) => `${formatTime(gig.faculty_request?.starts_at)} – ${formatTime(gig.faculty_request?.ends_at)}`;
 
   return (
     <Container className="py-4">
@@ -92,6 +99,7 @@ function AllGigs() {
           <InputGroup.Text>🔍</InputGroup.Text>
           <Form.Control
             placeholder="Search name or class..."
+            aria-label="Search name or class"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -124,66 +132,59 @@ function AllGigs() {
           </Col>
           {!showAll && (
             <>
-              <Col xs={6} md="auto">
+              <Form.Group as={Col} xs={6} md="auto" controlId="gigs-from">
                 <Form.Label className="small fw-bold mb-1">From</Form.Label>
                 <Form.Control type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
-              </Col>
-              <Col xs={6} md="auto">
+              </Form.Group>
+              <Form.Group as={Col} xs={6} md="auto" controlId="gigs-to">
                 <Form.Label className="small fw-bold mb-1">To</Form.Label>
                 <Form.Control type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
-              </Col>
+              </Form.Group>
             </>
           )}
         </Row>
       </div>
 
+      {/* Wider screens: one row per gig */}
       <div className="d-none d-md-block bg-white shadow-sm rounded overflow-hidden">
-        <Table hover responsive className="mb-0">
+        <Table hover responsive className="mb-0 align-middle">
           <thead className="bg-light">
             <tr>
-              <th>Date(s)</th>
-              <th>Class Name</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Class</th>
               <th>Faculty</th>
+              <th>Model</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {groupedGigs.length === 0 ? (
+            {filteredGigs.length === 0 ? (
               <tr>
-                <td colSpan="3" className="text-center py-4 text-muted">
+                <td colSpan="6" className="text-center py-4 text-muted">
                   No gigs found matching your search.
                 </td>
               </tr>
             ) : (
-              groupedGigs.map(group => {
-                const first = group.gigs[0];
-                return (
-                  <tr key={group.key}>
-                    <td className="align-middle">
-                      {group.gigs.map(renderGigRow)}
-                    </td>
-                    <td className="align-middle">
-                      {first.faculty_request?.class_name}
-                      {group.gigs.length > 1 && (
-                        <Badge bg="info" text="dark" className="ms-2">{group.gigs.length} dates</Badge>
-                      )}
-                      {first.faculty_request?.model_mode === 'nude' && (
-                        <Badge bg="danger" className="ms-2">NUDE</Badge>
-                      )}
-                      {first.faculty_request?.department && (
-                        <div><Badge bg="secondary">{first.faculty_request.department}</Badge></div>
-                      )}
-                    </td>
-                    <td className="align-middle">
-                      {first.faculty_request?.user?.first_name} {first.faculty_request?.user?.last_name}
-                    </td>
-                  </tr>
-                );
-              })
+              filteredGigs.map(gig => (
+                <tr key={gig.id}>
+                  <td className="text-nowrap">{formatDateWithWeekday(gig.faculty_request?.starts_at)}</td>
+                  <td className="text-nowrap">{gigTime(gig)}</td>
+                  <td>
+                    {gig.faculty_request?.class_name}
+                    <ClassBadges request={gig.faculty_request} className="ms-2" />
+                  </td>
+                  <td>{personName(gig.faculty_request?.user)}</td>
+                  <td>{personName(gig.art_model_availability?.user)}</td>
+                  <td><StatusBadge gig={gig} /></td>
+                </tr>
+              ))
             )}
           </tbody>
         </Table>
       </div>
 
+      {/* Phones: one card per class */}
       <div className="d-md-none">
         {groupedGigs.length === 0 ? (
           <p className="text-center text-muted py-3">No gigs found matching your search.</p>
@@ -193,29 +194,22 @@ function AllGigs() {
             return (
               <div key={group.key} className="card mb-3 shadow-sm">
                 <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <div className="fw-bold">
-                        {first.faculty_request?.class_name}
-                        {group.gigs.length > 1 && (
-                          <Badge bg="info" text="dark" className="ms-2">{group.gigs.length} dates</Badge>
-                        )}
-                      </div>
-                      {first.faculty_request?.model_mode === 'nude' && (
-                        <Badge bg="danger">NUDE</Badge>
-                      )}
-                      {first.faculty_request?.department && (
-                        <Badge bg="secondary" className="ms-1">
-                          {first.faculty_request.department}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+                  <div className="fw-bold">{first.faculty_request?.class_name}</div>
+                  <ClassBadges request={first.faculty_request} className="mb-2" />
                   <div className="small text-muted mb-2">
-                    <i className="bi bi-person me-1"></i>
-                    Faculty: {first.faculty_request?.user?.first_name} {first.faculty_request?.user?.last_name}
+                    <i className="bi bi-person me-1" aria-hidden="true"></i>
+                    Faculty: {personName(first.faculty_request?.user)}
                   </div>
-                  {group.gigs.map(renderGigRow)}
+                  {group.gigs.map(gig => (
+                    <div key={gig.id} className="d-flex justify-content-between align-items-start gap-2 py-2 border-top">
+                      <div className="small">
+                        <div className="fw-bold">{formatDateWithWeekday(gig.faculty_request?.starts_at)}</div>
+                        <div className="text-muted">{gigTime(gig)}</div>
+                        <div>{personName(gig.art_model_availability?.user)}</div>
+                      </div>
+                      <StatusBadge gig={gig} />
+                    </div>
+                  ))}
                 </div>
               </div>
             );
