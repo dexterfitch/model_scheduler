@@ -57,6 +57,18 @@ describe('ModelDashboard', () => {
     );
   });
 
+  it('names the faculty member and department on each gig card', async () => {
+    const taught = { ...morning, faculty_request: { ...morning.faculty_request, department: 'Drawing', user: { first_name: 'Priya', last_name: 'Nair' } } };
+    api.get.mockImplementation((url) => {
+      if (url === '/gigs') return Promise.resolve({ data: [taught] });
+      if (url.startsWith('/art_model_availabilities')) return Promise.resolve({ data: [slot] });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithDialogs(<ModelDashboard user={model} />);
+    const [title] = await screen.findAllByText('Morning Figure Drawing');
+    expect(title.closest('.card')).toHaveTextContent('Priya Nair · Drawing');
+  });
+
   it('labels late cancellations as paid', async () => {
     renderWithDialogs(<ModelDashboard user={model} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Cancelled' }));

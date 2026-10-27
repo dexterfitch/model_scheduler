@@ -314,6 +314,15 @@ function ModelDashboard({ user }) {
                     <Card.Body>
                       {renderGigStatusBadge(gig)}
                       <Card.Title>{gig.faculty_request.class_name}</Card.Title>
+                      {(gig.faculty_request.user || gig.faculty_request.department) && (
+                        <div className="text-muted small mb-2">
+                          <i className="bi bi-person me-1" aria-hidden="true"></i>
+                          {[
+                            gig.faculty_request.user && `${gig.faculty_request.user.first_name} ${gig.faculty_request.user.last_name}`,
+                            gig.faculty_request.department
+                          ].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
                       <div className="mb-3">
                         <div className="fw-bold fs-5">{formatDateWithWeekday(gig.faculty_request.starts_at)}</div>
                         <div className="text-muted">{formatTime(gig.faculty_request.starts_at)} - {formatTime(gig.faculty_request.ends_at)}</div>

@@ -90,8 +90,18 @@ describe('Reports (model hours)', () => {
     expect(await screen.findByText('No gigs found in this date range.')).toBeInTheDocument();
   });
 
+  it('starts with the current month filled in', async () => {
+    render(<Reports />);
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    expect(screen.getByLabelText('Start Date')).toHaveValue(`${now.getFullYear()}-${month}-01`);
+    expect(screen.getByLabelText('End Date')).toHaveValue(`${now.getFullYear()}-${month}-${lastDay}`);
+  });
+
   it('asks for both dates before generating, right under the fields', async () => {
     render(<Reports />);
+    fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: '' } });
     await userEvent.click(screen.getByRole('button', { name: 'Generate Report' }));
     expect(screen.getByText('Please select both a start and end date.')).toBeInTheDocument();
   });

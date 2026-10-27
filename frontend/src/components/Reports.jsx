@@ -4,11 +4,17 @@ import api from "../services/api";
 import { formatTimeShort, formatDateNumeric } from "../utils/time";
 import styles from "./Reports.module.css";
 
+// The first and last day of the current month, as date fields expect them (YYYY-MM-DD)
+const monthBounds = (today = new Date()) => ({
+  start: new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en-CA'),
+  end: new Date(today.getFullYear(), today.getMonth() + 1, 0).toLocaleDateString('en-CA')
+});
+
 function Reports() {
   const [gigs, setGigs] = useState([]);
   const [fetchError, setFetchError] = useState('');
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(() => monthBounds().start);
+  const [endDate, setEndDate] = useState(() => monthBounds().end);
   const [report, setReport] = useState(null);
   const [formError, setFormError] = useState('');
 
