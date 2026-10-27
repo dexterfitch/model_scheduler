@@ -349,6 +349,18 @@ function ModelDashboard({ user }) {
 
         <Tab eventKey="availability" title="Manage Availability">
           <Row>
+            <Col md={9} className="mb-4 mb-md-0">
+              <Alert variant="secondary" className="mb-3">
+                <i className="bi bi-info-circle-fill me-2"></i>
+                Click a date to add time. Click a green block to edit/delete.
+              </Alert>
+              <SharedCalendar
+                events={calendarEvents}
+                editable={true}
+                onDateSelect={handleDateSelect}
+                onEventClick={handleEventClick}
+              />
+            </Col>
             <Col md={3}>
               <div className="bg-light p-3 rounded border mb-3">
                 <h5 className="mb-1">Open Calls</h5>
@@ -427,19 +439,6 @@ function ModelDashboard({ user }) {
                   </ListGroup>
                 )}
               </div>
-            </Col>
-
-            <Col md={9}>
-              <Alert variant="secondary" className="mb-3">
-                <i className="bi bi-info-circle-fill me-2"></i>
-                Click a date to add time. Click a green block to edit/delete.
-              </Alert>
-              <SharedCalendar
-                events={calendarEvents}
-                editable={true}
-                onDateSelect={handleDateSelect}
-                onEventClick={handleEventClick}
-              />
             </Col>
           </Row>
         </Tab>

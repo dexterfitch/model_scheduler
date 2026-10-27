@@ -58,3 +58,28 @@ test('model detail badges line up on the left (phone)', async ({ page }) => {
   const badgeLeft = (await firstBadge.boundingBox()).x;
   expect(Math.abs(badgeLeft - nameLeft), 'badges should start under the name, not on the right').toBeLessThan(2);
 });
+
+// Returns how far down the page an element starts
+const topOf = async (locator) => (await locator.boundingBox()).y;
+
+test('admin calendar shows the schedule before the availability list (phone)', async ({ page }) => {
+  await loginAs(page, 'preyes@mica.edu');
+  await page.goto('/calendar');
+  const schedule = page.getByRole('heading', { name: 'Full Schedule' });
+  const availability = page.getByRole('heading', { name: 'Upcoming Model Availability' });
+  await expect(schedule).toBeVisible();
+
+  expect(await topOf(schedule), 'the schedule should come first').toBeLessThan(await topOf(availability));
+});
+
+test("model's availability calendar comes before Open Calls (phone)", async ({ page }) => {
+  await loginAs(page, 'jellis@mica.edu');
+  await page.goto('/');
+  await page.getByRole('tab', { name: 'Manage Availability' }).click();
+  const calendar = page.locator('.fc').filter({ visible: true }).first();
+  const openCalls = page.getByRole('heading', { name: 'Open Calls' });
+  await expect(calendar).toBeVisible();
+
+  expect(await topOf(calendar), 'the calendar should come first').toBeLessThan(await topOf(openCalls));
+});
+

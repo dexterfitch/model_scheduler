@@ -103,14 +103,14 @@ function AdminCalendar() {
         </Alert>
       )}
       <Row>
-        <Col md={9} className="order-2 order-md-1 my-4 my-md-0">
+        <Col md={9} className="mb-4 mb-md-0">
           <h2 className="mb-4">Full Schedule</h2>
           <SharedCalendar 
             events={calendarEvents} 
             onEventClick={handleEventClick}
           />
         </Col>
-        <Col md={3} className="order-1 order-md-2">
+        <Col md={3}>
           <h4 id="upcoming-availability-heading" className="mb-3 text-secondary">Upcoming Model Availability</h4>
           <div
             style={{ maxHeight: '80vh', overflowY: 'auto' }}
