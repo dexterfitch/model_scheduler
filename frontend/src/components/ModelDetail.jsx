@@ -172,7 +172,7 @@ function ModelDetail() {
                 <h2 className="mb-1">{user.first_name} {user.last_name}</h2>
                 <div className="text-muted">{user.email}</div>
               </div>
-              <div className="text-end">
+              <div className="text-md-end">
                 <div className="mb-2">
                   <Badge bg="info" text="dark" className="me-1">{formatSkinTone(user.skin_tone)}</Badge>
                   <Badge bg="info" text="dark" className="me-1">{user.gender_identity}</Badge>

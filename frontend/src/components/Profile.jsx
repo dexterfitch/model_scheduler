@@ -94,7 +94,7 @@ const Profile = ({ currentUser, setCurrentUser }) => {
 
           <form onSubmit={handleSubmit}>
             <h5 className="mb-3 text-primary">Basic Information</h5>
-            <div className="row mb-3">
+            <div className="row gy-3 mb-3">
               <div className="col-md-6">
                 <label className="form-label" htmlFor="profile-first-name">First Name</label>
                 <input id="profile-first-name" type="text" className="form-control" name="first_name" value={formData.first_name} onChange={handleChange} required autoComplete="given-name" />
@@ -115,7 +115,7 @@ const Profile = ({ currentUser, setCurrentUser }) => {
                 <hr className="my-4" />
                 <h5 className="mb-3 text-success">Model Details</h5>
                 
-                <div className="row mb-3">
+                <div className="row gy-3 mb-3">
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="profile-stage-name">Stage Name (Optional)</label>
                     <input id="profile-stage-name" type="text" className="form-control" name="stage_name" value={formData.stage_name} onChange={handleChange} />
@@ -126,7 +126,7 @@ const Profile = ({ currentUser, setCurrentUser }) => {
                   </div>
                 </div>
 
-                <div className="row mb-3">
+                <div className="row gy-3 mb-3">
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="profile-gender">Gender *</label>
                     <select id="profile-gender" className="form-select" name="gender_identity" value={formData.gender_identity} onChange={handleChange} required>
