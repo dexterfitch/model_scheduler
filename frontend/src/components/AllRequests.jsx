@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert } from "react-bootstrap";
+import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert, Dropdown } from "react-bootstrap";
 import api from "../services/api";
 import styles from "./AllRequests.module.css";
 import { useDialog } from "./DialogProvider";
@@ -379,6 +379,47 @@ function AllRequests() {
     );
   };
 
+  // Phone cards: the main button, plus a More menu for everything else
+  const renderCardActions = (s, showAction, matchedCount, bookedCount) => {
+    const activeCount = s.faculty_requests?.filter(r => r.status !== 'archived').length || 0;
+    const isSingle = activeCount <= 1;
+    const showFind = showAction && matchedCount === 0;
+    const showRelease = bookedCount > 0;
+    const showEdit = s.status !== 'archived';
+    if (!showFind && !showRelease && !showEdit) return null;
+
+    return (
+      <div className="d-flex gap-2">
+        {showFind && (
+          <Button size="sm" variant="outline-primary" className="flex-fill" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
+            {bookedCount > 0 ? "Find More Models" : "Find Model"}
+          </Button>
+        )}
+        {(showRelease || showEdit) && (
+          <Dropdown align="end" className={showFind ? undefined : 'flex-fill'}>
+            <Dropdown.Toggle size="sm" variant="outline-secondary" className={showFind ? undefined : 'w-100'} aria-label={`More actions for ${s.class_name}`}>
+              More
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              {showRelease && (
+                <Dropdown.Item as="button" onClick={() => handleReleaseRemaining(s.id)}>
+                  {(s.models_needed || 1) > 1 ? "Release Models and Rematch" : "Release Model and Rematch"}
+                </Dropdown.Item>
+              )}
+              {showEdit && (
+                <>
+                  <Dropdown.Item as="button" onClick={() => openEditSeriesModal(s)}>Edit Class</Dropdown.Item>
+                  <Dropdown.Divider />
+                  <Dropdown.Item as="button" className="text-danger" onClick={() => handleCancelSeries(s.id, isSingle)}>Cancel Class</Dropdown.Item>
+                </>
+              )}
+            </Dropdown.Menu>
+          </Dropdown>
+        )}
+      </div>
+    );
+  };
+
   const renderSeriesInfo = (s, showAction, allRequests, matchedCount, pendingCount) => {
     const activeCount = allRequests.filter(r => r.status !== 'archived').length;
 
@@ -432,7 +473,7 @@ function AllRequests() {
               <i className="bi bi-journal-text me-1"></i>{s.notes}
             </div>
           )}
-          {showActionColumn && renderActionButtons(s, showAction, matchedCount, bookedCount)}
+          {showActionColumn && renderCardActions(s, showAction, matchedCount, bookedCount)}
         </div>
       </div>
     );

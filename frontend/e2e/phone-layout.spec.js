@@ -117,6 +117,13 @@ test('the longest New Request form scrolls all the way to Submit (phone)', async
   await submit.click({ trial: true }); // fails if anything covers the button
 });
 
+test('Requests cards keep one main button and tuck the rest into More (phone)', async ({ page }) => {
+  await loginAs(page, 'preyes@mica.edu');
+  await page.goto('/requests');
+  await expect(page.getByRole('button', { name: /^More actions for/ }).filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cancel Class' }).filter({ visible: true })).toHaveCount(0);
+});
+
 test.describe('desktop calendar', () => {
   test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
 

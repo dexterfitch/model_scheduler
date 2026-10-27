@@ -116,4 +116,9 @@ $box-shadow-lg: none;
     .btn-link.p-0 {
       min-width: 44px;
     }
+    .dropdown-item {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
   }

@@ -138,6 +138,21 @@ describe('AllRequests (admin requests page)', () => {
     expect(api.delete).toHaveBeenCalledWith('/request_series/1');
   });
 
+  it('on phone cards, keeps the main button and tucks the rest into a More menu', async () => {
+    renderPage();
+    const more = await screen.findByRole('button', { name: 'More actions for Figure Drawing I' });
+    const card = more.closest('.card');
+    expect(within(card).getByRole('button', { name: 'Find More Models' })).toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: 'Cancel Class' })).toBeNull();
+
+    await userEvent.click(more);
+    expect(within(card).getByRole('button', { name: 'Release Models and Rematch' })).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Edit Class' })).toBeInTheDocument();
+    await userEvent.click(within(card).getByRole('button', { name: 'Cancel Class' }));
+    await confirmWith('Cancel Class');
+    expect(api.delete).toHaveBeenCalledWith('/request_series/1');
+  });
+
   it("explains why a model couldn't be released", async () => {
     api.delete.mockRejectedValue({ response: { data: { error: "This session has already started, so the model can't be released from it." } } });
     renderPage();

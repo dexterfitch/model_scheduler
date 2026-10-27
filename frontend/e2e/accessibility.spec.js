@@ -33,9 +33,14 @@ const pages = [
     open: (page) => openDialog(page, 'Edit Class') },
 ];
 
-// Clicks the first visible button with this name and waits for its pop-up to finish opening
+// Clicks the first visible button with this name and waits for its pop-up to finish opening.
+// On phones some buttons live in a card's More menu, so open that first if needed.
 async function openDialog(page, name) {
-  await page.getByRole('button', { name }).filter({ visible: true }).first().click();
+  const button = () => page.getByRole('button', { name }).filter({ visible: true }).first();
+  if (await button().count() === 0) {
+    await page.getByRole('button', { name: /^More actions for/ }).filter({ visible: true }).first().click();
+  }
+  await button().click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.waitForTimeout(400); // let the fade-in finish so colours are final
 }
