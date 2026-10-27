@@ -4,7 +4,7 @@ import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Ale
 import api from "../services/api";
 import styles from "./AllRequests.module.css";
 import { useDialog } from "./DialogProvider";
-import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
+import { formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateShort } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 
@@ -275,12 +275,9 @@ function AllRequests() {
     if ((s.models_needed || 1) > 1) parts.push(<strong key="count">{formatModelCount(s.models_needed)}</strong>);
     if (s.model_slots?.length > 0) {
       // Faculty set preferences for each model separately
-      s.model_slots.forEach(slot => parts.push(`Model ${slot.position}: ${formatPreferenceSummary(slot, s.model_mode)}`));
+      s.model_slots.forEach(slot => parts.push(`Model ${slot.position}: ${formatPreferenceSummary(slot, s.model_mode, { onlySet: true })}`));
     } else {
-      parts.push(formatSkinTone(s.pref_skin_tone));
-      parts.push(`Gender: ${formatGenderPreference(s)}`);
-      parts.push(formatBodyType(s.pref_body_type));
-      if (s.model_mode === 'nude') parts.push(formatGenitalia(s.pref_genitalia));
+      parts.push(formatPreferenceSummary(s, s.model_mode, { onlySet: true }));
     }
     return parts.map((p, i) => (
       <React.Fragment key={i}>{i > 0 && separator}{p}</React.Fragment>

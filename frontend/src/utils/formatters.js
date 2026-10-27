@@ -27,8 +27,11 @@ export const genderOptionLabel = (gender, genitalia) => {
   return gender;
 };
 
-export const formatGenderPreference = (req) =>
-  genderOptionLabel(req.pref_gender || "Any", req.model_mode === "nude" ? req.pref_genitalia : null);
+export const formatGenderPreference = (req) => {
+  const gender = req.pref_gender || "Any";
+  if (gender === "Any") return "Any Gender Presentation";
+  return genderOptionLabel(gender, req.model_mode === "nude" ? req.pref_genitalia : null);
+};
 
 export const formatBodyType = (type) => {
   if (!type || type === "Any") return "Any Build";
@@ -51,10 +54,15 @@ export const calculateMatchScore = (user, target) => {
   return score;
 };
 
-// "Any Skintone, Woman, Fat Build" (plus genitalia for nude sessions) for one set of preferences
-export const formatPreferenceSummary = (prefs, modelMode) => [
-  formatSkinTone(prefs.pref_skin_tone),
-  formatGenderPreference({ ...prefs, model_mode: modelMode }),
-  formatBodyType(prefs.pref_body_type),
-  ...(modelMode === 'nude' ? [formatGenitalia(prefs.pref_genitalia)] : [])
-].join(', ');
+// One set of preferences, e.g. "Any Skintone, Woman, Fat Build" (plus genitalia
+// for nude sessions). With onlySet, preferences left as "Any" are left out.
+export const formatPreferenceSummary = (prefs, modelMode, { onlySet = false } = {}) => {
+  const parts = [
+    [prefs.pref_skin_tone, formatSkinTone(prefs.pref_skin_tone)],
+    [prefs.pref_gender, formatGenderPreference({ ...prefs, model_mode: modelMode })],
+    [prefs.pref_body_type, formatBodyType(prefs.pref_body_type)],
+    ...(modelMode === 'nude' ? [[prefs.pref_genitalia, formatGenitalia(prefs.pref_genitalia)]] : [])
+  ];
+  const shown = onlySet ? parts.filter(([value]) => value && value !== 'Any') : parts;
+  return shown.length ? shown.map(([, label]) => label).join(', ') : 'No preferences';
+};

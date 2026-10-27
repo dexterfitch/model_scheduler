@@ -1,6 +1,6 @@
 import {
   genderOptionLabel, formatGenderPreference, calculateMatchScore, extractErrorMessages,
-  calendarTextColor
+  calendarTextColor, formatPreferenceSummary
 } from './formatters';
 import { CALENDAR_COLORS } from './constants';
 
@@ -21,6 +21,10 @@ describe('genderOptionLabel', () => {
 });
 
 describe('formatGenderPreference', () => {
+  it('says what "Any" means', () => {
+    expect(formatGenderPreference({ pref_gender: 'Any', model_mode: 'clothed' })).toBe('Any Gender Presentation');
+  });
+
   it('ignores the genitalia preference for clothed sessions', () => {
     const req = { pref_gender: 'Woman', pref_genitalia: 'Male', model_mode: 'clothed' };
     expect(formatGenderPreference(req)).toBe('Woman');
@@ -62,5 +66,21 @@ describe('calendarTextColor', () => {
 
   it('falls back to black for any other colour', () => {
     expect(calendarTextColor('#123456')).toBe('#000000');
+  });
+});
+
+describe('formatPreferenceSummary', () => {
+  const prefs = { pref_skin_tone: 'Any', pref_gender: 'Any', pref_body_type: 'Fat', pref_genitalia: 'Any' };
+
+  it('spells out every preference, including the ones left as Any', () => {
+    expect(formatPreferenceSummary(prefs, 'clothed')).toBe('Any Skintone, Any Gender Presentation, Fat Build');
+  });
+
+  it('can list only the preferences that were set', () => {
+    expect(formatPreferenceSummary(prefs, 'clothed', { onlySet: true })).toBe('Fat Build');
+  });
+
+  it('says so when nothing was set', () => {
+    expect(formatPreferenceSummary({ ...prefs, pref_body_type: 'Any' }, 'nude', { onlySet: true })).toBe('No preferences');
   });
 });

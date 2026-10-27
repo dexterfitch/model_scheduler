@@ -153,6 +153,13 @@ describe('AllRequests (admin requests page)', () => {
     expect(api.delete).toHaveBeenCalledWith('/request_series/1');
   });
 
+  it('lists only the preferences faculty actually set', async () => {
+    api.get.mockResolvedValue({ data: [{ ...series, pref_body_type: 'Muscular' }] });
+    renderPage();
+    expect((await screen.findAllByText(/Muscular Build/)).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/Any Skintone|Gender: Any/)).toHaveLength(0);
+  });
+
   it("explains why a model couldn't be released", async () => {
     api.delete.mockRejectedValue({ response: { data: { error: "This session has already started, so the model can't be released from it." } } });
     renderPage();
