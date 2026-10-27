@@ -169,4 +169,34 @@ describe('AllRequests (admin requests page)', () => {
 
     expect(await screen.findByRole('dialog', { name: "Couldn't release the model" })).toHaveTextContent('already started');
   });
+
+  describe('which dates the page shows', () => {
+    const past = {
+      ...series, id: 2, class_name: 'Old Portrait Class', status: 'matched',
+      faculty_requests: [{ ...series.faculty_requests[0], id: 21, status: 'matched', starts_at: daysFromNow(-10, 15), ends_at: daysFromNow(-10, 17) }]
+    };
+    beforeEach(() => api.get.mockResolvedValue({ data: [series, past] }));
+
+    it('opens on upcoming classes', async () => {
+      renderPage();
+      expect((await screen.findAllByText('Figure Drawing I')).length).toBeGreaterThan(0);
+      expect(screen.getByRole('button', { name: 'Upcoming' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryAllByText('Old Portrait Class')).toHaveLength(0);
+    });
+
+    it('shows past classes a click away', async () => {
+      renderPage();
+      await screen.findAllByText('Figure Drawing I');
+      await userEvent.click(screen.getByRole('button', { name: 'Past' }));
+      expect(screen.getAllByText('Old Portrait Class').length).toBeGreaterThan(0);
+      expect(screen.queryAllByText('Figure Drawing I')).toHaveLength(0);
+    });
+
+    it('can narrow to a date range, with labelled fields', async () => {
+      renderPage();
+      await userEvent.click(await screen.findByRole('button', { name: 'Date Range' }));
+      expect(screen.getByLabelText('From')).toBeInTheDocument();
+      expect(screen.getByLabelText('To')).toBeInTheDocument();
+    });
+  });
 });

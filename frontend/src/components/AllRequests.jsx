@@ -16,12 +16,13 @@ function AllRequests() {
   const [search, setSearch] = useState("");
   const today = new Date();
   const [filterStart, setFilterStart] = useState(
-    new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
+    new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en-CA')
   );
   const [filterEnd, setFilterEnd] = useState(
-    new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
+    new Date(today.getFullYear(), today.getMonth() + 1, 0).toLocaleDateString('en-CA')
   );
-  const [showAll, setShowAll] = useState(true);
+  // Which dates to show: 'upcoming' (the default), 'past', or a date 'range'
+  const [when, setWhen] = useState('upcoming');
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
@@ -38,11 +39,14 @@ function AllRequests() {
         return false;
       })
       .filter(s => {
-        if (showAll) return true;
-        const firstReq = s.faculty_requests?.[0];
-        if (!firstReq) return false;
-        const gigDate = new Date(firstReq.starts_at);
-        return gigDate >= new Date(filterStart + "T00:00:00") && gigDate <= new Date(filterEnd + "T23:59:59");
+        const dates = s.faculty_requests || [];
+        const now = new Date();
+        // Upcoming: a date hasn't finished yet. Past: every date has finished.
+        if (when === 'upcoming') return dates.some(r => new Date(r.ends_at) >= now);
+        if (when === 'past') return dates.length > 0 && dates.every(r => new Date(r.ends_at) < now);
+        const from = new Date(filterStart + "T00:00:00");
+        const to = new Date(filterEnd + "T23:59:59");
+        return dates.some(r => new Date(r.starts_at) >= from && new Date(r.starts_at) <= to);
       })
       .filter(s => {
         const className = s.class_name?.toLowerCase() || "";
@@ -56,7 +60,8 @@ function AllRequests() {
       .sort((a, b) => {
         const aFirst = a.faculty_requests?.[0]?.starts_at;
         const bFirst = b.faculty_requests?.[0]?.starts_at;
-        return new Date(aFirst) - new Date(bFirst);
+        // Past classes show the most recent first
+        return when === 'past' ? new Date(bFirst) - new Date(aFirst) : new Date(aFirst) - new Date(bFirst);
       });
   };
 
@@ -579,32 +584,30 @@ function AllRequests() {
             </div>
           </Col>
           <Col xs={12} md="auto">
-            <Button
-              className="w-100 status-filter-btn"
-              variant={showAll ? "secondary" : "outline-secondary"}
-              onClick={() => setShowAll(!showAll)}
-            >
-              {showAll ? "Filter by Date" : "Show All"}
-            </Button>
+            <div className="d-flex flex-wrap gap-2" role="group" aria-label="Which dates">
+              {[['upcoming', 'Upcoming'], ['past', 'Past'], ['range', 'Date Range']].map(([key, label]) => (
+                <Button
+                  key={key}
+                  className="status-filter-btn"
+                  variant={when === key ? 'secondary' : 'outline-secondary'}
+                  aria-pressed={when === key}
+                  onClick={() => setWhen(key)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
           </Col>
-          {!showAll && (
+          {when === 'range' && (
             <>
-              <Col xs={6} md="auto">
+              <Form.Group as={Col} xs={6} md="auto" controlId="requests-from">
                 <Form.Label className="small fw-bold mb-1">From</Form.Label>
-                <Form.Control
-                  type="date"
-                  value={filterStart}
-                  onChange={e => setFilterStart(e.target.value)}
-                />
-              </Col>
-              <Col xs={6} md="auto">
+                <Form.Control type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
+              </Form.Group>
+              <Form.Group as={Col} xs={6} md="auto" controlId="requests-to">
                 <Form.Label className="small fw-bold mb-1">To</Form.Label>
-                <Form.Control
-                  type="date"
-                  value={filterEnd}
-                  onChange={e => setFilterEnd(e.target.value)}
-                />
-              </Col>
+                <Form.Control type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
+              </Form.Group>
             </>
           )}
         </Row>
