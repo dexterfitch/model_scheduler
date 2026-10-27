@@ -352,7 +352,7 @@ function ModelDashboard({ user }) {
             <Col md={9} className="mb-4 mb-md-0">
               <Alert variant="secondary" className="mb-3">
                 <i className="bi bi-info-circle-fill me-2"></i>
-                Click a date to add time. Click a green block to edit/delete.
+                Use Add Availability, or click a date on the grid, to add time. Click a green block to edit/delete.
               </Alert>
               <SharedCalendar
                 events={calendarEvents}
@@ -444,9 +444,9 @@ function ModelDashboard({ user }) {
         </Tab>
       </Tabs>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
+      <Modal show={showModal} onHide={() => setShowModal(false)} aria-labelledby="availability-window-title">
         <Modal.Header closeButton>
-          <Modal.Title>{activeGig ? "Gig Scheduled" : (editingId ? "Edit Availability" : "Set Availability")}</Modal.Title>
+          <Modal.Title id="availability-window-title">{activeGig ? "Gig Scheduled" : (editingId ? "Edit Availability" : "Set Availability")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {modalError && (

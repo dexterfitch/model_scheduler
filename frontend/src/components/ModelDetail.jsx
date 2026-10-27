@@ -193,7 +193,7 @@ function ModelDetail() {
       <h4 className="mb-3">Availability Calendar</h4>
       <Alert variant="secondary" className="mb-3">
         <i className="bi bi-info-circle-fill me-2"></i>
-        As admin you can add, edit, or delete this model's availability. Click a date to add time. Click a block to edit or delete.
+        As admin you can add, edit, or delete this model's availability. Use Add Availability, or click a date on the grid, to add time. Click a block to edit or delete.
       </Alert>
       <SharedCalendar
         events={calendarEvents}
@@ -202,9 +202,9 @@ function ModelDetail() {
         onEventClick={handleEventClick}
       />
 
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
+      <Modal show={showModal} onHide={() => setShowModal(false)} aria-labelledby="availability-window-title">
         <Modal.Header closeButton>
-          <Modal.Title>{activeGig ? "Gig Scheduled" : (editingId ? "Edit Availability" : "Add Availability")}</Modal.Title>
+          <Modal.Title id="availability-window-title">{activeGig ? "Gig Scheduled" : (editingId ? "Edit Availability" : "Add Availability")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {modalError && (

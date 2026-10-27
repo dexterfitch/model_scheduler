@@ -1,15 +1,22 @@
 import React, { useEffect, useRef } from 'react';
+import { Button } from 'react-bootstrap';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
+import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import bootstrap5Plugin from '@fullcalendar/bootstrap5';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../assets/styles/fullcalendar-overrides.css';
 import { calendarTextColor } from '../utils/formatters';
 
+// Phones and small tablets open on a list of the next 30 days, since a single
+// day is usually empty. Bigger screens open on the week grid.
+const SMALL_SCREEN = 992;
+
 const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }) => {
   const wrapperRef = useRef(null);
+  const small = window.innerWidth < SMALL_SCREEN;
 
   // FullCalendar marks its arrow icons as unlabeled images. Their buttons already
   // have names ("Previous week"), so hide the icons from screen readers, including
@@ -25,26 +32,41 @@ const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }
     return () => observer.disconnect();
   }, []);
 
+  // A way to add time without tapping the grid (the list view has no grid).
+  // Starts on today's date; the window that opens lets people change it.
+  const addToday = () => onDateSelect({ startStr: new Date().toLocaleDateString('en-CA') });
+
   return (
     <div className="card shadow-sm p-3" ref={wrapperRef}>
+      {editable && onDateSelect && (
+        <div className="d-flex justify-content-end mb-2">
+          <Button variant="success" onClick={addToday}>
+            <i className="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Availability
+          </Button>
+        </div>
+      )}
       <FullCalendar
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin]}
+        plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin, bootstrap5Plugin]}
         themeSystem="bootstrap5"
-        initialView={window.innerWidth < 992 ? 'timeGridDay' : 'timeGridWeek'}
-        headerToolbar={{
-          left: window.innerWidth < 992 ? 'prev,next' : 'prev,next today',
-          center: 'title',
-          right: window.innerWidth < 992 ? 'timeGridDay,timeGridWeek' : 'dayGridMonth,timeGridWeek,timeGridDay'
+        views={{
+          listUpcoming: { type: 'list', duration: { days: 30 }, buttonText: 'List' }
         }}
+        initialView={small ? 'listUpcoming' : 'timeGridWeek'}
+        headerToolbar={{
+          left: small ? 'prev,next' : 'prev,next today',
+          center: 'title',
+          right: small ? 'listUpcoming,timeGridDay,timeGridWeek' : 'dayGridMonth,timeGridWeek,timeGridDay,listUpcoming'
+        }}
+        noEventsContent="Nothing scheduled in these 30 days."
         height="auto"
         selectable={true}
         editable={editable}
         events={events.map(e => ({ textColor: calendarTextColor(e.backgroundColor), ...e }))}
         select={onDateSelect}
         eventClick={onEventClick}
-        
-        displayEventEnd={true} 
-        
+
+        displayEventEnd={true}
+
         eventTimeFormat={{
           hour: 'numeric',
           minute: '2-digit',

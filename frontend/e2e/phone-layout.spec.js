@@ -83,3 +83,26 @@ test("model's availability calendar comes before Open Calls (phone)", async ({ p
   expect(await topOf(calendar), 'the calendar should come first').toBeLessThan(await topOf(openCalls));
 });
 
+test('admin calendar opens on a list of upcoming items (phone)', async ({ page }) => {
+  await loginAs(page, 'preyes@mica.edu');
+  await page.goto('/calendar');
+  await expect(page.locator('.fc-list').first(), 'phones should see a list, not a single day').toBeVisible();
+});
+
+test('a model can add availability without tapping the calendar grid (phone)', async ({ page }) => {
+  await loginAs(page, 'jellis@mica.edu');
+  await page.goto('/');
+  await page.getByRole('tab', { name: 'Manage Availability' }).click();
+  await page.getByRole('button', { name: 'Add Availability' }).click();
+  await expect(page.getByRole('dialog', { name: 'Set Availability' })).toBeVisible();
+});
+
+test.describe('desktop calendar', () => {
+  test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
+
+  test('still opens on the week grid', async ({ page }) => {
+    await loginAs(page, 'preyes@mica.edu');
+    await page.goto('/calendar');
+    await expect(page.locator('.fc-timeGridWeek-view')).toBeVisible();
+  });
+});
