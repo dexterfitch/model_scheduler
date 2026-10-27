@@ -97,6 +97,26 @@ test('a model can add availability without tapping the calendar grid (phone)', a
   await expect(page.getByRole('dialog', { name: 'Set Availability' })).toBeVisible();
 });
 
+test('the longest New Request form scrolls all the way to Submit (phone)', async ({ page }) => {
+  await loginAs(page, 'achen@mica.edu');
+  await page.goto('/');
+  await page.getByRole('button', { name: /New Request/ }).filter({ visible: true }).first().click();
+  const form = page.getByRole('dialog');
+  await expect(form).toBeVisible();
+
+  // Make the form as long as it gets: three dates, nude, and three models with their own preferences
+  await form.getByRole('button', { name: /Add Another Date/ }).click();
+  await form.getByRole('button', { name: /Add Another Date/ }).click();
+  await form.getByLabel('Nudity').selectOption('nude');
+  await form.getByLabel('Number of Models').selectOption('3');
+  await expect(form.getByRole('group', { name: 'Model 3' })).toBeVisible();
+
+  const submit = form.getByRole('button', { name: 'Submit Request' });
+  await submit.scrollIntoViewIfNeeded();
+  await expect(submit).toBeInViewport();
+  await submit.click({ trial: true }); // fails if anything covers the button
+});
+
 test.describe('desktop calendar', () => {
   test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
 
