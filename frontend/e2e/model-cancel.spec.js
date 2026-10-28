@@ -15,7 +15,8 @@ test('a model drops out and the admin sees the class flagged', async ({ page }) 
 
   // The admin dashboard now lists that class with a warning
   await loginAs(page, 'preyes@mica.edu');
-  const requestCard = page.locator('.card.border-start')
-    .filter({ has: page.getByText('Drawing I', { exact: true }) });
+  // The card closest around the class name, however the cards are styled
+  const requestCard = page.getByText('Drawing I', { exact: true })
+    .locator('xpath=ancestor::div[contains(concat(" ", @class, " "), " card ")][1]');
   await expect(requestCard).toContainText('Needs Attention: Model Dropped Out');
 });
