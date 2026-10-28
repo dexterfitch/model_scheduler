@@ -50,6 +50,12 @@ describe('SelectRole (first login)', () => {
     expect(api.post).toHaveBeenCalledWith('/select_role', { role: 'model', skin_tone: 'Medium' });
   });
 
+  it('explains to a new model why we ask personal questions', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /I am a Model/ }));
+    expect(screen.getByRole('button', { name: 'Why are we asking?' })).toBeInTheDocument();
+  });
+
   it('asks a new model to fill in the required fields', async () => {
     const { container } = renderPage();
     await userEvent.click(screen.getByRole('button', { name: /I am a Model/ }));

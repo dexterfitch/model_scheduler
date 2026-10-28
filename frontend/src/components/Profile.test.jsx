@@ -96,6 +96,14 @@ describe('Profile', () => {
     expect(screen.getByLabelText('Genitalia')).toHaveValue('Intersex');
   });
 
+  it('explains to models why they are asked personal questions, but not to faculty', () => {
+    const { unmount } = renderProfile(model);
+    expect(screen.getByRole('button', { name: 'Why are we asking?' })).toBeInTheDocument();
+    unmount();
+    renderProfile({ id: 1, role: 'faculty', first_name: 'Priya', last_name: 'Nair' });
+    expect(screen.queryByRole('button', { name: 'Why are we asking?' })).toBeNull();
+  });
+
   it('labels every field so screen readers can announce them', () => {
     renderProfile(model);
     for (const label of [/First Name/, /Last Name/, /Phone Number/, /Stage Name/, /Pronouns/, 'Gender *']) {
