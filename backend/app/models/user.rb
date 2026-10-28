@@ -5,6 +5,8 @@ class User < ApplicationRecord
 
   GENDER_IDENTITIES = ["Woman", "Man", "Non-binary", "Prefer not to say"].freeze
   SKIN_TONES = ["Light", "Medium", "Dark"].freeze
+  # What a model can answer about themselves. Requests can only ask for SKIN_TONES.
+  SKIN_TONE_ANSWERS = (SKIN_TONES + ["Prefer not to say"]).freeze
   BODY_TYPES = ["Muscular", "Average", "Fat"].freeze
   GENITALIA = ["Male", "Female", "Intersex"].freeze
 
@@ -23,7 +25,7 @@ class User < ApplicationRecord
     validates :gender_identity, presence: true
     validates :gender_identity, inclusion: { in: GENDER_IDENTITIES }
     # One clear message whether the skin tone is missing or not an option
-    validates :skin_tone, inclusion: { in: SKIN_TONES, message: "must be chosen (Light, Medium or Dark)" }
+    validates :skin_tone, inclusion: { in: SKIN_TONE_ANSWERS, message: "must be chosen (Light, Medium, Dark or Prefer not to say)" }
     validates :willing_to_model_nude, inclusion: { in: [true, false] }
     # Both optional so existing model profiles stay valid
     validates :body_type, inclusion: { in: BODY_TYPES }, allow_nil: true
@@ -55,7 +57,7 @@ class User < ApplicationRecord
     find_each do |user|
       user.gender_identity = current_option(user.gender_identity, GENDER_IDENTITIES)
       user.gender_identity ||= "Prefer not to say" if user.role_model?
-      user.skin_tone = current_option(user.skin_tone, SKIN_TONES)
+      user.skin_tone = current_option(user.skin_tone, SKIN_TONE_ANSWERS)
       user.body_type = current_option(user.body_type, BODY_TYPES)
       user.genitalia = current_option(user.genitalia, GENITALIA)
 

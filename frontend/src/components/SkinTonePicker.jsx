@@ -23,7 +23,11 @@ function SkinTonePicker({ value, onChange, label = 'Skin Tone', required = false
               onChange={() => onChange(tone.label)}
               required={required}
             />
-            <span className={styles.circle} style={{ backgroundColor: tone.color }} aria-hidden="true" />
+            <span
+              className={tone.color ? styles.circle : `${styles.circle} ${styles.none}`}
+              style={tone.color ? { backgroundColor: tone.color } : undefined}
+              aria-hidden="true"
+            />
             <span className="visually-hidden">{tone.label}</span>
           </label>
         ))}

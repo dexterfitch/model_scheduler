@@ -16,6 +16,14 @@ describe('SkinTonePicker', () => {
     expect(screen.getByRole('radio', { name: 'Light' })).not.toBeChecked();
   });
 
+  it('lets someone prefer not to say', async () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+    await userEvent.click(screen.getByRole('radio', { name: 'Prefer not to say' }));
+    expect(onChange).toHaveBeenCalledWith('Prefer not to say');
+    expect(screen.getByText('Prefer not to say', { selector: 'strong' })).toBeInTheDocument();
+  });
+
   it('can be chosen with a click', async () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);

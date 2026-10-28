@@ -42,6 +42,10 @@ export const SKIN_TONES = ["Light",
   "Dark"
 ];
 
+// What a model can answer about themselves: a tone, or not to say. Requests only
+// ask for SKIN_TONES (or Any), since "Prefer not to say" isn't something to ask for.
+export const SKIN_TONE_ANSWERS = [...SKIN_TONES, "Prefer not to say"];
+
 export const SKIN_TONE_OPTIONS = [
   { 
     label: 'Light', 
@@ -54,6 +58,10 @@ export const SKIN_TONE_OPTIONS = [
   { 
     label: 'Dark', 
     color: '#593C2B' 
+  },
+  {
+    label: 'Prefer not to say',
+    color: null
   }
 ];
 

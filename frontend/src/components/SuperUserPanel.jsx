@@ -3,7 +3,7 @@ import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Container, Badge, Row, Col, Modal, Button } from 'react-bootstrap';
 import { formatDateTime, formatTime, roundToNearest5, findActiveGigForAvailability } from "../utils/time";
-import { GENDER_IDENTITIES, SKIN_TONES } from "../utils/constants";
+import { GENDER_IDENTITIES, SKIN_TONE_ANSWERS } from "../utils/constants";
 import ModelBodyFields from "./ModelBodyFields";
 import SkinTonePicker from "./SkinTonePicker";
 import { extractErrorMessages } from "../utils/formatters";
@@ -151,7 +151,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
   // ask for it before switching them, instead of guessing.
   const [skinToneAsk, setSkinToneAsk] = useState(null); // { userId, name } or { self: true }
   const [chosenTone, setChosenTone] = useState('');
-  const hasSkinTone = (person) => SKIN_TONES.includes(person?.skin_tone);
+  const hasSkinTone = (person) => SKIN_TONE_ANSWERS.includes(person?.skin_tone);
   const askForSkinTone = (ask) => { setChosenTone(''); setSkinToneAsk(ask); };
 
   const handlePromote = async (userId, newRole, skinTone) => {
@@ -431,7 +431,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
               <Col xs={12} md={6} className="mb-3 mb-md-0">
                 <label className="form-label fw-bold" htmlFor="sock-skin-tone">Skin Tone</label>
                 <select id="sock-skin-tone" required className="form-select" name="skin_tone" value={sockForm.skin_tone} onChange={handleSockFormChange}>
-                  {SKIN_TONES.map(t => <option key={t} value={t}>{t}</option>)}
+                  {SKIN_TONE_ANSWERS.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </Col>
               <Col xs={12} md={6} className="d-flex align-items-end pb-1">

@@ -114,7 +114,7 @@ class UsersController < ApplicationController
   # if neither has one the save fails and says so.
   def apply_model_defaults(user, skin_tone: nil)
     user.gender_identity = User.current_option(user.gender_identity, User::GENDER_IDENTITIES) || "Prefer not to say"
-    user.skin_tone       = User.current_option(skin_tone, User::SKIN_TONES) || User.current_option(user.skin_tone, User::SKIN_TONES)
+    user.skin_tone       = User.current_option(skin_tone, User::SKIN_TONE_ANSWERS) || User.current_option(user.skin_tone, User::SKIN_TONE_ANSWERS)
     user.body_type       = User.current_option(user.body_type, User::BODY_TYPES)
     user.genitalia       = User.current_option(user.genitalia, User::GENITALIA)
     user.willing_to_model_nude = false if user.willing_to_model_nude.nil?

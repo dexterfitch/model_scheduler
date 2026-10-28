@@ -97,6 +97,12 @@ describe('SuperUserPanel', () => {
     expect(await screen.findByText('Email has already been taken')).toBeInTheDocument();
   });
 
+  it('lets a sock account prefer not to say a skin tone', async () => {
+    renderPanel();
+    const options = [...(await screen.findByLabelText('Skin Tone')).options].map(o => o.value);
+    expect(options).toContain('Prefer not to say');
+  });
+
   it('names every control in the availability manager', async () => {
     const jordan = { id: 4, role: 'model', first_name: 'Jordan', last_name: 'Ellis', email: 'jellis@mica.edu' };
     const slot = { id: 50, starts_at: daysFromNow(3, 15), ends_at: daysFromNow(3, 17), status: 'open' };

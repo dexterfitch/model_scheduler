@@ -49,6 +49,12 @@ describe('ModelPreferenceFields', () => {
     expect(within(group).getAllByRole('radio').map(r => r.value)).toEqual(['Any', 'Muscular', 'Average', 'Fat']);
   });
 
+  it("doesn't offer Prefer not to say as a skin tone to ask for", () => {
+    const { container } = render(<Harness />);
+    const options = [...select(container, 'pref_skin_tone').options].map(o => o.value);
+    expect(options).toEqual(['Any', 'Light', 'Medium', 'Dark']);
+  });
+
   it('labels every preference so screen readers can announce them', () => {
     render(<Harness initial={{ model_mode: 'nude' }} />);
     for (const label of ['Nudity', 'Number of Models', 'Skin Tone', 'Gender', 'Body Type', 'Genitalia']) {

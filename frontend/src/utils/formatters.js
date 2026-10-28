@@ -7,6 +7,7 @@ export const calendarTextColor = (background) =>
 
 export const formatSkinTone = (tone) => {
   if (!tone || tone === "Any") return "Any Skintone";
+  if (tone === "Prefer not to say") return "Skin tone: Prefer not to say";
   if (tone.toLowerCase().includes("skintone")) return tone;
   return `${tone} Skintone`;
 };

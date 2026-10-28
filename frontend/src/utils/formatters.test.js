@@ -1,6 +1,6 @@
 import {
   genderOptionLabel, formatGenderPreference, calculateMatchScore, extractErrorMessages,
-  calendarTextColor, formatPreferenceSummary
+  calendarTextColor, formatPreferenceSummary, formatSkinTone
 } from './formatters';
 import { CALENDAR_COLORS } from './constants';
 
@@ -82,5 +82,12 @@ describe('formatPreferenceSummary', () => {
 
   it('says so when nothing was set', () => {
     expect(formatPreferenceSummary({ ...prefs, pref_body_type: 'Any' }, 'nude', { onlySet: true })).toBe('No preferences');
+  });
+});
+
+describe('formatSkinTone', () => {
+  it('reads naturally when a model prefers not to say', () => {
+    expect(formatSkinTone('Prefer not to say')).toBe('Skin tone: Prefer not to say');
+    expect(formatSkinTone('Dark')).toBe('Dark Skintone');
   });
 });

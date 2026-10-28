@@ -24,6 +24,12 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* "Prefer not to say": an empty circle with a line through it */
+.none {
+  background: linear-gradient(135deg, transparent 46%, #000000 46%, #000000 54%, transparent 54%), #ffffff;
+  border-color: #000000;
+}
+
 /* Selected: MICA blue ring */
 .input:checked + .circle {
   box-shadow: 0 0 0 3px #ffffff, 0 0 0 6px #0047bb;

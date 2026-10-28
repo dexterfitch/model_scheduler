@@ -69,7 +69,7 @@ RSpec.describe "User profile permissions", type: :request do
       post "/users/#{user.id}/promote", params: { role: "model" }, headers: auth_headers(admin), as: :json
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(response.parsed_body["errors"]).to eq(["Skin tone must be chosen (Light, Medium or Dark)"])
+      expect(response.parsed_body["errors"]).to eq(["Skin tone must be chosen (Light, Medium, Dark or Prefer not to say)"])
       expect(user.reload).to be_role_faculty
       expect(user.skin_tone).to be_nil
     end
@@ -111,6 +111,12 @@ RSpec.describe "User profile permissions", type: :request do
       newcomer = create(:user, role: nil)
       post "/select_role", params: { role: "faculty" }, headers: auth_headers(newcomer), as: :json
       expect(newcomer.reload).to be_role_faculty
+    end
+
+    it "lets someone switched to model prefer not to say their skin tone" do
+      post "/users/#{user.id}/promote", params: { role: "model", skin_tone: "Prefer not to say" }, headers: auth_headers(admin), as: :json
+      expect(response).to have_http_status(:ok)
+      expect(user.reload.skin_tone).to eq("Prefer not to say")
     end
 
     it "uses the skin tone a new model chose" do

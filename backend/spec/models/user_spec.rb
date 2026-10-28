@@ -9,6 +9,21 @@ RSpec.describe User, type: :model do
     expect(build(:user, :model)).to be_valid
   end
 
+  it "lets a model prefer not to say their skin tone" do
+    expect(build(:user, :model, skin_tone: "Prefer not to say")).to be_valid
+  end
+
+  it "still needs a model to answer the skin tone question, even if only to skip it" do
+    model = build(:user, :model, skin_tone: nil)
+    expect(model).not_to be_valid
+    expect(model.errors.full_messages).to include("Skin tone must be chosen (Light, Medium, Dark or Prefer not to say)")
+  end
+
+  it "doesn't let a class request ask for Prefer not to say" do
+    series = build(:request_series, pref_skin_tone: "Prefer not to say")
+    expect(series).not_to be_valid
+  end
+
   it "clears genitalia for models who won't pose nude" do
     user = create(:user, :model, genitalia: "Intersex")
     expect(user.genitalia).to be_nil
