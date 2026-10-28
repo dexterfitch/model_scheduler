@@ -142,3 +142,4 @@ docker-logs/
 *.pem
 certs/
 audit.md
+/frontend/user-guide/
