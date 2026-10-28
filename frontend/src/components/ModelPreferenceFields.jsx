@@ -1,10 +1,11 @@
 import React, { useId } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import {
-  GENDER_PREFERENCE_OPTIONS, SKIN_TONES, BODY_TYPES, GENITALIA_OPTIONS, MAX_MODELS_PER_REQUEST
+  GENDER_PREFERENCE_OPTIONS, SKIN_TONES, GENITALIA_OPTIONS, MAX_MODELS_PER_REQUEST
 } from "../utils/constants";
 import { genderOptionLabel } from "../utils/formatters";
 import { usesModelSlots } from "../utils/modelPreferences";
+import BodyTypePicker from "./BodyTypePicker";
 
 // Skin tone, gender presentation, body type and (nude sessions) genitalia
 function PreferenceSet({ prefs, isNude, idPrefix, onChange }) {
@@ -28,13 +29,14 @@ function PreferenceSet({ prefs, isNude, idPrefix, onChange }) {
           ))}
         </Form.Select>
       </Form.Group>
-      <Form.Group as={Col} md={6} lg={3} className="mb-3" controlId={`${idPrefix}-body`}>
-        <Form.Label>Body Type</Form.Label>
-        <Form.Select name="pref_body_type" value={prefs.pref_body_type || "Any"} onChange={handle}>
-          <option value="Any">Any</option>
-          {BODY_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
-        </Form.Select>
-      </Form.Group>
+      <Col xs={12} lg={6} className="mb-3">
+        <BodyTypePicker
+          value={prefs.pref_body_type || "Any"}
+          onChange={(value) => onChange("pref_body_type", value)}
+          noneLabel="Any"
+          noneValue="Any"
+        />
+      </Col>
       {isNude && (
         <Form.Group as={Col} md={6} lg={3} className="mb-3" controlId={`${idPrefix}-genitalia`}>
           <Form.Label>Genitalia</Form.Label>

@@ -146,7 +146,7 @@ describe('FacultyDashboard', () => {
     fireEvent.change(field('End Time'), { target: { value: '12:00' } });
     await userEvent.selectOptions(field('Number of Models'), '2');
     const model2 = within(modal).getByRole('group', { name: 'Model 2' });
-    await userEvent.selectOptions(within(model2).getByLabelText('Body Type'), 'Fat');
+    await userEvent.click(within(model2).getByRole('radio', { name: 'Fat' }));
     await userEvent.click(within(modal).getByRole('button', { name: 'Submit Request' }));
 
     expect(api.post).toHaveBeenCalledWith('/request_series', expect.objectContaining({

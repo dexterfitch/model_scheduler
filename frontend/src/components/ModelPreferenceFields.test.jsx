@@ -44,9 +44,9 @@ describe('ModelPreferenceFields', () => {
   });
 
   it('offers the body type options', () => {
-    const { container } = render(<Harness />);
-    const options = [...select(container, 'pref_body_type').options].map(o => o.value);
-    expect(options).toEqual(['Any', 'Muscular', 'Average', 'Fat']);
+    render(<Harness />);
+    const group = screen.getByRole('radiogroup', { name: 'Body Type' });
+    expect(within(group).getAllByRole('radio').map(r => r.value)).toEqual(['Any', 'Muscular', 'Average', 'Fat']);
   });
 
   it('labels every preference so screen readers can announce them', () => {
@@ -61,10 +61,10 @@ describe('ModelPreferenceFields', () => {
     await userEvent.selectOptions(screen.getByLabelText('Number of Models'), '2');
 
     const model2 = screen.getByRole('group', { name: 'Model 2' });
-    await userEvent.selectOptions(within(model2).getByLabelText('Body Type'), 'Fat');
+    await userEvent.click(within(model2).getByRole('radio', { name: 'Fat' }));
 
-    expect(within(model2).getByLabelText('Body Type')).toHaveValue('Fat');
-    expect(within(screen.getByRole('group', { name: 'Model 1' })).getByLabelText('Body Type')).toHaveValue('Any');
+    expect(within(model2).getByRole('radio', { name: 'Fat' })).toBeChecked();
+    expect(within(screen.getByRole('group', { name: 'Model 1' })).getByRole('radio', { name: 'Any' })).toBeChecked();
   });
 
   it('collapses to one set of preferences with "Same for every model"', async () => {

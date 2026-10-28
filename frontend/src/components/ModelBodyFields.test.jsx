@@ -18,14 +18,14 @@ describe('ModelBodyFields', () => {
 
   it('lets models skip both questions', () => {
     const { container } = render(<ModelBodyFields values={{ willing_to_model_nude: true }} onChange={() => {}} />);
-    expect(select(container, 'body_type')).toHaveValue('');
+    expect(screen.getByRole('radio', { name: 'Prefer not to say' })).toBeChecked();
     expect(select(container, 'genitalia')).toHaveValue('');
   });
 
   it('reports the chosen body type', async () => {
     const onChange = vi.fn();
-    const { container } = render(<ModelBodyFields values={{}} onChange={onChange} />);
-    await userEvent.selectOptions(select(container, 'body_type'), 'Average');
+    render(<ModelBodyFields values={{}} onChange={onChange} />);
+    await userEvent.click(screen.getByRole('radio', { name: 'Average' }));
     expect(onChange).toHaveBeenCalledWith('body_type', 'Average');
   });
   

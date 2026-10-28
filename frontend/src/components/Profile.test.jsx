@@ -49,9 +49,9 @@ describe('Profile', () => {
 
   it('saves the profile and updates the signed-in user', async () => {
     api.patch.mockResolvedValue({ data: { ...model, body_type: 'Fat' } });
-    const { container, setCurrentUser } = renderProfile(model);
+    const { setCurrentUser } = renderProfile(model);
 
-    await userEvent.selectOptions(select(container, 'body_type'), 'Fat');
+    await userEvent.click(screen.getByRole('radio', { name: 'Fat' }));
     await userEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
 
     expect(api.patch).toHaveBeenCalledWith('/users/10', { user: expect.objectContaining({ body_type: 'Fat' }) });
@@ -69,8 +69,8 @@ describe('Profile', () => {
   });
 
   it('hides model-only fields from faculty', () => {
-    const { container } = renderProfile({ id: 1, role: 'faculty', first_name: 'Priya', last_name: 'Nair' });
-    expect(select(container, 'body_type')).toBeNull();
+    renderProfile({ id: 1, role: 'faculty', first_name: 'Priya', last_name: 'Nair' });
+    expect(screen.queryByRole('radiogroup', { name: 'Body Type' })).toBeNull();
     expect(screen.queryByText('Model Details')).toBeNull();
   });
 
@@ -82,7 +82,7 @@ describe('Profile', () => {
 
     expect(await screen.findByText(/booked for 2 nude sessions/)).toBeInTheDocument();
   });
-
+  
   it('puts back the saved answers when the server refuses the change', async () => {
     api.patch.mockRejectedValue({ response: { data: { errors: ["You're booked for 2 nude sessions; cancel those first."] } } });
     renderProfile(model);
@@ -95,7 +95,7 @@ describe('Profile', () => {
     expect(nude).toBeChecked();
     expect(screen.getByLabelText('Genitalia')).toHaveValue('Intersex');
   });
-  
+
   it('labels every field so screen readers can announce them', () => {
     renderProfile(model);
     for (const label of [/First Name/, /Last Name/, /Phone Number/, /Stage Name/, /Pronouns/, 'Gender *']) {
