@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Container, Badge, Row, Col } from 'react-bootstrap';
+import { Container, Badge, Row, Col, Modal, Button } from 'react-bootstrap';
 import { formatDateTime, formatTime, roundToNearest5, findActiveGigForAvailability } from "../utils/time";
 import { GENDER_IDENTITIES, SKIN_TONES } from "../utils/constants";
 import ModelBodyFields from "./ModelBodyFields";
+import SkinTonePicker from "./SkinTonePicker";
 import { extractErrorMessages } from "../utils/formatters";
 import { useDialog } from "./DialogProvider";
 
@@ -146,9 +147,21 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
-  const handlePromote = async (userId, newRole) => {
+  // Models need a skin tone for matching. If someone doesn't have one yet,
+  // ask for it before switching them, instead of guessing.
+  const [skinToneAsk, setSkinToneAsk] = useState(null); // { userId, name } or { self: true }
+  const [chosenTone, setChosenTone] = useState('');
+  const hasSkinTone = (person) => SKIN_TONES.includes(person?.skin_tone);
+  const askForSkinTone = (ask) => { setChosenTone(''); setSkinToneAsk(ask); };
+
+  const handlePromote = async (userId, newRole, skinTone) => {
+    const person = users.find(u => u.id === userId);
+    if (newRole === 'model' && !skinTone && !hasSkinTone(person)) {
+      askForSkinTone({ userId, name: `${person?.first_name} ${person?.last_name}` });
+      return;
+    }
     try {
-      await api.post(`/users/${userId}/promote`, { role: newRole });
+      await api.post(`/users/${userId}/promote`, skinTone ? { role: newRole, skin_tone: skinTone } : { role: newRole });
       fetchUsers();
     } catch (err) {
       showError("Couldn't change their role", err);
@@ -172,9 +185,13 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
-  const handleSwitchRole = async (targetRole) => {
+  const handleSwitchRole = async (targetRole, skinTone) => {
+    if (targetRole === 'model' && !skinTone && !hasSkinTone(currentUser)) {
+      askForSkinTone({ self: true });
+      return;
+    }
     try {
-      const res = await api.post(`/users/${currentUser.id}/promote`, { role: targetRole });
+      const res = await api.post(`/users/${currentUser.id}/promote`, skinTone ? { role: targetRole, skin_tone: skinTone } : { role: targetRole });
       refreshUser(res.data);
       notify({
         title: `You're now using the app as ${targetRole === 'admin' ? 'an admin' : `a ${targetRole}`}`,
@@ -184,6 +201,13 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
       console.error(err);
       showError("Couldn't switch roles", err);
     }
+  };
+
+  const finishSkinToneAsk = () => {
+    const ask = skinToneAsk;
+    setSkinToneAsk(null);
+    if (ask.self) handleSwitchRole('model', chosenTone);
+    else handlePromote(ask.userId, 'model', chosenTone);
   };
 
   const handleSockFormChange = (e) => {
@@ -535,6 +559,21 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
         </div>
       </div>
 
+      <Modal show={!!skinToneAsk} onHide={() => setSkinToneAsk(null)} centered aria-labelledby="skin-tone-ask-title">
+        <Modal.Header closeButton>
+          <Modal.Title id="skin-tone-ask-title" as="h2" className="h5">
+            {skinToneAsk?.self ? 'Choose your skin tone' : `Choose a skin tone for ${skinToneAsk?.name}`}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Models need a skin tone so classes can be matched. It can be changed later on the profile.</p>
+          <SkinTonePicker value={chosenTone} onChange={setChosenTone} required />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={() => setSkinToneAsk(null)}>Go Back</Button>
+          <Button variant="primary" disabled={!chosenTone} onClick={finishSkinToneAsk}>Switch to Model</Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };

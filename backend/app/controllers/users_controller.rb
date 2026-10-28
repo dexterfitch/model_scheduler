@@ -43,7 +43,7 @@ class UsersController < ApplicationController
     user = User.find(params[:id])
     user.role = target_role
 
-    apply_model_defaults(user) if user.role_model?
+    apply_model_defaults(user, skin_tone: params[:skin_tone]) if user.role_model?
     
     if user.save
       render json: user
@@ -81,7 +81,7 @@ class UsersController < ApplicationController
 
     current_user.role = target_role
 
-    apply_model_defaults(current_user) if current_user.role_model?
+    apply_model_defaults(current_user, skin_tone: params[:skin_tone]) if current_user.role_model?
 
     if current_user.save
       render json: current_user
@@ -109,10 +109,12 @@ class UsersController < ApplicationController
   end
 
   # Bring a profile up to date before it becomes a model profile: match old
-  # spellings (like "Non-Binary") to today's options, and fill in anything missing
-  def apply_model_defaults(user)
+  # spellings (like "Non-Binary") to today's options, and fill in what can be.
+  # Skin tone is never guessed: it comes from the request or the profile, and
+  # if neither has one the save fails and says so.
+  def apply_model_defaults(user, skin_tone: nil)
     user.gender_identity = User.current_option(user.gender_identity, User::GENDER_IDENTITIES) || "Prefer not to say"
-    user.skin_tone       = User.current_option(user.skin_tone, User::SKIN_TONES) || User::SKIN_TONES.first
+    user.skin_tone       = User.current_option(skin_tone, User::SKIN_TONES) || User.current_option(user.skin_tone, User::SKIN_TONES)
     user.body_type       = User.current_option(user.body_type, User::BODY_TYPES)
     user.genitalia       = User.current_option(user.genitalia, User::GENITALIA)
     user.willing_to_model_nude = false if user.willing_to_model_nude.nil?

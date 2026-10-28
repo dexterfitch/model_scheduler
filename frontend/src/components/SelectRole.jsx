@@ -66,7 +66,10 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
     setError('');
 
     try {
-      await api.post(`/select_role`, { role: payload.role });
+      // A new model's skin tone goes with the role, so the profile is complete from the start
+      await api.post(`/select_role`, payload.role === 'model'
+        ? { role: 'model', skin_tone: payload.skin_tone }
+        : { role: payload.role });
       
       const profileData = { ...payload };
       delete profileData.role;

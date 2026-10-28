@@ -47,7 +47,7 @@ describe('SelectRole (first login)', () => {
         gender_identity: 'Woman', skin_tone: 'Medium', willing_to_model_nude: true, genitalia: 'Intersex'
       })
     }));
-    expect(api.post).toHaveBeenCalledWith('/select_role', { role: 'model' });
+    expect(api.post).toHaveBeenCalledWith('/select_role', { role: 'model', skin_tone: 'Medium' });
   });
 
   it('asks a new model to fill in the required fields', async () => {

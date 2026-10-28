@@ -8,7 +8,7 @@ import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
 
-const me      = { id: 1, role: 'admin',   superuser: true, first_name: 'Dex',   last_name: 'Fitch', email: 'dfitch@mica.edu' };
+const me      = { id: 1, role: 'admin',   superuser: true, first_name: 'Dex',   last_name: 'Fitch', email: 'dfitch@mica.edu', skin_tone: 'Medium' };
 const priya   = { id: 2, role: 'faculty', first_name: 'Priya', last_name: 'Nair', email: 'pnair@mica.edu' };
 const otherAdmin = { id: 3, role: 'admin', first_name: 'Sam', last_name: 'Lee', email: 'slee@mica.edu' };
 
@@ -130,8 +130,34 @@ describe('SuperUserPanel', () => {
     api.post.mockRejectedValue({ response: { data: { errors: ['Email must be a MICA email address'] } } });
     renderPanel();
     const row = await rowFor('pnair@mica.edu');
-    await userEvent.click(within(row).getByRole('button', { name: 'Model' }));
+    await userEvent.click(within(row).getByRole('button', { name: 'Admin' }));
     expect(await screen.findByRole('dialog')).toHaveTextContent('Email must be a MICA email address');
+  });
+
+  it('asks for a skin tone before switching someone without one to model', async () => {
+    renderPanel();
+    const row = await rowFor('pnair@mica.edu');
+    await userEvent.click(within(row).getByRole('button', { name: 'Model' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Choose a skin tone for Priya Nair' });
+    expect(api.post).not.toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole('radio', { name: 'Dark' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Switch to Model' }));
+
+    expect(api.post).toHaveBeenCalledWith('/users/2/promote', { role: 'model', skin_tone: 'Dark' });
+  });
+
+  it('asks for your own skin tone if you become a model without one', async () => {
+    api.post.mockResolvedValue({ data: { ...me, role: 'model' } });
+    renderPanel({ ...me, skin_tone: null });
+    await userEvent.click(await screen.findByRole('button', { name: 'Become Model' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Choose your skin tone' });
+    expect(within(dialog).getByRole('button', { name: 'Switch to Model' })).toBeDisabled();
+    await userEvent.click(within(dialog).getByRole('radio', { name: 'Light' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Switch to Model' }));
+
+    expect(api.post).toHaveBeenCalledWith('/users/1/promote', { role: 'model', skin_tone: 'Light' });
   });
 
   it('says how to switch back after becoming a model', async () => {

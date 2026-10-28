@@ -20,9 +20,10 @@ class User < ApplicationRecord
   validates :role, presence: true, on: :update, if: -> { role_was.present? }
 
   with_options if: :role_model? do
-    validates :skin_tone, :gender_identity, presence: true
+    validates :gender_identity, presence: true
     validates :gender_identity, inclusion: { in: GENDER_IDENTITIES }
-    validates :skin_tone, inclusion: { in: SKIN_TONES }
+    # One clear message whether the skin tone is missing or not an option
+    validates :skin_tone, inclusion: { in: SKIN_TONES, message: "must be chosen (Light, Medium or Dark)" }
     validates :willing_to_model_nude, inclusion: { in: [true, false] }
     # Both optional so existing model profiles stay valid
     validates :body_type, inclusion: { in: BODY_TYPES }, allow_nil: true

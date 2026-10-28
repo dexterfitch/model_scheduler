@@ -60,8 +60,18 @@ RSpec.describe "User profile permissions", type: :request do
     end
 
     it "lets an admin change someone's role" do
-      post "/users/#{user.id}/promote", params: { role: "model" }, headers: auth_headers(admin), as: :json
+      post "/users/#{user.id}/promote", params: { role: "model", skin_tone: "Dark" }, headers: auth_headers(admin), as: :json
       expect(user.reload).to be_role_model
+      expect(user.skin_tone).to eq("Dark")
+    end
+
+    it "asks for a skin tone instead of guessing one when switching someone to model" do
+      post "/users/#{user.id}/promote", params: { role: "model" }, headers: auth_headers(admin), as: :json
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["errors"]).to eq(["Skin tone must be chosen (Light, Medium or Dark)"])
+      expect(user.reload).to be_role_faculty
+      expect(user.skin_tone).to be_nil
     end
 
     it "brings outdated profile values up to date when switching someone to model" do
@@ -78,7 +88,7 @@ RSpec.describe "User profile permissions", type: :request do
 
     it "uses Prefer not to say for a gender value that no longer exists" do
       user.update_columns(gender_identity: "Retired option")
-      post "/users/#{user.id}/promote", params: { role: "model" }, headers: auth_headers(admin), as: :json
+      post "/users/#{user.id}/promote", params: { role: "model", skin_tone: "Light" }, headers: auth_headers(admin), as: :json
       expect(user.reload.gender_identity).to eq("Prefer not to say")
     end
 
@@ -101,6 +111,15 @@ RSpec.describe "User profile permissions", type: :request do
       newcomer = create(:user, role: nil)
       post "/select_role", params: { role: "faculty" }, headers: auth_headers(newcomer), as: :json
       expect(newcomer.reload).to be_role_faculty
+    end
+
+    it "uses the skin tone a new model chose" do
+      newcomer = create(:user, role: nil)
+      post "/select_role", params: { role: "model", skin_tone: "Medium" }, headers: auth_headers(newcomer), as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(newcomer.reload).to be_role_model
+      expect(newcomer.skin_tone).to eq("Medium")
     end
 
     it "doesn't let a new user pick admin" do
