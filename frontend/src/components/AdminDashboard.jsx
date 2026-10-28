@@ -70,7 +70,7 @@ function AdminDashboard() {
                   const booked = (firstReq.confirmed_gigs || []).length;
 
                   return (
-                    <Card key={series.id} className="mb-2 border-start border-4 border-primary">
+                    <Card key={series.id} className="mb-2 border border-start border-3 border-primary shadow-sm">
                       <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 gap-md-3 py-3">
                         <div>
                           <div className="fw-bold">{series.class_name}</div>
@@ -126,7 +126,7 @@ function AdminDashboard() {
             <Card.Body>
               {todaysGigs.length === 0 ? <p className="text-muted">No gigs scheduled for today.</p> : (
                 todaysGigs.map(gig => (
-                  <Card key={gig.id} className="mb-3 border-start border-5 border-success">
+                  <Card key={gig.id} className="mb-3 border border-start border-3 border-success shadow-sm">
                     <Card.Body>
                       <div className="d-flex justify-content-between align-items-start">
                         <h6 className="mb-1 fw-bold">{gig.faculty_request.class_name}</h6>
