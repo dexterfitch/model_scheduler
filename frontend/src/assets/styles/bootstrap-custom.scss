@@ -87,38 +87,43 @@ $box-shadow-lg: none;
   --bs-alert-border-color: #{$mica-black};
 }
 
-  // ---- Comfortable tap targets on touch screens ----
-  // At least 44px tall, the usual guideline for fingers. Desktop sizes stay as they are.
-  @media (pointer: coarse) {
-    .btn,
-    .form-control,
-    .form-select,
-    .navbar-toggler,
-    .nav-link {
-      min-height: 44px;
-    }
+// Cards with a coloured outline and a thicker stripe down the left edge
+.border-start-thick {
+  border-left-width: 6px !important;
+}
 
-    // Keep the label centred now that buttons can be taller than their text
-    .btn,
-    .nav-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    // The × on windows: 16px icon + 28px of padding = 44px
-    .btn-close,
-    .modal-header .btn-close {
-      padding: 0.875rem;
-    }
-
-    // Icon-only buttons (↻ release, 🗑 remove) get a full-size square to tap
-    .btn-link.p-0 {
-      min-width: 44px;
-    }
-    .dropdown-item {
-      min-height: 44px;
-      display: flex;
-      align-items: center;
-    }
+// ---- Comfortable tap targets on touch screens ----
+// At least 44px tall, the usual guideline for fingers. Desktop sizes stay as they are.
+@media (pointer: coarse) {
+  .btn,
+  .form-control,
+  .form-select,
+  .navbar-toggler,
+  .nav-link {
+    min-height: 44px;
   }
+
+  // Keep the label centred now that buttons can be taller than their text
+  .btn,
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  // The × on windows: 16px icon + 28px of padding = 44px
+  .btn-close,
+  .modal-header .btn-close {
+    padding: 0.875rem;
+  }
+
+  // Icon-only buttons (↻ release, 🗑 remove) get a full-size square to tap
+  .btn-link.p-0 {
+    min-width: 44px;
+  }
+  .dropdown-item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}

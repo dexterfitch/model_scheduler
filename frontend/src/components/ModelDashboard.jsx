@@ -310,7 +310,7 @@ function ModelDashboard({ user }) {
             <Row>
               {filteredGigs.map(gig => (
                 <Col md={6} lg={4} key={gig.id} className="mb-3">
-                  <Card className="h-100 shadow-sm border-start border-5 border-primary">
+                  <Card className="h-100 border border-2 border-primary border-start-thick rounded-1">
                     <Card.Body>
                       {renderGigStatusBadge(gig)}
                       <Card.Title>{gig.faculty_request.class_name}</Card.Title>
