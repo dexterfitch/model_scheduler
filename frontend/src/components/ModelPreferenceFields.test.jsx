@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ModelPreferenceFields, {
-  DEFAULT_MODEL_PREFERENCES, applyPreferenceChange, modelSlotsPayload
-} from './ModelPreferenceFields';
+import ModelPreferenceFields from './ModelPreferenceFields';
+import { DEFAULT_MODEL_PREFERENCES, applyPreferenceChange, modelSlotsPayload } from '../utils/modelPreferences';
 
 // Holds the form values the way the real request form does
 function Harness({ initial = {} }) {

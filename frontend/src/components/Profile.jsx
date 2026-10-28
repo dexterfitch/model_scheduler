@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { GENDER_IDENTITIES } from '../utils/constants';
@@ -6,43 +6,35 @@ import SkinTonePicker from './SkinTonePicker';
 import ModelBodyFields from './ModelBodyFields';
 import { extractErrorMessages } from '../utils/formatters';
 
+// The form's values for what's saved on the server
+const savedValues = (user) => ({
+  first_name: user?.first_name || '',
+  last_name: user?.last_name || '',
+  phone: user?.phone || '',
+  stage_name: user?.stage_name || '',
+  pronouns: user?.pronouns || '',
+  gender_identity: user?.gender_identity || '',
+  skin_tone: user?.skin_tone || '',
+  willing_to_model_nude: user?.willing_to_model_nude || false,
+  body_type: user?.body_type || '',
+  genitalia: user?.genitalia || '',
+});
+
 const Profile = ({ currentUser, setCurrentUser }) => {
 
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    phone: '',
-    stage_name: '',
-    pronouns: '',
-    gender_identity: '',
-    skin_tone: '',
-    willing_to_model_nude: false,
-    body_type: '',
-    genitalia: '',
-  });
-
+  const [formData, setFormData] = useState(() => savedValues(currentUser));
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // The form's values for what's saved on the server
-  const savedValues = (user) => ({
-    first_name: user.first_name || '',
-    last_name: user.last_name || '',
-    phone: user.phone || '',
-    stage_name: user.stage_name || '',
-    pronouns: user.pronouns || '',
-    gender_identity: user.gender_identity || '',
-    skin_tone: user.skin_tone || '',
-    willing_to_model_nude: user.willing_to_model_nude || false,
-    body_type: user.body_type || '',
-    genitalia: user.genitalia || '',
-  });
-
-  useEffect(() => {
-    if (currentUser) setFormData(savedValues(currentUser));
-  }, [currentUser]);
+  // When the saved profile changes (after a save, say), show the new values.
+  // Done while rendering, as React recommends, rather than in an effect.
+  const [shownUser, setShownUser] = useState(currentUser);
+  if (currentUser !== shownUser) {
+    setShownUser(currentUser);
+    setFormData(savedValues(currentUser));
+  }
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

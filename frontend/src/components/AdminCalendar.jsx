@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, ListGroup, Badge, Alert } from "react-bootstrap";
 import api from "../services/api";
@@ -14,55 +14,53 @@ function AdminCalendar() {
   const [availabilities, setAvailabilities] = useState([]);
   const [error, setError] = useState(null);
 
+  // Loads all three lists together, then draws the calendar and the availability list
+  const fetchData = useCallback(() => Promise.all([
+    api.get("/gigs"),
+    api.get("/faculty_requests"),
+    api.get("/art_model_availabilities"),
+  ]).then(([gigsRes, reqRes, availRes]) => {
+    const gigs = gigsRes.data
+      .filter(gig => gig.status === 'confirmed')
+      .map(gig => ({
+        id: `gig-${gig.id}`,
+        title: `✅ ${gig.faculty_request.class_name}`,
+        start: gig.faculty_request.starts_at,
+        end: gig.faculty_request.ends_at,
+        backgroundColor: CALENDAR_COLORS.green,
+        borderColor: CALENDAR_COLORS.green,
+        extendedProps: { type: 'gig', ...gig }
+      }));
+
+    const requests = reqRes.data
+      .filter(r => r.status === 'pending')
+      .map(req => ({
+        id: `req-${req.id}`,
+        title: `❓ ${req.class_name}`,
+        start: req.starts_at,
+        end: req.ends_at,
+        backgroundColor: CALENDAR_COLORS.orange,
+        borderColor: CALENDAR_COLORS.orange,
+        extendedProps: { type: 'request', requestId: req.id, seriesId: req.request_series_id, ...req }
+      }));
+
+    // Only time a model can actually be booked into: active blocks, minus booked classes
+    const now = new Date();
+    const openTime = availRes.data
+      .flatMap(a => availabilityEvents(a, gigsRes.data))
+      .filter(piece => piece.kind === 'free' && new Date(piece.end) > now)
+      .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+    setCalendarEvents([...gigs, ...requests]);
+    setAvailabilities(openTime);
+  }).catch(err => {
+    console.error("Error loading calendar data", err);
+    setError("Failed to load calendar data. Please try again later.");
+  }), []);
+
   useEffect(() => {
     fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const gigsRes = await api.get("/gigs");
-      const gigs = gigsRes.data
-        .filter(gig => gig.status === 'confirmed')
-        .map(gig => ({
-          id: `gig-${gig.id}`,
-          title: `✅ ${gig.faculty_request.class_name}`,
-          start: gig.faculty_request.starts_at,
-          end: gig.faculty_request.ends_at,
-          backgroundColor: CALENDAR_COLORS.green,
-          borderColor: CALENDAR_COLORS.green,
-          extendedProps: { type: 'gig', ...gig }
-        }));
-
-      const reqRes = await api.get("/faculty_requests");
-
-      const requests = reqRes.data
-        .filter(r => r.status === 'pending')
-        .map(req => ({
-          id: `req-${req.id}`,
-          title: `❓ ${req.class_name}`,
-          start: req.starts_at,
-          end: req.ends_at,
-          backgroundColor: CALENDAR_COLORS.orange,
-          borderColor: CALENDAR_COLORS.orange,
-          extendedProps: { type: 'request', requestId: req.id, seriesId: req.request_series_id, ...req }
-        }));
-
-      const availRes = await api.get("/art_model_availabilities");
-      // Only time a model can actually be booked into: active blocks, minus booked classes
-      const now = new Date();
-      const openTime = availRes.data
-        .flatMap(a => availabilityEvents(a, gigsRes.data))
-        .filter(piece => piece.kind === 'free' && new Date(piece.end) > now)
-        .sort((a, b) => new Date(a.start) - new Date(b.start));
-
-      setCalendarEvents([...gigs, ...requests]);
-      setAvailabilities(openTime);
-
-    } catch (err) {
-      console.error("Error loading calendar data", err);
-      setError("Failed to load calendar data. Please try again later.");
-    }
-  };
+  }, [fetchData]);
 
   const handleEventClick = (info) => {
     const props = info.event.extendedProps;

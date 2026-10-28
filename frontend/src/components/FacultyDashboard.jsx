@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from "react-bootstrap";
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
@@ -6,9 +6,10 @@ import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
-import ModelPreferenceFields, {
+import ModelPreferenceFields from "./ModelPreferenceFields";
+import {
   DEFAULT_MODEL_PREFERENCES, DEFAULT_SLOT_STATE, applyPreferenceChange, modelSlotsPayload, slotFormState
-} from "./ModelPreferenceFields";
+} from "../utils/modelPreferences";
 
 const PREFERENCE_KEYS = Object.keys(DEFAULT_MODEL_PREFERENCES);
 const pickPreferences = (obj) =>
@@ -54,11 +55,7 @@ function FacultyDashboard({ user }) {
 
   const [dates, setDates] = useState([emptyDate()]);
 
-  useEffect(() => {
-    fetchSeries();
-  }, [user.id]);
-
-  const fetchSeries = () => {
+  const fetchSeries = useCallback(() => {
     api.get(`/request_series`)
       .then((res) => {
         const sorted = res.data.sort((a, b) => {
@@ -73,7 +70,12 @@ function FacultyDashboard({ user }) {
         console.error("Error fetching series:", err);
         setSubmitError("Error fetching requests. Please try again.");
       });
-  };
+  }, []);
+
+  // Load again if a different person signs in
+  useEffect(() => {
+    fetchSeries();
+  }, [fetchSeries, user.id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

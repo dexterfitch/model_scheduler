@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Container, Badge, Row, Col } from 'react-bootstrap';
@@ -29,19 +29,14 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [availSuccess, setAvailSuccess] = useState(false);
   const [modelGigs, setModelGigs] = useState([]);
 
+  const fetchUsers = useCallback(() => api.get('/users')
+    .then(res => setUsers(res.data))
+    .catch(err => console.error("Failed to fetch users", err)), []);
+
   useEffect(() => {
     if (currentUser && !currentUser.superuser) navigate('/');
     fetchUsers();
-  }, [currentUser, navigate]);
-
-  const fetchUsers = async () => {
-    try {
-      const res = await api.get('/users');
-      setUsers(res.data);
-    } catch (err) {
-      console.error("Failed to fetch users", err);
-    }
-  };
+  }, [currentUser, navigate, fetchUsers]);
 
   const fetchModelAvailability = async (userId) => {
     try {

@@ -1,14 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Container, Card, Button, ListGroup, Badge, Spinner, Alert } from "react-bootstrap";
 import api from "../services/api";
 import { useDialog } from "./DialogProvider";
-import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, calculateMatchScore, formatPreferenceSummary } from "../utils/formatters";
+import { formatSkinTone, formatModelCount, calculateMatchScore, formatPreferenceSummary } from "../utils/formatters";
 import { formatTime, formatDateWithWeekday, formatDateTime, availabilityCoversRequest, hasSchedulingConflict } from "../utils/time";
 
 const modelName = (user) => `${user?.first_name} ${user?.last_name}`;
 // Earliest date first
 const byStart = (a, b) => new Date(a.starts_at) - new Date(b.starts_at);
+
+// { [faculty_request_id]: [confirmed gig, ...] } for the given dates
+const groupConfirmedGigs = (confirmedGigs, requestIds) => {
+  const grouped = {};
+  requestIds.forEach(id => { grouped[id] = []; });
+  confirmedGigs.forEach(g => {
+    if (grouped[g.faculty_request.id]) grouped[g.faculty_request.id].push(g);
+  });
+  return grouped;
+};
 
 function GigCreator() {
   const { requestId } = useParams();
@@ -28,22 +38,7 @@ function GigCreator() {
   const [staffed, setStaffed] = useState(false);
   const [booking, setBooking] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [requestId]);
-
-  const loadData = () => (isSeries ? loadSeriesData() : loadSingleRequestData());
-
-  const groupConfirmedGigs = (confirmedGigs, requestIds) => {
-    const grouped = {};
-    requestIds.forEach(id => { grouped[id] = []; });
-    confirmedGigs.forEach(g => {
-      if (grouped[g.faculty_request.id]) grouped[g.faculty_request.id].push(g);
-    });
-    return grouped;
-  };
-
-  const loadSeriesData = () => {
+  const loadSeriesData = useCallback(() => {
     return Promise.all([
       api.get("/request_series"),
       api.get("/art_model_availabilities"),
@@ -117,9 +112,9 @@ function GigCreator() {
       setError("Failed to load request data. Please try again.");
       setLoading(false);
     });
-  };
+  }, [requestId]);
 
-  const loadSingleRequestData = () => {
+  const loadSingleRequestData = useCallback(() => {
     return Promise.all([
       api.get("/faculty_requests"),
       api.get("/art_model_availabilities"),
@@ -163,7 +158,16 @@ function GigCreator() {
       setError("Failed to load request data. Please try again.");
       setLoading(false);
     });
-  };
+  }, [requestId]);
+
+  const loadData = useCallback(
+    () => (isSeries ? loadSeriesData() : loadSingleRequestData()),
+    [isSeries, loadSeriesData, loadSingleRequestData]
+  );
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const openSlotsFor = (req) => Math.max((req.models_needed || 1) - (bookedByRequest[req.id]?.length || 0), 0);
 

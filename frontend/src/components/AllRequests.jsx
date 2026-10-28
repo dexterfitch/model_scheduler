@@ -422,7 +422,7 @@ function AllRequests() {
     );
   };
 
-  const renderSeriesInfo = (s, showAction, allRequests, matchedCount, pendingCount) => {
+  const renderSeriesInfo = (s, showAction, allRequests) => {
     const activeCount = allRequests.filter(r => r.status !== 'archived').length;
 
     return (
@@ -443,7 +443,7 @@ function AllRequests() {
   };
 
   const renderSeriesCard = (s, showAction, showActionColumn = true) => {
-    const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount, bookedCount } = getSeriesMeta(s);
+    const { allRequests, displayRequests, matchedCount, pendingCount, bookedCount } = getSeriesMeta(s);
     const faculty = s.user;
     const isSingle = allRequests.filter(r => r.status !== 'archived').length <= 1;
 
@@ -453,7 +453,7 @@ function AllRequests() {
           <div className="d-flex justify-content-between align-items-start mb-2">
             <div>
               <div className="fw-bold">{s.class_name}</div>
-              {renderSeriesInfo(s, showAction, allRequests, matchedCount, pendingCount)}
+              {renderSeriesInfo(s, showAction, allRequests)}
             </div>
             {s.model_mode === 'nude'
               ? <Badge bg="danger">Nude</Badge>
@@ -500,7 +500,7 @@ function AllRequests() {
             </tr>
           ) : (
             seriesList.map(s => {
-              const { allRequests, displayRequests, matchedCount, pendingCount, archivedCount, bookedCount } = getSeriesMeta(s);
+              const { allRequests, displayRequests, matchedCount, pendingCount, bookedCount } = getSeriesMeta(s);
               const faculty = s.user;
               const isSingle = allRequests.filter(r => r.status !== 'archived').length <= 1;
 
@@ -511,7 +511,7 @@ function AllRequests() {
                   </td>
                   <td>
                     <div className="fw-bold">{s.class_name}</div>
-                    {renderSeriesInfo(s, showAction, allRequests, matchedCount, pendingCount)}
+                    {renderSeriesInfo(s, showAction, allRequests)}
                   </td>
                   <td>{faculty?.first_name} {faculty?.last_name}</td>
                   <td>

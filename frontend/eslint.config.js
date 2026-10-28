@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -24,6 +24,22 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // DialogProvider.jsx shares its useDialog hook alongside the component
+      'react-refresh/only-export-components': ['error', { allowExportNames: ['useDialog'] }],
+    },
+  },
+  {
+    // Unit tests use Vitest's describe/it/expect/vi without importing them
+    files: ['src/**/*.test.{js,jsx}', 'src/test/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.vitest },
+    },
+  },
+  {
+    // End-to-end tests and tool settings run in Node, not the browser
+    files: ['e2e/**/*.js', '*.config.js'],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ])

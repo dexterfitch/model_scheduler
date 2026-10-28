@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import styles from "./AdminDashboard.module.css";
@@ -10,12 +10,10 @@ function AdminDashboard() {
   const [pendingSeries, setPendingSeries] = useState([]);
   const [todaysGigs, setTodaysGigs] = useState([]);
 
-  const fetchDashboardData = async () => {
-    const [seriesRes, gigsRes] = await Promise.all([
-      api.get("/request_series"),
-      api.get("/gigs"),
-    ]);
-
+  const fetchDashboardData = useCallback(() => Promise.all([
+    api.get("/request_series"),
+    api.get("/gigs"),
+  ]).then(([seriesRes, gigsRes]) => {
     const pending = seriesRes.data
       .filter(s => s.faculty_requests?.some(r => r.status === 'pending'))
       .sort((a, b) => {
@@ -33,11 +31,11 @@ function AdminDashboard() {
       new Date(g.faculty_request.starts_at).toDateString() === todayStr
     );
     setTodaysGigs(today);
-  };
+  }).catch(err => console.error("Error loading dashboard data", err)), []);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   return (
     <div>

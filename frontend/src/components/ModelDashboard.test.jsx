@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelDashboard from './ModelDashboard';
 import api from '../services/api';

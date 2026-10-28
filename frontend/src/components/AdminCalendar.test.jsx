@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithDialogs } from '../test/render';
 import { MemoryRouter } from 'react-router-dom';

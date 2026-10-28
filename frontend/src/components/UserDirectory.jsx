@@ -22,6 +22,8 @@ function UserDirectory() {
     <Container className="py-4">
       <h2 className="mb-4">User Directory</h2>
 
+      {loading && <p className="text-muted" role="status">Loading…</p>}
+
       <Tabs defaultActiveKey="models" className="mb-3">
 
         <Tab eventKey="models" title={`Models (${models.length})`}>

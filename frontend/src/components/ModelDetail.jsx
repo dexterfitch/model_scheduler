@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Badge, Button, Alert, Spinner, Modal, Form } from "react-bootstrap";
 import api from "../services/api";
@@ -13,7 +13,6 @@ function ModelDetail() {
   const { confirm } = useDialog();
   const [user, setUser] = useState(null);
   const [availabilities, setAvailabilities] = useState([]);
-  const [calendarEvents, setCalendarEvents] = useState([]);
   const [error, setError] = useState('');
   const [pageSuccess, setPageSuccess] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -24,16 +23,13 @@ function ModelDetail() {
   const [gigs, setGigs] = useState([]);
   const [activeGig, setActiveGig] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
+  // The calendar is worked out from the availability and gigs, so it's never out of step
+  const calendarEvents = useMemo(
+    () => availabilities.flatMap(a => availabilityEvents(a, gigs, { freeLabel: 'Available' })),
+    [availabilities, gigs]
+  );
 
-  useEffect(() => {
-    const events = availabilities.flatMap(a => availabilityEvents(a, gigs, { freeLabel: 'Available' }));
-    setCalendarEvents(events);
-  }, [availabilities, gigs]);
-
-  const fetchData = () => {
+  const fetchData = useCallback(() => {
     api.get(`/users/${id}`)
       .then(res => setUser(res.data))
       .catch(() => setError("Failed to load model profile. Please try again."));
@@ -48,7 +44,11 @@ function ModelDetail() {
         setGigs(modelGigs);
       })
       .catch(() => setError("Failed to load gig data. Please try again."));
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleDateSelect = (selectInfo) => {
     setEditingId(null);

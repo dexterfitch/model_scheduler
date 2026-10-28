@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Table, Container, Badge, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import api from "../services/api";
 import { formatTime, formatDateWithWeekday } from "../utils/time";
@@ -36,11 +36,7 @@ function AllGigs() {
   const [showAll, setShowAll] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
 
-  useEffect(() => {
-    fetchGigs();
-  }, []);
-
-  const fetchGigs = () => {
+  const fetchGigs = useCallback(() => {
     api.get("/gigs")
       .then(res => {
         const sorted = res.data.sort((a, b) =>
@@ -49,7 +45,11 @@ function AllGigs() {
         setGigs(sorted);
       })
       .catch(err => console.error(err));
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchGigs();
+  }, [fetchGigs]);
 
   const filteredGigs = gigs.filter(gig => {
     const term = search.toLowerCase();

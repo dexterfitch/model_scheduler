@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Container, Row, Col, Card, Badge, Tab, Tabs, Button, Modal, Form, Alert, ListGroup } from "react-bootstrap";
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { useDialog } from "./DialogProvider";
-import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
+import { extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability, availabilityEvents } from "../utils/time";
 
 function ModelDashboard({ user }) {
   const { confirm, notify } = useDialog();
   const [myGigs, setMyGigs] = useState([]);
-  const [calendarEvents, setCalendarEvents] = useState([]);
   const [pendingSeries, setPendingSeries] = useState([]);
   const [myAvailabilities, setMyAvailabilities] = useState([]);
   const [activeTab, setActiveTab] = useState("schedule");
@@ -23,23 +22,17 @@ function ModelDashboard({ user }) {
   const [gigFilter, setGigFilter] = useState('confirmed');
 
   useEffect(() => {
-    fetchData();
-  }, [user.id]);
-
-  useEffect(() => {
     if (activeTab === "availability") {
       setTimeout(() => window.dispatchEvent(new Event("resize")), 200);
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    const events = myAvailabilities
-      .filter(a => a.status === 'active')
-      .flatMap(a => availabilityEvents(a, myGigs));
-    setCalendarEvents(events);
-  }, [myAvailabilities, myGigs]);
+  // The calendar is worked out from the availability and gigs, so it's never out of step
+  const calendarEvents = useMemo(() => myAvailabilities
+    .filter(a => a.status === 'active')
+    .flatMap(a => availabilityEvents(a, myGigs)), [myAvailabilities, myGigs]);
 
-  const fetchData = () => {
+  const fetchData = useCallback(() => {
     api.get("/gigs").then((res) => {
       const my_gigs = res.data.sort((a, b) =>
         new Date(a.faculty_request.starts_at) - new Date(b.faculty_request.starts_at)
@@ -54,7 +47,11 @@ function ModelDashboard({ user }) {
     api.get("/request_series/available_for_model").then((res) => {
       setPendingSeries(res.data);
     }).catch(err => console.error("Error fetching series:", err));
-  };
+  }, [user.id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const isAvailableForSeries = (series) => {
     const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
