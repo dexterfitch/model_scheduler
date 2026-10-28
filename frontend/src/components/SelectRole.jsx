@@ -5,6 +5,7 @@ import api from '../services/api';
 import { GENDER_IDENTITIES } from "../utils/constants";
 import SkinTonePicker from "./SkinTonePicker";
 import ModelBodyFields from "./ModelBodyFields";
+import PersonalQuestionsNote from "./PersonalQuestionsNote";
 import { extractErrorMessages } from "../utils/formatters";
 
 const SelectRole = ({ onLogin, userId: propUserId }) => {
@@ -131,7 +132,8 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
         {step === 'model-form' && (
           <div>
             <h3 className="mb-3 text-success">Model Profile Setup</h3>
-            <p className="text-muted small mb-4">We need a few details to match you with the right art classes.</p>
+            <p className="text-muted small mb-2">We need a few details to match you with the right art classes.</p>
+            <PersonalQuestionsNote />
 
             {error && (
               <Alert variant="danger" dismissible onClose={() => setError('')}>

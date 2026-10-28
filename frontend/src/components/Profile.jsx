@@ -4,6 +4,7 @@ import api from '../services/api';
 import { GENDER_IDENTITIES } from '../utils/constants';
 import SkinTonePicker from './SkinTonePicker';
 import ModelBodyFields from './ModelBodyFields';
+import PersonalQuestionsNote from './PersonalQuestionsNote';
 import { extractErrorMessages } from '../utils/formatters';
 
 // The form's values for what's saved on the server
@@ -109,6 +110,7 @@ const Profile = ({ currentUser, setCurrentUser }) => {
               <>
                 <hr className="my-4" />
                 <h5 className="mb-3 text-success">Model Details</h5>
+                <PersonalQuestionsNote />
                 
                 <div className="row gy-3 mb-3">
                   <div className="col-md-6">
