@@ -82,6 +82,19 @@ describe('Profile', () => {
 
     expect(await screen.findByText(/booked for 2 nude sessions/)).toBeInTheDocument();
   });
+
+  it('puts back the saved answers when the server refuses the change', async () => {
+    api.patch.mockRejectedValue({ response: { data: { errors: ["You're booked for 2 nude sessions; cancel those first."] } } });
+    renderProfile(model);
+    const nude = screen.getByLabelText('I am willing to model nude');
+    await userEvent.click(nude);
+    expect(nude).not.toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+
+    await screen.findByText(/booked for 2 nude sessions/);
+    expect(nude).toBeChecked();
+    expect(screen.getByLabelText('Genitalia')).toHaveValue('Intersex');
+  });
   
   it('labels every field so screen readers can announce them', () => {
     renderProfile(model);

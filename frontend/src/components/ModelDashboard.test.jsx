@@ -69,6 +69,13 @@ describe('ModelDashboard', () => {
     expect(title.closest('.card')).toHaveTextContent('Priya Nair · Drawing');
   });
 
+  it('counts upcoming gigs on the My Gigs tab, whichever filter is chosen', async () => {
+    renderWithDialogs(<ModelDashboard user={model} />);
+    const tab = await screen.findByRole('tab', { name: 'My Gigs (2 upcoming)' });
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelled' }));
+    expect(tab).toHaveTextContent('My Gigs (2 upcoming)');
+  });
+
   it('labels late cancellations as paid', async () => {
     renderWithDialogs(<ModelDashboard user={model} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Cancelled' }));

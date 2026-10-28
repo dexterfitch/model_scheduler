@@ -239,6 +239,9 @@ function ModelDashboard({ user }) {
     return gig.status === gigFilter;
   });
 
+  // The tab's count stays the same whichever filter is chosen
+  const upcomingCount = myGigs.filter(gig => gig.status === 'confirmed' && !hasStarted(gig)).length;
+
   const otherFutureSeriesGigsCount = (gig) => {
     const seriesId = gig.faculty_request.request_series_id;
     if (!seriesId) return 0;
@@ -271,7 +274,7 @@ function ModelDashboard({ user }) {
       </Card>
 
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
-        <Tab eventKey="schedule" title={`My Gigs (${filteredGigs.length})`}>
+        <Tab eventKey="schedule" title={`My Gigs (${upcomingCount} upcoming)`}>
           <div className="d-flex flex-wrap gap-2 mb-3">
             <Button
               size="sm"

@@ -26,21 +26,22 @@ const Profile = ({ currentUser, setCurrentUser }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  // The form's values for what's saved on the server
+  const savedValues = (user) => ({
+    first_name: user.first_name || '',
+    last_name: user.last_name || '',
+    phone: user.phone || '',
+    stage_name: user.stage_name || '',
+    pronouns: user.pronouns || '',
+    gender_identity: user.gender_identity || '',
+    skin_tone: user.skin_tone || '',
+    willing_to_model_nude: user.willing_to_model_nude || false,
+    body_type: user.body_type || '',
+    genitalia: user.genitalia || '',
+  });
+
   useEffect(() => {
-    if (currentUser) {
-      setFormData({
-        first_name: currentUser.first_name || '',
-        last_name: currentUser.last_name || '',
-        phone: currentUser.phone || '',
-        stage_name: currentUser.stage_name || '',
-        pronouns: currentUser.pronouns || '',
-        gender_identity: currentUser.gender_identity || '',
-        skin_tone: currentUser.skin_tone || '',
-        willing_to_model_nude: currentUser.willing_to_model_nude || false,
-        body_type: currentUser.body_type || '',
-        genitalia: currentUser.genitalia || '',
-      });
-    }
+    if (currentUser) setFormData(savedValues(currentUser));
   }, [currentUser]);
 
   const handleChange = (e) => {
@@ -68,6 +69,8 @@ const Profile = ({ currentUser, setCurrentUser }) => {
     } catch (err) {
       console.error(err);
       setMessage({ type: 'danger', text: extractErrorMessages(err, 'Failed to update profile.') });
+      // Nothing was saved, so show what's really on file again
+      setFormData(savedValues(currentUser));
     } finally {
       setLoading(false);
     }
