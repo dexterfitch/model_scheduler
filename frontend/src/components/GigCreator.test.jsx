@@ -29,6 +29,7 @@ function fakeBackend(modelsNeeded) {
     if (url === '/faculty_requests') return Promise.resolve({ data: [request] });
     if (url === '/art_model_availabilities') return Promise.resolve({ data: [slot(1, alex), slot(2, blair)] });
     if (url === '/gigs') return Promise.resolve({ data: gigs });
+    if (url === '/request_series') return Promise.resolve({ data: [] });
   });
   api.post.mockResolvedValue({ data: {} });
 }
@@ -164,6 +165,34 @@ describe('GigCreator (matching screen)', () => {
 
     it('ranks the model who fits an open slot first, and says which slot', async () => {
       seriesBackend();
+      const [first] = await screen.findAllByRole('heading', { level: 5 });
+      expect(first).toHaveTextContent('Casey Strong');
+      expect(screen.getByText('Best fit: Model 2')).toBeInTheDocument();
+    });
+
+    it('ranks by the open per-model preferences on a single date too', async () => {
+      const date = {
+        id: 31, request_series_id: 1, class_name: 'Group Pose Lab', status: 'pending', model_mode: 'clothed', models_needed: 2,
+        ...any, pref_body_type: 'Any', user: { first_name: 'Priya', last_name: 'Nair' },
+        starts_at: daysFromNow(12, 15), ends_at: daysFromNow(12, 17)
+      };
+      const series = {
+        id: 1, class_name: 'Group Pose Lab', model_mode: 'clothed', models_needed: 2, ...any, pref_body_type: 'Any',
+        model_slots: [{ position: 1, ...any, pref_body_type: 'Fat' }, { position: 2, ...any, pref_body_type: 'Muscular' }],
+        faculty_requests: [date]
+      };
+      api.get.mockImplementation((url) => Promise.resolve({ data:
+        url === '/faculty_requests' ? [date]
+        : url === '/request_series' ? [series]
+        : url === '/art_model_availabilities' ? [slot(1, alex), slot(2, blair), slot(3, casey)]
+        : []
+      }));
+      renderWithDialogs(
+        <MemoryRouter initialEntries={['/gigs/new/31']}>
+          <Routes><Route path="/gigs/new/:requestId" element={<GigCreator />} /></Routes>
+        </MemoryRouter>
+      );
+
       const [first] = await screen.findAllByRole('heading', { level: 5 });
       expect(first).toHaveTextContent('Casey Strong');
       expect(screen.getByText('Best fit: Model 2')).toBeInTheDocument();

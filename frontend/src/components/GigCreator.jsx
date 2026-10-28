@@ -20,6 +20,19 @@ const groupConfirmedGigs = (confirmedGigs, requestIds) => {
   return grouped;
 };
 
+// For classes with preferences for each model: score a model against the slots
+// still open, and say which slot fits best. Null when the class has no per-model preferences.
+const bestOpenSlot = (user, slots, modelMode, isOpen) => {
+  if (!slots?.length) return null;
+  let bestSlot = null;
+  let score = 0;
+  slots.filter(isOpen).forEach(slot => {
+    const slotScore = calculateMatchScore(user, { ...slot, model_mode: modelMode });
+    if (bestSlot === null || slotScore > score) { bestSlot = slot.position; score = slotScore; }
+  });
+  return { score, bestSlot };
+};
+
 function GigCreator() {
   const { requestId } = useParams();
   const [searchParams] = useSearchParams();
@@ -86,19 +99,10 @@ function GigCreator() {
           if (!fitsAll) return null;
 
           // Classes with per-model preferences: score against the best still-open slot
-          const slots = targetSeries.model_slots || [];
-          if (slots.length > 0) {
-            const openSlots = slots.filter(slot =>
-              requestsToBook.some(req => !booked[req.id].some(g => g.model_slot_position === slot.position))
-            );
-            let bestSlot = null;
-            let score = 0;
-            openSlots.forEach(slot => {
-              const slotScore = calculateMatchScore(user, { ...slot, model_mode: targetSeries.model_mode });
-              if (bestSlot === null || slotScore > score) { bestSlot = slot.position; score = slotScore; }
-            });
-            return { user, avails, requestsToBook, score, bestSlot };
-          }
+          const fit = bestOpenSlot(user, targetSeries.model_slots, targetSeries.model_mode, slot =>
+            requestsToBook.some(req => !booked[req.id].some(g => g.model_slot_position === slot.position))
+          );
+          if (fit) return { user, avails, requestsToBook, ...fit };
 
           return { user, avails, requestsToBook, score: calculateMatchScore(user, targetSeries) };
         }).filter(Boolean);
@@ -118,9 +122,13 @@ function GigCreator() {
     return Promise.all([
       api.get("/faculty_requests"),
       api.get("/art_model_availabilities"),
-      api.get("/gigs")
-    ]).then(([reqRes, availRes, gigsRes]) => {
-      const targetReq = reqRes.data.find(r => r.id === parseInt(requestId));
+      api.get("/gigs"),
+      api.get("/request_series")
+    ]).then(([reqRes, availRes, gigsRes, seriesRes]) => {
+      const found = reqRes.data.find(r => r.id === parseInt(requestId));
+      // The class's per-model preferences, if it has them, so this date ranks the same way
+      const slots = found && (seriesRes?.data || []).find(s => s.id === found.request_series_id)?.model_slots || [];
+      const targetReq = found && { ...found, model_slots: slots };
       setRequest(targetReq);
 
       if (targetReq) {
@@ -147,7 +155,12 @@ function GigCreator() {
           return timeMatch && nudityMatch && statusMatch && notAlreadyBooked && noConflict;
         });
 
-        const scored = candidates.map(c => ({ ...c, score: calculateMatchScore(c.user, targetReq) }));
+        const scored = candidates.map(c => {
+          const fit = bestOpenSlot(c.user, slots, targetReq.model_mode, slot =>
+            !booked[targetReq.id].some(g => g.model_slot_position === slot.position)
+          );
+          return fit ? { ...c, ...fit } : { ...c, score: calculateMatchScore(c.user, targetReq) };
+        });
 
         scored.sort((a, b) => b.score - a.score);
         setMatches(scored);
