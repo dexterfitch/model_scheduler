@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Badge, Tab, Tabs, Button, Modal, Form, Alert
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { useDialog } from "./DialogProvider";
+import GigDates from "./GigDates";
 import { extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
 
@@ -178,8 +179,8 @@ function ModelDashboard({ user }) {
 
     const question = cancelRemainingSeries
       ? {
-          title: 'Cancel this and all later dates?',
-          message: `You'll be taken off this date and every later date of ${className}. The faculty member's dates go back to pending so an admin can find a replacement. ${unpaid}`,
+          title: 'Cancel all your remaining dates?',
+          message: `You'll be taken off all ${seriesCount + 1} of your remaining dates of ${className}. The faculty member's dates go back to pending so an admin can find a replacement. ${unpaid}`,
           confirmLabel: 'Cancel All Remaining'
         }
       : seriesCount > 0
@@ -470,30 +471,26 @@ function ModelDashboard({ user }) {
           )}
           {activeGig ? (
             <>
-              <p>Date: <strong>{new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</strong></p>
-              <Alert variant="info">
-                <i className="bi bi-info-circle-fill me-2"></i>
-                You're confirmed for <strong>{activeGig.faculty_request.class_name}</strong> from{' '}
-                {times.start} to {times.end}. Your availability can't be edited while a gig is scheduled.
-                <div className="small mt-2">
-                  {activeGig.faculty_request.department && <div>Department: {activeGig.faculty_request.department}</div>}
-                  {(activeGig.faculty_request.building || activeGig.faculty_request.room_number) && (
-                    <div>
-                      Location: {activeGig.faculty_request.building}
-                      {activeGig.faculty_request.building && activeGig.faculty_request.room_number && " "}
-                      {activeGig.faculty_request.room_number}
-                    </div>
-                  )}
-                  <div>Mode: {activeGig.faculty_request.model_mode === 'nude' ? 'Nude' : 'Clothed'}</div>
-                </div>
-              </Alert>
-              <div className="d-flex justify-content-end gap-2">
+              <p className="mb-1">You're confirmed for <strong>{activeGig.faculty_request.class_name}</strong>.</p>
+              <div className="small text-muted mb-3">
+                {[
+                  activeGig.faculty_request.department,
+                  [activeGig.faculty_request.building, activeGig.faculty_request.room_number].filter(Boolean).join(' '),
+                  activeGig.faculty_request.model_mode === 'nude' ? 'Nude' : 'Clothed'
+                ].filter(Boolean).join(' · ')}
+              </div>
+              <GigDates gig={activeGig} gigs={myGigs} />
+              <p className="small text-muted">
+                <i className="bi bi-info-circle me-1" aria-hidden="true"></i>
+                Your availability can't be edited while a gig is scheduled.
+              </p>
+              <div className="d-flex flex-wrap justify-content-end gap-2">
                 <Button variant="outline-danger" onClick={() => handleCancelGig(false)}>
-                  Cancel {otherSeriesCount > 0 ? "Just This Date" : "This Date"}
+                  Cancel This Date
                 </Button>
                 {otherSeriesCount > 0 && (
                   <Button variant="outline-danger" onClick={() => handleCancelGig(true)}>
-                    Cancel This &amp; Later Dates
+                    Cancel All Remaining Dates
                   </Button>
                 )}
               </div>

@@ -6,6 +6,7 @@ import SharedCalendar from "./SharedCalendar";
 import { useDialog } from "./DialogProvider";
 import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
+import GigDates from "./GigDates";
 
 function ModelDetail() {
   const { id } = useParams();
@@ -214,12 +215,12 @@ function ModelDetail() {
           )}
           {activeGig ? (
             <>
-              <p>Date: <strong>{selectedDate && new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</strong></p>
-              <Alert variant="info">
-                <i className="bi bi-info-circle-fill me-2"></i>
-                This model is confirmed for <strong>{activeGig.faculty_request.class_name}</strong> from{' '}
-                {times.start} to {times.end}. Availability can't be edited while a gig is scheduled.
-              </Alert>
+              <p>This model is confirmed for <strong>{activeGig.faculty_request.class_name}</strong>.</p>
+              <GigDates gig={activeGig} gigs={gigs} forAdmin />
+              <p className="small text-muted">
+                <i className="bi bi-info-circle me-1" aria-hidden="true"></i>
+                Availability can't be edited while a gig is scheduled. Release Model takes them off this date only.
+              </p>
               <div className="d-flex justify-content-end">
                 <Button variant="outline-danger" onClick={handleCancelGig}>Release Model</Button>
               </div>
