@@ -160,6 +160,17 @@ describe('AllRequests (admin requests page)', () => {
     expect(screen.queryAllByText(/Any Skintone|Gender: Any/)).toHaveLength(0);
   });
 
+  it("makes each date's Find Model link a real button, so it works from the keyboard", async () => {
+    // One date is fully booked and one isn't, so each date gets its own link
+    const booked = { ...series.faculty_requests[0], id: 11, status: 'matched' };
+    const open = { ...series.faculty_requests[0], id: 12, status: 'pending', confirmed_gigs: [],
+                   starts_at: daysFromNow(19, 15), ends_at: daysFromNow(19, 17) };
+    api.get.mockResolvedValue({ data: [{ ...series, models_needed: 1, faculty_requests: [booked, open] }] });
+    renderPage();
+    const links = await screen.findAllByRole('button', { name: 'Find Model' });
+    for (const link of links) expect(link.tagName).toBe('BUTTON');
+  });
+
   it("explains why a model couldn't be released", async () => {
     api.delete.mockRejectedValue({ response: { data: { error: "This session has already started, so the model can't be released from it." } } });
     renderPage();

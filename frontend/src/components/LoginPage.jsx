@@ -10,6 +10,7 @@ function LoginPage({ notice }) {
   const error = searchParams.get("error") || notice;
 
   useEffect(() => {
+    document.title = 'Sign In · MICA Pose Pool';
     document.body.classList.add(styles.loginBg);
     return () => document.body.classList.remove(styles.loginBg);
   }, []);

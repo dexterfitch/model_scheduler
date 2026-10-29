@@ -27,4 +27,9 @@ describe('LoginPage', () => {
       expect(img.getAttribute('src')).not.toMatch(/^https?:/);
     }
   });
+
+  it('names the page in the browser tab', () => {
+    renderAt('/login');
+    expect(document.title).toBe('Sign In · MICA Pose Pool');
+  });
 });

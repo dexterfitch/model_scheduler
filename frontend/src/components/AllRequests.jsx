@@ -338,13 +338,13 @@ function AllRequests() {
       {req.status === 'pending' && showBadge && (
         <>
           {' ('}
-          <span
-            role="button"
-            className="text-primary text-decoration-underline"
+          <button
+            type="button"
+            className="btn btn-link p-0 align-baseline"
             onClick={() => navigate(`/gigs/new/${req.id}`)}
           >
             Find Model
-          </span>
+          </button>
           {')'}
         </>
       )}

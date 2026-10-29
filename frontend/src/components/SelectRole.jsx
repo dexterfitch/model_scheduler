@@ -32,6 +32,10 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
     if (!userId) navigate('/login');
   }, [userId, navigate]);
 
+  useEffect(() => {
+    document.title = 'Welcome · MICA Pose Pool';
+  }, []);
+
   const handleFacultySelect = () => {
     submitRoleUpdate({ role: 'faculty' });
   };
@@ -67,17 +71,19 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
     setError('');
 
     try {
-      // A new model's skin tone goes with the role, so the profile is complete from the start
-      await api.post(`/select_role`, payload.role === 'model'
-        ? { role: 'model', skin_tone: payload.skin_tone }
-        : { role: payload.role });
-      
+      // Save the details first: if they're refused, no role is set yet, so the
+      // person can fix them and try again. The skin tone goes with the role too,
+      // so the new model profile is complete from the start.
       const profileData = { ...payload };
       delete profileData.role;
-      
+
       if (Object.keys(profileData).length > 0) {
         await api.patch(`/users/${userId}`, { user: profileData });
       }
+
+      await api.post(`/select_role`, payload.role === 'model'
+        ? { role: 'model', skin_tone: payload.skin_tone }
+        : { role: payload.role });
 
       const response = await api.get(`/users/${userId}`);
       onLogin(response.data);

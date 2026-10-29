@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Button, Modal, Form } from 'react-bootstrap';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
@@ -6,9 +6,29 @@ import styles from './Layout.module.css';
 import { useDialog } from './DialogProvider';
 import { extractErrorMessages } from '../utils/formatters';
 
+// What each page is called in the browser tab
+const HOME_TITLES = { admin: 'Dashboard', faculty: 'My Classes', model: 'My Gigs' };
+const PAGE_TITLES = [
+  [/^\/requests/, 'Requests'],
+  [/^\/gigs\/new\//, 'Find a Model'],
+  [/^\/gigs/, 'Gig Registry'],
+  [/^\/calendar/, 'Calendar'],
+  [/^\/directory/, 'Directory'],
+  [/^\/models\//, 'Model Details'],
+  [/^\/reports/, 'Reports'],
+  [/^\/superuser/, 'SuperUser Panel'],
+  [/^\/profile/, 'My Profile'],
+];
+const pageTitle = (path, role) =>
+  `${PAGE_TITLES.find(([pattern]) => pattern.test(path))?.[1] || HOME_TITLES[role] || 'Home'} · MICA Pose Pool`;
+
 function Layout({ currentUser, onLogout, refreshUser }) {
   const location = useLocation();
   const { notify } = useDialog();
+
+  useEffect(() => {
+    document.title = pageTitle(location.pathname, currentUser.role);
+  }, [location.pathname, currentUser.role]);
 
   const [navExpanded, setNavExpanded] = useState(false);
   const [showBugModal, setShowBugModal] = useState(false);
@@ -44,6 +64,10 @@ function Layout({ currentUser, onLogout, refreshUser }) {
 
   return (
     <>
+      <a href="#main-content" className="visually-hidden-focusable position-absolute m-2 px-3 py-2 bg-white text-dark border border-dark rounded" style={{ zIndex: 2000 }}>
+        Skip to main content
+      </a>
+
       {isUndercover && (
         <div className="bg-danger text-white text-center p-3 fw-bold d-flex justify-content-center align-items-center gap-3">
           <span>🕵️ SUPERUSER MODE: You are currently acting as {currentUser.role.toUpperCase()}</span>
@@ -117,7 +141,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
         </Container>
       </Navbar>
 
-      <Container>
+      <Container as="main" id="main-content" tabIndex={-1}>
         <Outlet />
       </Container>
 
@@ -129,7 +153,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
           <p className="text-muted small">
             This will open your email client with a pre-filled report including the current page and your account info.
           </p>
-          <Form.Group>
+          <Form.Group controlId="bug-description">
             <Form.Label>What happened?</Form.Label>
             <Form.Control
               as="textarea"
@@ -144,7 +168,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowBugModal(false)}>Cancel</Button>
           <Button variant="warning" onClick={handleSendBugReport}>
-            <i className="bi bi-envelope me-1"></i>Open Email
+            <i className="bi bi-envelope me-1" aria-hidden="true"></i>Open Email
           </Button>
         </Modal.Footer>
       </Modal>

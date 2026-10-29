@@ -56,6 +56,29 @@ describe('SelectRole (first login)', () => {
     expect(screen.getByRole('button', { name: 'Why are we asking?' })).toBeInTheDocument();
   });
 
+  it("saves a new model's details before choosing the role, so a refused save can be tried again", async () => {
+    const { container } = renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /I am a Model/ }));
+    await userEvent.selectOptions(screen.getByLabelText('Gender *'), 'Woman');
+    await userEvent.click(screen.getByRole('radio', { name: 'Medium' }));
+    fireEvent.submit(container.querySelector('form'));
+
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalled());
+    expect(api.patch.mock.invocationCallOrder[0]).toBeLessThan(api.post.mock.invocationCallOrder[0]);
+  });
+
+  it("doesn't choose the role if the details couldn't be saved", async () => {
+    api.patch.mockRejectedValue({ response: { data: { errors: ['Pronouns is too long'] } } });
+    const { container } = renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /I am a Model/ }));
+    await userEvent.selectOptions(screen.getByLabelText('Gender *'), 'Woman');
+    await userEvent.click(screen.getByRole('radio', { name: 'Medium' }));
+    fireEvent.submit(container.querySelector('form'));
+
+    expect(await screen.findByText('Pronouns is too long')).toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
   it('asks a new model to fill in the required fields', async () => {
     const { container } = renderPage();
     await userEvent.click(screen.getByRole('button', { name: /I am a Model/ }));

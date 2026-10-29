@@ -79,4 +79,31 @@ describe('Layout (navigation)', () => {
     expect(await screen.findByRole('dialog', { name: "Couldn't restore admin role" }))
       .toHaveTextContent('Email must be a MICA email address');
   });
+
+  it('connects the bug report box to its label', async () => {
+    renderLayout(faculty);
+    await userEvent.click(screen.getByRole('button', { name: 'Report a bug' }));
+    expect(screen.getByLabelText('What happened?').tagName).toBe('TEXTAREA');
+  });
+
+  it('starts with a skip link to the main content, which is a main landmark', () => {
+    renderLayout(faculty);
+    const skip = screen.getByRole('link', { name: 'Skip to main content' });
+    expect(skip).toHaveAttribute('href', '#main-content');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
+  });
+
+  it('names each page in the browser tab', () => {
+    renderWithDialogs(
+      <MemoryRouter initialEntries={['/requests']}>
+        <Layout currentUser={admin} onLogout={vi.fn()} refreshUser={vi.fn()} />
+      </MemoryRouter>
+    );
+    expect(document.title).toBe('Requests · MICA Pose Pool');
+  });
+
+  it("names each role's home page for what it shows", () => {
+    renderLayout(model);
+    expect(document.title).toBe('My Gigs · MICA Pose Pool');
+  });
 });
