@@ -4,7 +4,7 @@ import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
 import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, firstStartsAt } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
 import ModelPreferenceFields from "./ModelPreferenceFields";
 import {
@@ -58,11 +58,7 @@ function FacultyDashboard({ user }) {
   const fetchSeries = useCallback(() => {
     api.get(`/request_series`)
       .then((res) => {
-        const sorted = res.data.sort((a, b) => {
-          const aFirst = a.faculty_requests?.[0]?.starts_at;
-          const bFirst = b.faculty_requests?.[0]?.starts_at;
-          return new Date(aFirst) - new Date(bFirst);
-        });
+        const sorted = res.data.sort((a, b) => firstStartsAt(a) - firstStartsAt(b));
         setSeries(sorted);
         setLoading(false);
       })

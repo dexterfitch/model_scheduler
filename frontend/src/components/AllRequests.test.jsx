@@ -210,4 +210,20 @@ describe('AllRequests (admin requests page)', () => {
       expect(screen.getByLabelText('To')).toBeInTheDocument();
     });
   });
+
+  it('orders classes by their earliest date, even when the server lists a later date first', async () => {
+    const later = { ...series, id: 1, class_name: 'Later Class',
+      faculty_requests: [{ ...series.faculty_requests[0], id: 31, starts_at: daysFromNow(5, 15), ends_at: daysFromNow(5, 17) }] };
+    const earlier = { ...series, id: 2, class_name: 'Earlier Class',
+      faculty_requests: [
+        { ...series.faculty_requests[0], id: 41, starts_at: daysFromNow(9, 14), ends_at: daysFromNow(9, 17) },
+        { ...series.faculty_requests[0], id: 42, starts_at: daysFromNow(3, 11), ends_at: daysFromNow(3, 13) },
+      ] };
+    api.get.mockResolvedValue({ data: [later, earlier] });
+    renderPage();
+
+    await screen.findAllByText('Earlier Class');
+    const titles = screen.getAllByText(/^(Earlier|Later) Class$/).map(el => el.textContent);
+    expect(titles.indexOf('Earlier Class')).toBeLessThan(titles.indexOf('Later Class'));
+  });
 });

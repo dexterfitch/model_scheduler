@@ -209,4 +209,21 @@ describe('FacultyDashboard', () => {
     expect(await screen.findByRole('dialog', { name: "Couldn't cancel this date" }))
       .toHaveTextContent('already started');
   });
+
+  it('orders classes by their earliest date, even when the server lists a later date first', async () => {
+    // The server sends a class's dates in no set order; an edited date often comes back last
+    const later = { ...series, id: 1, class_name: 'Later Class',
+      faculty_requests: [{ ...series.faculty_requests[1], id: 31, starts_at: daysFromNow(5, 15), ends_at: daysFromNow(5, 17) }] };
+    const earlier = { ...series, id: 2, class_name: 'Earlier Class',
+      faculty_requests: [
+        { ...series.faculty_requests[1], id: 41, starts_at: daysFromNow(9, 14), ends_at: daysFromNow(9, 17) },
+        { ...series.faculty_requests[1], id: 42, starts_at: daysFromNow(3, 11), ends_at: daysFromNow(3, 13) },
+      ] };
+    api.get.mockResolvedValue({ data: [later, earlier] });
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+
+    await screen.findByText('Earlier Class');
+    const titles = screen.getAllByText(/^(Earlier|Later) Class$/).map(el => el.textContent);
+    expect(titles).toEqual(['Earlier Class', 'Later Class']);
+  });
 });

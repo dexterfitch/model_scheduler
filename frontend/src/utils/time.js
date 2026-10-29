@@ -10,6 +10,16 @@ export const roundToNearest5 = (timeStr) => {
   return `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}`;
 };
 
+// The earliest date of a class, for putting classes in order. The server sends a
+// class's dates in no set order (an edited date often comes back last), so look at
+// all of them. Archived dates only count when the class has nothing else.
+export const firstStartsAt = (series) => {
+  const all = series?.faculty_requests || [];
+  const live = all.filter(r => r.status !== 'archived');
+  const times = (live.length ? live : all).map(r => new Date(r.starts_at).getTime());
+  return times.length ? Math.min(...times) : Infinity;
+};
+
 export const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export const formatDateShort = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });

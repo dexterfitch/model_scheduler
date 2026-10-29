@@ -5,7 +5,7 @@ import api from "../services/api";
 import styles from "./AllRequests.module.css";
 import { useDialog } from "./DialogProvider";
 import { formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateShort } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateShort, firstStartsAt } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 
 function AllRequests() {
@@ -57,12 +57,8 @@ function AllRequests() {
         return className.includes(term) || department.includes(term) ||
           firstName.includes(term) || lastName.includes(term) || fullName.includes(term);
       })
-      .sort((a, b) => {
-        const aFirst = a.faculty_requests?.[0]?.starts_at;
-        const bFirst = b.faculty_requests?.[0]?.starts_at;
-        // Past classes show the most recent first
-        return when === 'past' ? new Date(bFirst) - new Date(aFirst) : new Date(aFirst) - new Date(bFirst);
-      });
+      // Past classes show the most recent first
+      .sort((a, b) => when === 'past' ? firstStartsAt(b) - firstStartsAt(a) : firstStartsAt(a) - firstStartsAt(b));
   };
 
   const pending = filterSeries('pending');
