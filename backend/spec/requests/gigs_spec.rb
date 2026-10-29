@@ -14,6 +14,23 @@ RSpec.describe "Gigs API", type: :request do
       expect(ids).to eq([my_gig.id])
     end
 
+    it "sends a model only what their gig cards show" do
+      my_gig.faculty_request.update_columns(notes: "Private note for the coordinator")
+      faculty = my_gig.faculty_request.user
+      faculty.update_columns(phone: "410-555-0100")
+
+      get "/gigs", headers: auth_headers(model)
+      body = response.body
+      gig = response.parsed_body.first
+
+      expect(body).not_to include("Private note for the coordinator")
+      expect(body).not_to include("410-555-0100")
+      expect(body).not_to include(faculty.email)
+      expect(gig["faculty_request"]["user"].keys).to contain_exactly("first_name", "last_name")
+      expect(gig["faculty_request"]).to include("class_name", "department", "starts_at", "ends_at", "building", "room_number", "model_mode")
+      expect(gig["art_model_availability"]["id"]).to eq(my_gig.art_model_availability.id)
+    end
+
     it "shows an admin every gig" do
       get "/gigs", headers: auth_headers(admin)
       expect(response.parsed_body.size).to eq(2)

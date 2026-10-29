@@ -12,10 +12,14 @@ class GigsController < ApplicationController
         .where(art_model_availabilities: { user_id: current_user.id })
     end
 
-    render json: gigs, include: {
-      faculty_request: { include: :user },
-      art_model_availability: { include: :user }
-    }
+    if current_user.role_admin?
+      render json: gigs, include: {
+        faculty_request: { include: :user },
+        art_model_availability: { include: :user }
+      }
+    else
+      render json: gigs.map { |gig| model_card(gig) }
+    end
   end
 
   def create
@@ -70,6 +74,21 @@ class GigsController < ApplicationController
   end
 
   private
+
+  # What a model's own gig cards need, and nothing more: no faculty notes,
+  # no faculty contact details
+  def model_card(gig)
+    gig.serializable_hash(only: [:id, :status, :billable, :model_slot_position, :faculty_request_id, :art_model_availability_id]).merge(
+      "faculty_request" => gig.faculty_request.serializable_hash(
+        only: [:id, :request_series_id, :class_name, :department, :building, :room_number, :model_mode, :starts_at, :ends_at, :status],
+        include: { user: { only: [:first_name, :last_name] } }
+      ),
+      "art_model_availability" => gig.art_model_availability.serializable_hash(
+        only: [:id, :starts_at, :ends_at, :status],
+        include: { user: { only: [:id] } }
+      )
+    )
+  end
 
   # Rebooking a model who was released from this class reuses their old record,
   # so each model has one record per date and a same-day release isn't paid twice

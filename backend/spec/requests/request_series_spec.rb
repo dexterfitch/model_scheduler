@@ -34,6 +34,19 @@ RSpec.describe "Request series permissions", type: :request do
     expect(series.reload.model_mode).to eq("clothed")
   end
 
+  it "only changes dates that haven't started, so past dates and old reports stay as they were" do
+    past_date = create(:faculty_request, user: faculty, request_series: series)
+    past_date.update_columns(starts_at: 3.days.ago.change(hour: 10), ends_at: 3.days.ago.change(hour: 12))
+
+    patch_series(as: admin, changes: { department: "Painting", class_name: "Painting Studio" })
+
+    expect(response).to have_http_status(:ok)
+    expect(booked_date.reload.department).to eq("Painting")
+    expect(booked_date.class_name).to eq("Painting Studio")
+    expect(past_date.reload.department).to eq("Drawing")
+    expect(past_date.class_name).to eq("Figure Drawing I")
+  end
+
   describe "listing series" do
     # The booked model cancels their own gig, which flags the date for an admin
     def model_drops_out

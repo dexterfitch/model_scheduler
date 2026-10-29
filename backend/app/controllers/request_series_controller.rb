@@ -174,7 +174,11 @@ class RequestSeriesController < ApplicationController
       changed_keys = series_params.keys.map(&:to_s)
       changed_keys |= ["pref_genitalia"] if changed_keys.include?("model_mode")
       shared_attrs = @series.attributes.slice(*(changed_keys & RequestSeries::SHARED_ATTRIBUTES))
-      @series.faculty_requests.update_all(shared_attrs) if shared_attrs.present?
+      # Dates that have started (or were cancelled) keep their details, so past
+      # reports and pay records don't change after the fact
+      if shared_attrs.present?
+        @series.faculty_requests.where("starts_at > ?", Time.current).where.not(status: :archived).update_all(shared_attrs)
+      end
 
       if slots
         @series.assign_model_slots!(slots)
