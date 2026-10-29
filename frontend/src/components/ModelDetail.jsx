@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Badge, Button, Alert, Spinner, Modal, Form } from "react-bootstrap";
 import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
-import BodyTypeIcon from "./BodyTypeIcon";
 import { useDialog } from "./DialogProvider";
 import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents } from "../utils/time";
@@ -177,7 +176,7 @@ function ModelDetail() {
                 <div className="mb-2">
                   <Badge bg="info" text="dark" className="me-1">{formatSkinTone(user.skin_tone)}</Badge>
                   <Badge bg="info" text="dark" className="me-1">{user.gender_identity}</Badge>
-                  {user.body_type && <Badge bg="info" text="dark" className="me-1 d-inline-flex align-items-center gap-1"><BodyTypeIcon type={user.body_type} size={16} />{user.body_type} Build</Badge>}
+                  {user.body_type && <Badge bg="info" text="dark" className="me-1">{user.body_type} Build</Badge>}
                   {user.willing_to_model_nude && user.genitalia && <Badge bg="info" text="dark" className="me-1">{user.genitalia} Genitalia</Badge>}
                 </div>
                 <div>

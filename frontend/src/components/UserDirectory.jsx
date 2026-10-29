@@ -3,7 +3,6 @@ import { Container, Table, Badge, Tab, Tabs } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
-import BodyTypeIcon from "./BodyTypeIcon";
 
 function UserDirectory() {
   const [users, setUsers] = useState([]);
@@ -53,7 +52,7 @@ function UserDirectory() {
                       {u.pronouns && <Badge bg="dark" text="light" className="me-1">Pronouns: {u.pronouns}</Badge>}
                       <Badge bg="dark" text="light" className="me-1">{formatSkinTone(u.skin_tone)}</Badge>
                       <Badge bg="dark" text="light" className="me-1">Gender: {u.gender_identity}</Badge>
-                      {u.body_type && <Badge bg="dark" text="light" className="me-1 d-inline-flex align-items-center gap-1"><BodyTypeIcon type={u.body_type} size={16} />{u.body_type} Build</Badge>}
+                      {u.body_type && <Badge bg="dark" text="light" className="me-1">{u.body_type} Build</Badge>}
                       {u.willing_to_model_nude && u.genitalia && <Badge bg="dark" text="light">{u.genitalia} Genitalia</Badge>}
                     </td>
                     <td className="align-middle">
@@ -102,7 +101,7 @@ function UserDirectory() {
                       {u.pronouns && <Badge bg="dark" text="light" className="me-1">Pronouns: {u.pronouns}</Badge>}
                       <Badge bg="dark" text="light" className="me-1">{formatSkinTone(u.skin_tone)}</Badge>
                       <Badge bg="dark" text="light" className="me-1">Gender: {u.gender_identity}</Badge>
-                      {u.body_type && <Badge bg="dark" text="light" className="me-1 d-inline-flex align-items-center gap-1"><BodyTypeIcon type={u.body_type} size={16} />{u.body_type} Build</Badge>}
+                      {u.body_type && <Badge bg="dark" text="light" className="me-1">{u.body_type} Build</Badge>}
                       {u.willing_to_model_nude && u.genitalia && <Badge bg="dark" text="light">{u.genitalia} Genitalia</Badge>}
                     </div>
                     <Link to={`/models/${u.id}`} className="btn btn-sm btn-outline-primary w-100">

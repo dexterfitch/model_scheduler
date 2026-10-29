@@ -1,5 +1,3 @@
-// Run with:    cd frontend && GUIDE=1 npx playwright test e2e/user-guide.spec.js --reporter=line 2>&1 | grep -E "passed|failed|Error|›.*›"; cd ..
-
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -115,9 +113,6 @@ for (const [size, options] of Object.entries(sizes)) {
       await expect(page.getByRole('dialog')).toBeVisible();
       await shot('cancel-class-confirm', "You'll be asked to confirm. Keep Class goes back without cancelling.", { dialog: true });
       await page.getByRole('dialog').getByRole('button', { name: 'Keep Class' }).click();
-
-      await page.goto('/profile');
-      await shot('profile', 'Your profile: your name and phone number.');
     });
 
     test('model', async ({ page }) => {
@@ -149,14 +144,16 @@ for (const [size, options] of Object.entries(sizes)) {
       await shot('availability', 'Manage Availability shows the times you are free, your booked gigs, and open calls you can sign up for.', { target: tab });
 
       const add = page.getByRole('button', { name: 'Add Availability' });
-      await shot('add-availability-button', 'Choose Add Availability to tell the coordinator when you are free.', { target: add });
+      await shot('add-availability-button', 'Choose Add Availability to tell the coordinator when you are free. On a computer you can also click a day on the calendar.', { target: add });
       await add.click();
       const window = page.getByRole('dialog');
       await expect(window).toBeVisible();
-      // Evening times, so this doesn't overlap the seeded daytime availability
+      // Next week, in the evening, so this doesn't overlap the seeded daytime availability
+      const nextWeek = new Date(Date.now() + 7 * 86400000).toLocaleDateString('en-CA');
+      await window.getByLabel('Date', { exact: true }).fill(nextWeek);
       await window.getByLabel('Start Time').fill('19:00');
       await window.getByLabel('End Time').fill('21:00');
-      await shot('add-availability-window', 'Choose the start and end time, then Add Availability.', { dialog: true });
+      await shot('add-availability-window', 'Choose the day, the start time and the end time, then Add Availability.', { dialog: true });
       await window.getByRole('button', { name: 'Add Availability' }).click();
       await expect(window).toBeHidden();
       await shot('availability-added', 'Your new time appears on the calendar.');

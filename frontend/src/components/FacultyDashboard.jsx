@@ -7,7 +7,6 @@ import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
 import ModelPreferenceFields from "./ModelPreferenceFields";
-import BodyTypeIcon from "./BodyTypeIcon";
 import {
   DEFAULT_MODEL_PREFERENCES, DEFAULT_SLOT_STATE, applyPreferenceChange, modelSlotsPayload, slotFormState
 } from "../utils/modelPreferences";
@@ -530,7 +529,7 @@ function FacultyDashboard({ user }) {
                     {!hasModelSlots(s) && s.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(s.pref_skin_tone)}</Badge>}
                     {(s.models_needed || 1) > 1 && <Badge bg="primary">{formatModelCount(s.models_needed)}</Badge>}
                     {!hasModelSlots(s) && s.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">Gender: {formatGenderPreference(s)}</Badge>}
-                    {!hasModelSlots(s) && s.pref_body_type && s.pref_body_type !== 'Any' && <Badge bg="light" text="dark" className="border d-inline-flex align-items-center gap-1"><BodyTypeIcon type={s.pref_body_type} size={16} />{formatBodyType(s.pref_body_type)}</Badge>}
+                    {!hasModelSlots(s) && s.pref_body_type && s.pref_body_type !== 'Any' && <Badge bg="light" text="dark" className="border">{formatBodyType(s.pref_body_type)}</Badge>}
                     {!hasModelSlots(s) && s.model_mode === 'nude' && s.pref_genitalia && s.pref_genitalia !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenitalia(s.pref_genitalia)}</Badge>}
                   </div>
                   {hasModelSlots(s) && (

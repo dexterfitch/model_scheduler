@@ -16,4 +16,14 @@ describe('UserDirectory', () => {
     expect((await screen.findAllByText('Pronouns: they/them')).length).toBeGreaterThan(0);
     expect(screen.queryAllByText(/^Pronouns:\s*$/)).toHaveLength(0);
   });
+
+  it('shows body type as a plain badge, the same height as the others', async () => {
+    api.get.mockResolvedValue({ data: [
+      { id: 1, role: 'model', first_name: 'Jordan', last_name: 'Ellis', email: 'jellis@mica.edu', skin_tone: 'Light', gender_identity: 'Woman', body_type: 'Fat' }
+    ] });
+    render(<MemoryRouter><UserDirectory /></MemoryRouter>);
+
+    const [badge] = await screen.findAllByText('Fat Build');
+    expect(badge.querySelector('svg')).toBeNull();
+  });
 });
