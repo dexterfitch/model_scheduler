@@ -144,6 +144,28 @@ RSpec.describe "User profile permissions", type: :request do
   describe "superusers" do
     let(:superuser) { create(:user, :admin, superuser: true) }
 
+    it "are the only ones who can make someone an admin" do
+      post "/users/#{user.id}/promote", params: { role: "admin" }, headers: auth_headers(admin), as: :json
+      expect(response).to have_http_status(:forbidden)
+      expect(user.reload).to be_role_faculty
+
+      post "/users/#{user.id}/promote", params: { role: "admin" }, headers: auth_headers(superuser), as: :json
+      expect(user.reload).to be_role_admin
+    end
+
+    it "are the only ones who can change an admin's role" do
+      other_admin = create(:user, :admin)
+      post "/users/#{other_admin.id}/promote", params: { role: "faculty" }, headers: auth_headers(admin), as: :json
+      expect(response).to have_http_status(:forbidden)
+      expect(other_admin.reload).to be_role_admin
+    end
+
+    it "can still switch themselves back to admin after viewing the app as faculty" do
+      superuser.update!(role: :faculty)
+      post "/users/#{superuser.id}/promote", params: { role: "admin" }, headers: auth_headers(superuser), as: :json
+      expect(superuser.reload).to be_role_admin
+    end
+
     it "can grant superuser status to an admin" do
       other_admin = create(:user, :admin)
       post "/users/#{other_admin.id}/promote_to_superuser", headers: auth_headers(superuser)

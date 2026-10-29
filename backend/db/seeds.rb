@@ -1,3 +1,6 @@
+# The seed data replaces almost everything in the database, so never run it on the live site
+raise "Refusing to run db/seeds.rb in production: it deletes nearly every record." if Rails.env.production?
+
 puts "🌱 Seeding Database..."
 
 Gig.delete_all

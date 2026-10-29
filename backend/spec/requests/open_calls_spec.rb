@@ -35,6 +35,23 @@ RSpec.describe "Open calls for models", type: :request do
     expect(open_series_ids(nude_ok)).to include(series.id)
   end
 
+  it "only offers dates that are still to come" do
+    series = create(:request_series)
+    upcoming = create(:faculty_request, request_series: series)
+    past = create(:faculty_request, request_series: series)
+    past.update_columns(starts_at: 2.days.ago.change(hour: 10), ends_at: 2.days.ago.change(hour: 12))
+
+    get "/request_series/available_for_model", headers: auth_headers(clothed_only)
+    offered = response.parsed_body.find { |s| s["id"] == series.id }
+    expect(offered["faculty_requests"].map { |r| r["id"] }).to eq([upcoming.id])
+  end
+
+  it "leaves out a class whose open dates have all passed" do
+    series = series_with_date("clothed")
+    series.faculty_requests.update_all(starts_at: 2.days.ago.change(hour: 10), ends_at: 2.days.ago.change(hour: 12))
+    expect(open_series_ids(clothed_only)).not_to include(series.id)
+  end
+
   it "doesn't show open calls to faculty" do
     get "/request_series/available_for_model", headers: auth_headers(create(:user))
     expect(response).to have_http_status(:forbidden)

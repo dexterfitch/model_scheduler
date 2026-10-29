@@ -41,6 +41,12 @@ class UsersController < ApplicationController
     end
 
     user = User.find(params[:id])
+
+    # Only a SuperUser can make someone an admin, or change an admin's role
+    if (target_role == "admin" || user.role_admin?) && !current_user.superuser?
+      return render json: { error: "Only a SuperUser can make someone an admin or change an admin's role." }, status: :forbidden
+    end
+
     user.role = target_role
 
     apply_model_defaults(user, skin_tone: params[:skin_tone]) if user.role_model?

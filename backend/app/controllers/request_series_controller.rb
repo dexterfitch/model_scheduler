@@ -40,7 +40,8 @@ class RequestSeriesController < ApplicationController
       # Hide dates this model is already booked on (multi-model sessions stay
       # "pending" until every slot is filled)
       open_requests = series.faculty_requests.select do |req|
-        req.pending? && req.confirmed_gigs.none? { |g| g.art_model_availability.user_id == current_user.id }
+        req.pending? && req.starts_at > Time.current &&
+          req.confirmed_gigs.none? { |g| g.art_model_availability.user_id == current_user.id }
       end
       next if open_requests.empty?
 
