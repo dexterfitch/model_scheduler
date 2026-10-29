@@ -13,6 +13,50 @@ class ArtModelAvailability < ApplicationRecord
   validate :must_be_future_time, on: :create
   validate :prevent_edit_with_active_gig, on: :update
 
+  # Saves time a person added or changed, joined with any free time the same
+  # model already has that overlaps it or meets it end to end, so a model never
+  # has two free blocks covering the same hours (9-3 plus 2-6 becomes 9-6).
+  # Blocks with a booked gig are left as they are.
+  # Returns the block that now holds the time, or false with errors set.
+  def save_joining_free_time
+    return save && self unless active?
+    return false unless valid?
+
+    others = ArtModelAvailability.active.where(user_id: user_id).where.not(id: id)
+
+    # Already free for the whole of it: nothing to add
+    if new_record?
+      covering = others.where("starts_at <= ? AND ends_at >= ?", starts_at, ends_at).order(:starts_at).first
+      return covering if covering
+    end
+
+    neighbours = others
+      .where("starts_at <= ? AND ends_at >= ?", ends_at, starts_at)
+      .where.not(id: Gig.confirmed.select(:art_model_availability_id))
+      .order(:starts_at).to_a
+    return save && self if neighbours.empty?
+
+    # Keep an existing block where we can, so its history stays with it
+    keeper = persisted? ? self : neighbours.shift
+    from = [starts_at, keeper.starts_at, *neighbours.map(&:starts_at)].min
+    to   = [ends_at, keeper.ends_at, *neighbours.map(&:ends_at)].max
+
+    transaction do
+      keeper.starts_at = from
+      keeper.ends_at = to
+      keeper.save!
+      neighbours.each do |other|
+        # Cancelled gigs keep pointing at the time they were booked in
+        Gig.where(art_model_availability_id: other.id).update_all(art_model_availability_id: keeper.id)
+        other.delete
+      end
+    end
+    keeper
+  rescue ActiveRecord::RecordInvalid => e
+    errors.merge!(e.record.errors) unless e.record.equal?(self)
+    false
+  end
+
   def active_gig
     gigs.find { |g| g.status == 'confirmed' }
   end

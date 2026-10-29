@@ -4,7 +4,7 @@ import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { useDialog } from "./DialogProvider";
 import { extractErrorMessages } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability, availabilityEvents } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
 
 function ModelDashboard({ user }) {
   const { confirm, notify } = useDialog();
@@ -69,24 +69,29 @@ function ModelDashboard({ user }) {
 
     if (missingRequests.length === 0) return;
 
-    try {
-      await Promise.all(
-        missingRequests.map(req =>
-          api.post("/art_model_availabilities", {
-            art_model_availability: {
-              starts_at: req.starts_at,
-              ends_at: req.ends_at
-            }
-          })
-        )
-      );
-
-      setPageSuccess(`Availability added for all ${pendingRequests.length} dates!`);
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      setPageSuccess('');
+    // One date at a time, so two dates on the same day join into one block
+    // instead of racing each other. A date that can't be added doesn't stop the rest.
+    const failed = [];
+    for (const req of missingRequests) {
+      try {
+        await api.post("/art_model_availabilities", {
+          art_model_availability: { starts_at: req.starts_at, ends_at: req.ends_at }
+        });
+      } catch (err) {
+        failed.push({ reason: err });
+      }
     }
+    fetchData();
+
+    if (failed.length === 0) {
+      setPageSuccess(`Availability added for all ${pendingRequests.length} dates!`);
+      return;
+    }
+    setPageSuccess('');
+    notify({
+      title: "Couldn't add your availability",
+      message: extractErrorMessages(failed[0].reason, "Something went wrong. Please try again.")
+    });
   };
 
   const upcomingGigs = myGigs.filter(gig => {
@@ -142,11 +147,11 @@ function ModelDashboard({ user }) {
     const payload = { starts_at: startsAt, ends_at: endsAt };
     if (editingId) {
       api.patch(`/art_model_availabilities/${editingId}`, { art_model_availability: payload })
-        .then(() => { setPageSuccess("Availability updated!"); setShowModal(false); fetchData(); })
+        .then((res) => { setPageSuccess(availabilitySavedMessage(res.data, "Availability updated!")); setShowModal(false); fetchData(); })
         .catch((err) => setModalError(extractErrorMessages(err, "Error saving availability. Please try again.")));
     } else {
       api.post("/art_model_availabilities", { art_model_availability: payload })
-        .then(() => { setPageSuccess("Availability added!"); setShowModal(false); fetchData(); })
+        .then((res) => { setPageSuccess(availabilitySavedMessage(res.data, "Availability added!")); setShowModal(false); fetchData(); })
         .catch((err) => setModalError(extractErrorMessages(err, "Error saving availability. Please try again.")));
     }
   };

@@ -48,6 +48,17 @@ export const validateBusinessHours = (startTime, endTime) => {
   return null;
 };
 
+// What to say after availability is saved. The server joins new time to free
+// time the model already has that overlaps or meets it, and says so with "joined".
+// Admins see "the model" in place of "you".
+export const availabilitySavedMessage = (saved, fallback, { forAdmin = false } = {}) => {
+  if (!saved?.joined) return fallback;
+  const hours = `${formatTimeShort(saved.starts_at)} to ${formatTimeShort(saved.ends_at)}`;
+  return forAdmin
+    ? `Availability saved, and joined to time the model had already set: they're free ${hours} that day.`
+    : `Availability saved, and joined to time you'd already set: you're free ${hours} that day.`;
+};
+
 export const formatTimeForInput = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
 export const availabilityCoversRequest = (avail, req) => {

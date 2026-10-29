@@ -42,7 +42,7 @@ class RequestSeriesController < ApplicationController
       open_requests = series.faculty_requests.select do |req|
         req.pending? && req.starts_at > Time.current &&
           req.confirmed_gigs.none? { |g| g.art_model_availability.user_id == current_user.id }
-      end
+      end.sort_by(&:starts_at)
       next if open_requests.empty?
 
       series.as_json(
@@ -55,7 +55,8 @@ class RequestSeriesController < ApplicationController
       )
     end
 
-    render json: payload
+    # Soonest first, by each call's next open date
+    render json: payload.sort_by { |call| Time.zone.parse(call["faculty_requests"].first["starts_at"].to_s) }
   end
 
   def create

@@ -136,4 +136,115 @@ RSpec.describe "Availability permissions", type: :request do
       expect(gig.reload).to be_cancelled
     end
   end
+
+  describe "joining time that overlaps" do
+    # A day with nothing on it yet
+    let(:day) { 8.days.from_now }
+
+    def add_slot(as:, start_hour:, end_hour:, for_user: nil)
+      fields = { starts_at: day.change(hour: start_hour), ends_at: day.change(hour: end_hour) }
+      fields[:user_id] = for_user.id if for_user
+      post "/art_model_availabilities", params: { art_model_availability: fields }, headers: auth_headers(as), as: :json
+    end
+
+    def blocks_for(user)
+      ArtModelAvailability.active.where(user: user).order(:starts_at).map do |b|
+        [b.starts_at.hour, b.ends_at.hour]
+      end
+    end
+
+    it "stretches the model's free time to cover both, instead of adding a second block" do
+      add_slot(as: model, start_hour: 9, end_hour: 15)
+      add_slot(as: model, start_hour: 14, end_hour: 18)
+      expect(response).to have_http_status(:created)
+      expect(blocks_for(model)).to eq([[9, 18]])
+      expect(response.parsed_body["joined"]).to be true
+      expect(response.parsed_body["starts_at"]).to eq(day.change(hour: 9).as_json)
+    end
+
+    it "doesn't add the same time twice" do
+      add_slot(as: model, start_hour: 9, end_hour: 17)
+      add_slot(as: model, start_hour: 9, end_hour: 17)
+      expect(response).to have_http_status(:created)
+      expect(blocks_for(model)).to eq([[9, 17]])
+    end
+
+    it "joins blocks that meet end to end" do
+      add_slot(as: model, start_hour: 12, end_hour: 15)
+      add_slot(as: model, start_hour: 15, end_hour: 17)
+      expect(blocks_for(model)).to eq([[12, 17]])
+    end
+
+    it "joins every block the new time touches" do
+      add_slot(as: model, start_hour: 9, end_hour: 11)
+      add_slot(as: model, start_hour: 13, end_hour: 15)
+      add_slot(as: model, start_hour: 10, end_hour: 14)
+      expect(blocks_for(model)).to eq([[9, 15]])
+    end
+
+    it "keeps separate blocks separate when they don't meet" do
+      add_slot(as: model, start_hour: 9, end_hour: 11)
+      add_slot(as: model, start_hour: 13, end_hour: 15)
+      expect(response.parsed_body["joined"]).to be false
+      expect(blocks_for(model)).to eq([[9, 11], [13, 15]])
+    end
+
+    it "leaves a block with a booked gig alone" do
+      booked = create(:art_model_availability, user: model, starts_at: day.change(hour: 9), ends_at: day.change(hour: 12))
+      create(:gig, art_model_availability: booked,
+        faculty_request: create(:faculty_request, starts_at: day.change(hour: 9), ends_at: day.change(hour: 12)))
+
+      add_slot(as: model, start_hour: 11, end_hour: 16)
+      expect(response).to have_http_status(:created)
+      expect(booked.reload.ends_at.hour).to eq(12)
+      expect(blocks_for(model)).to eq([[9, 12], [11, 16]])
+    end
+
+    it "adds nothing when the time is already inside one block" do
+      add_slot(as: model, start_hour: 9, end_hour: 17)
+      add_slot(as: model, start_hour: 10, end_hour: 12)
+      expect(blocks_for(model)).to eq([[9, 17]])
+      expect(response.parsed_body["joined"]).to be true
+    end
+
+    it "doesn't join a cancelled block" do
+      old = create(:art_model_availability, user: model, starts_at: day.change(hour: 9), ends_at: day.change(hour: 12))
+      old.update_columns(status: ArtModelAvailability.statuses[:cancelled])
+      add_slot(as: model, start_hour: 10, end_hour: 14)
+      expect(blocks_for(model)).to eq([[10, 14]])
+    end
+
+    it "never joins two different models' time" do
+      add_slot(as: model, start_hour: 9, end_hour: 15)
+      add_slot(as: other_model, start_hour: 14, end_hour: 18)
+      expect(blocks_for(model)).to eq([[9, 15]])
+      expect(blocks_for(other_model)).to eq([[14, 18]])
+    end
+
+    it "joins time an admin adds for a model too" do
+      add_slot(as: model, start_hour: 9, end_hour: 12)
+      add_slot(as: admin, for_user: model, start_hour: 11, end_hour: 14)
+      expect(blocks_for(model)).to eq([[9, 14]])
+    end
+
+    it "joins blocks when a block is stretched over another, keeping its gig history" do
+      morning = create(:art_model_availability, user: model, starts_at: day.change(hour: 9), ends_at: day.change(hour: 11))
+      evening = create(:art_model_availability, user: model, starts_at: day.change(hour: 15), ends_at: day.change(hour: 18))
+      history = create(:gig, art_model_availability: evening,
+        faculty_request: create(:faculty_request, starts_at: day.change(hour: 15), ends_at: day.change(hour: 17)))
+      history.update_columns(status: Gig.statuses[:cancelled])
+
+      patch "/art_model_availabilities/#{morning.id}",
+        params: { art_model_availability: { ends_at: day.change(hour: 16) } }, headers: auth_headers(model), as: :json
+      expect(response).to have_http_status(:ok)
+      expect(blocks_for(model)).to eq([[9, 18]])
+      expect(history.reload.art_model_availability_id).to eq(morning.id)
+    end
+
+    it "lets a block's own hours change without joining itself" do
+      patch_slot(as: model, changes: { starts_at: slot.starts_at + 1.hour })
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["joined"]).to be false
+    end
+  end
 end

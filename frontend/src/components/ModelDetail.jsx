@@ -5,7 +5,7 @@ import api from "../services/api";
 import SharedCalendar from "./SharedCalendar";
 import { useDialog } from "./DialogProvider";
 import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
-import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents } from "../utils/time";
+import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
 
 function ModelDetail() {
   const { id } = useParams();
@@ -93,8 +93,8 @@ function ModelDetail() {
       : api.post('/art_model_availabilities', { art_model_availability: { ...payload, user_id: id } });
 
     request
-      .then(() => {
-        setPageSuccess(editingId ? "Availability updated!" : "Availability added!");
+      .then((res) => {
+        setPageSuccess(availabilitySavedMessage(res.data, editingId ? "Availability updated!" : "Availability added!", { forAdmin: true }));
         setShowModal(false);
         fetchData();
       })

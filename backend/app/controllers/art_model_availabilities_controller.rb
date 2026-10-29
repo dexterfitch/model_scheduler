@@ -13,9 +13,10 @@ class ArtModelAvailabilitiesController < ApplicationController
   def create
     availability = ArtModelAvailability.new(availability_params)
     availability.user_id = current_user.id unless current_user.role_admin?
+    asked = [availability.starts_at, availability.ends_at]
 
-    if availability.save
-      render json: availability, status: :created
+    if (saved = availability.save_joining_free_time)
+      render json: with_joined(saved, asked), status: :created
     else
       render json: { errors: availability.errors.full_messages }, status: :unprocessable_content
     end
@@ -26,8 +27,11 @@ class ArtModelAvailabilitiesController < ApplicationController
 
     require_admin_or_owner(availability)
 
-    if availability.update(availability_params)
-      render json: availability
+    availability.assign_attributes(availability_params)
+    asked = [availability.starts_at, availability.ends_at]
+
+    if (saved = availability.save_joining_free_time)
+      render json: with_joined(saved, asked)
     else
       render json: { errors: availability.errors.full_messages }, status: :unprocessable_content
     end
@@ -78,6 +82,13 @@ class ArtModelAvailabilitiesController < ApplicationController
   end
 
   private
+
+  # "joined" tells the page the time was merged with time the model already had,
+  # so it can say what the block runs from and to now
+  def with_joined(saved, asked)
+    joined = [saved.starts_at, saved.ends_at] != asked
+    saved.as_json.merge("joined" => joined)
+  end
 
   def availability_params
     permitted = [:starts_at, :ends_at]

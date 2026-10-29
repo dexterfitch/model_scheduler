@@ -4,6 +4,7 @@ import ModelDashboard from './ModelDashboard';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
 import { renderWithDialogs } from '../test/render';
+import { formatTimeShort } from '../utils/time';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 // The calendar library needs a real browser, so a placeholder stands in for it here
@@ -101,6 +102,17 @@ describe('ModelDashboard', () => {
     });
   });
 
+  it("explains why an open call sign-up didn't go through", async () => {
+    api.post.mockRejectedValue({ response: { data: { errors: ['Starts at must be in the future'] } } });
+    renderWithDialogs(<ModelDashboard user={model} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Manage Availability' }));
+    await userEvent.click(await screen.findByRole('button', { name: "I'm Available" }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent("Couldn't add your availability");
+    expect(dialog).toHaveTextContent('Starts at must be in the future');
+  });
+
   it('moves gigs that already happened to Completed, without a Cancel button', async () => {
     const lastWeek = gig(103, 'Gesture Drawing', '2026-10-14T14:00:00Z', '2026-10-14T16:00:00Z');
     api.get.mockImplementation((url) => {
@@ -130,6 +142,42 @@ describe('ModelDashboard', () => {
 
     const { starts_at } = api.post.mock.calls[0][1].art_model_availability;
     expect(starts_at.toLocaleDateString('en-CA')).toBe('2099-02-10');
+  });
+
+  it('says when new time was joined to time the model already had', async () => {
+    const starts = '2099-02-10T14:00:00Z', ends = '2099-02-10T23:00:00Z';
+    api.post.mockResolvedValue({ data: { id: 9, joined: true, starts_at: starts, ends_at: ends } });
+    renderWithDialogs(<ModelDashboard user={model} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Manage Availability' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Pick a date' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Date'), { target: { value: '2099-02-10' } });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add Availability' }));
+
+    const message = await screen.findByText(/joined to time you'd already set/);
+    expect(message).toHaveTextContent(`${formatTimeShort(starts)} to ${formatTimeShort(ends)}`);
+  });
+
+  it('adds open call dates one at a time, so dates on the same day can be joined', async () => {
+    const twoDates = { ...groupCall, faculty_requests: [
+      { ...groupCall.faculty_requests[0], id: 51, starts_at: '2099-03-02T14:00:00Z', ends_at: '2099-03-02T16:00:00Z' },
+      { ...groupCall.faculty_requests[0], id: 52, starts_at: '2099-03-02T18:00:00Z', ends_at: '2099-03-02T20:00:00Z' },
+    ] };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url === '/request_series/available_for_model' ? [twoDates] : [] }));
+    let inFlight = 0, most = 0;
+    api.post.mockImplementation(async () => {
+      most = Math.max(most, ++inFlight);
+      await new Promise(r => setTimeout(r, 5));
+      inFlight--;
+      return { data: {} };
+    });
+    renderWithDialogs(<ModelDashboard user={model} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Manage Availability' }));
+    await userEvent.click(await screen.findByRole('button', { name: "I'm Available" }));
+
+    await screen.findByText('Availability added for all 2 dates!');
+    expect(api.post).toHaveBeenCalledTimes(2);
+    expect(most).toBe(1);
   });
 
   it("explains why the server wouldn't save an availability slot", async () => {

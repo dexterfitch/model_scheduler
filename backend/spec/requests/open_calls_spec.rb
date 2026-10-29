@@ -56,4 +56,19 @@ RSpec.describe "Open calls for models", type: :request do
     get "/request_series/available_for_model", headers: auth_headers(create(:user))
     expect(response).to have_http_status(:forbidden)
   end
+
+  it "lists open calls by their next date, and each call's dates in order" do
+    later = create(:request_series)
+    create(:faculty_request, request_series: later, starts_at: 9.days.from_now.change(hour: 10), ends_at: 9.days.from_now.change(hour: 12))
+    sooner = create(:request_series)
+    # Added out of order on purpose
+    create(:faculty_request, request_series: sooner, starts_at: 12.days.from_now.change(hour: 10), ends_at: 12.days.from_now.change(hour: 12))
+    create(:faculty_request, request_series: sooner, starts_at: 3.days.from_now.change(hour: 10), ends_at: 3.days.from_now.change(hour: 12))
+
+    get "/request_series/available_for_model", headers: auth_headers(clothed_only)
+    calls = response.parsed_body.select { |c| [later.id, sooner.id].include?(c["id"]) }
+    expect(calls.map { |c| c["id"] }).to eq([sooner.id, later.id])
+    dates = calls.first["faculty_requests"].map { |r| Time.zone.parse(r["starts_at"]).to_date }
+    expect(dates).to eq(dates.sort)
+  end
 end
