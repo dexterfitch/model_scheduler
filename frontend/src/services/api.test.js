@@ -21,4 +21,25 @@ describe('api (backend connection)', () => {
     const { data: sent } = await api.get('/me', { adapter: echo });
     expect(sent.baseURL).toBe('http://localhost:3000');
   });
+
+  it('tells the app when the server says a signed-in person\'s sign-in has expired', async () => {
+    localStorage.setItem('token', 'old-token');
+    const heard = vi.fn();
+    window.addEventListener('pose-pool:signed-out', heard);
+    const expired = async (config) => Promise.reject({ response: { status: 401 }, config });
+
+    await expect(api.get('/gigs', { adapter: expired })).rejects.toBeTruthy();
+    expect(heard).toHaveBeenCalledTimes(1);
+    window.removeEventListener('pose-pool:signed-out', heard);
+  });
+
+  it("doesn't, when nobody was signed in to begin with", async () => {
+    const heard = vi.fn();
+    window.addEventListener('pose-pool:signed-out', heard);
+    const expired = async (config) => Promise.reject({ response: { status: 401 }, config });
+
+    await expect(api.get('/me', { adapter: expired })).rejects.toBeTruthy();
+    expect(heard).not.toHaveBeenCalled();
+    window.removeEventListener('pose-pool:signed-out', heard);
+  });
 });

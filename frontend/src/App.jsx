@@ -25,7 +25,8 @@ function LoginSuccess({ onLogin }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    // The token arrives after a # so it never reaches a server log; ?token= is the older form
+    const token = new URLSearchParams(window.location.hash.slice(1)).get('token') || searchParams.get('token');
     if (token) {
       localStorage.setItem('token', token);
     }
@@ -39,7 +40,7 @@ function LoginSuccess({ onLogin }) {
         navigate("/", { replace: true });
       }
     }).catch(() => {
-      navigate("/login?error=AuthFailed", { replace: true });
+      navigate(`/login?error=${encodeURIComponent("Sign-in didn't work. Please try again.")}`, { replace: true });
     });
   }, [id, navigate, onLogin, searchParams]);
 
@@ -50,6 +51,20 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [needsRoleSelection, setNeedsRoleSelection] = useState(false);
   const [loading, setLoading] = useState(true);
+  // A message for the sign-in page, such as an expired sign-in
+  const [notice, setNotice] = useState('');
+
+  // The API client announces when a signed-in person's token stops working
+  useEffect(() => {
+    const signedOut = () => {
+      localStorage.removeItem('token');
+      setNeedsRoleSelection(false);
+      setCurrentUser(null);
+      setNotice('Your sign-in has expired. Please sign in again.');
+    };
+    window.addEventListener('pose-pool:signed-out', signedOut);
+    return () => window.removeEventListener('pose-pool:signed-out', signedOut);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -93,7 +108,7 @@ function App() {
     <BrowserRouter>
       {!currentUser ? (
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage notice={notice} />} />
           <Route path="/login_success/:id" element={<LoginSuccess onLogin={setCurrentUser} />} />
           <Route path="/select-role" element={<SelectRole onLogin={setCurrentUser} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />

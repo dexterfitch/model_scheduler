@@ -11,7 +11,7 @@ class SessionsController < ApplicationController
 
     unless email_verified && workspace == "mica.edu" && mica_email
       Rails.logger.warn("Rejected login: #{auth.info.email} (verified=#{email_verified}, hd=#{workspace.presence || 'none'})")
-      return redirect_to "#{ENV['FRONTEND_URL']}?error=Invalid+domain", allow_other_host: true
+      return redirect_to sign_in_page_with("Please sign in with your MICA Google account."), allow_other_host: true
     end
 
     user = User.from_omniauth(auth)
@@ -20,10 +20,11 @@ class SessionsController < ApplicationController
       payload = { user_id: user.id, ver: user.token_version, exp: 24.hours.from_now.to_i }
       token = JWT.encode(payload, Rails.application.secret_key_base, "HS256")
       
-      redirect_to "#{ENV['FRONTEND_URL']}/login_success/#{user.id}?token=#{token}", allow_other_host: true
+      # After a #, so the token stays in the browser and out of server logs
+      redirect_to "#{ENV['FRONTEND_URL']}/login_success/#{user.id}#token=#{token}", allow_other_host: true
     else
       Rails.logger.error("Login Failed: #{user.errors.full_messages.join(', ')}")
-      redirect_to "#{ENV['FRONTEND_URL']}?error=Login+Failed", allow_other_host: true
+      redirect_to sign_in_page_with("Sign-in didn't work. Please try again."), allow_other_host: true
     end
   end
 
@@ -43,6 +44,12 @@ class SessionsController < ApplicationController
       render json: { error: "User not found" }, status: :not_found
     end
   end
+
+  # The sign-in page, showing why the last attempt didn't work
+  def sign_in_page_with(message)
+    "#{ENV['FRONTEND_URL']}/login?#{{ error: message }.to_query}"
+  end
+  private :sign_in_page_with
 
   def me
     if current_user

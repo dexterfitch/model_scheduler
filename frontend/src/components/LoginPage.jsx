@@ -2,11 +2,12 @@ import React, { useEffect } from "react";
 import { Container, Card, Alert, Button } from "react-bootstrap";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import styles from "./LoginPage.module.css";
+import { API_URL } from "../services/api";
 
-function LoginPage() {
+function LoginPage({ notice }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const error = searchParams.get("error");
+  const error = searchParams.get("error") || notice;
 
   useEffect(() => {
     document.body.classList.add(styles.loginBg);
@@ -35,14 +36,10 @@ function LoginPage() {
           </p>
 
           <a 
-            href={`${import.meta.env.VITE_API_URL}/auth/google_oauth2`}
+            href={`${API_URL}/auth/google_oauth2`}
             className="btn btn-outline-dark btn-lg d-flex align-items-center justify-content-center gap-2 w-100"
           >
-            <img 
-              src="https://www.svgrepo.com/show/475656/google-color.svg" 
-              alt="Google" 
-              style={{ width: "20px" }} 
-            />
+            <i className="bi bi-google" aria-hidden="true"></i>
             <span className="small">Sign in with MICA Google Account</span>
           </a>
 

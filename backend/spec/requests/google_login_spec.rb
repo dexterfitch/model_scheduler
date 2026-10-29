@@ -24,19 +24,25 @@ RSpec.describe "Signing in with Google", type: :request do
     expect(User.exists?(email: "newfaculty@mica.edu")).to be true
   end
 
-  it "turns away a personal Gmail account" do
+  it "hands over the sign-in token after a #, so it never reaches a server log" do
+    google_says(email: "newfaculty@mica.edu")
+    expect(response.location).to match(/login_success\/\d+#token=[^&]+\z/)
+    expect(response.location).not_to include("?token=")
+  end
+
+  it "turns away a personal Gmail account, with a message on the sign-in page" do
     google_says(email: "someone@gmail.com", hd: nil)
-    expect(response.location).to include("error=Invalid+domain")
+    expect(response.location).to include("/login?error=Please+sign+in+with+your+MICA+Google+account.")
   end
 
   it "turns away a MICA address Google hasn't verified" do
     google_says(email: "unverified@mica.edu", verified: false)
-    expect(response.location).to include("error=Invalid+domain")
+    expect(response.location).to include("/login?error=Please+sign+in+with+your+MICA+Google+account.")
     expect(User.exists?(email: "unverified@mica.edu")).to be false
   end
 
   it "turns away a MICA-looking email from a different organization" do
     google_says(email: "imposter@mica.edu", hd: "example.com")
-    expect(response.location).to include("error=Invalid+domain")
+    expect(response.location).to include("/login?error=Please+sign+in+with+your+MICA+Google+account.")
   end
 end
