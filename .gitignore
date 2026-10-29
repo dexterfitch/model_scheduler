@@ -69,7 +69,7 @@ Dockerfile.dev
 docker-data/
 docker-volumes/
 docker_tmp/
-*.tar   # exported Docker images
+*.tar
 
 # Rails tmp+cache inside containers
 **/tmp/docker/
@@ -92,7 +92,6 @@ docker-logs/
 /backend/db/*.sqlite3
 /backend/db/*.sqlite3-journal
 /backend/db/*.sqlite3-*
-/backend/db/seeds.rb
 /backend/storage/
 /backend/public/assets/
 /backend/public/packs/
