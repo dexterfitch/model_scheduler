@@ -94,7 +94,16 @@ test('a model can add availability without tapping the calendar grid (phone)', a
   await page.goto('/');
   await page.getByRole('tab', { name: 'Manage Availability' }).click();
   await page.getByRole('button', { name: 'Add Availability' }).click();
-  await expect(page.getByRole('dialog', { name: 'Set Availability' })).toBeVisible();
+  const window = page.getByRole('dialog', { name: 'Set Availability' });
+  await expect(window).toBeVisible();
+
+  // Any day can be chosen in the window itself, so no calendar tapping is needed
+  const nextWeek = new Date(Date.now() + 7 * 86400000).toLocaleDateString('en-CA');
+  await window.getByLabel('Date', { exact: true }).fill(nextWeek);
+  await window.getByLabel('Start Time').fill('19:00');
+  await window.getByLabel('End Time').fill('21:00');
+  await window.getByRole('button', { name: 'Add Availability' }).click();
+  await expect(window).toBeHidden();
 });
 
 test('the longest New Request form scrolls all the way to Submit (phone)', async ({ page }) => {

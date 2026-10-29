@@ -463,10 +463,9 @@ function ModelDashboard({ user }) {
               {modalError}
             </Alert>
           )}
-          <p>Date: <strong>{new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</strong></p>
-
           {activeGig ? (
             <>
+              <p>Date: <strong>{new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</strong></p>
               <Alert variant="info">
                 <i className="bi bi-info-circle-fill me-2"></i>
                 You're confirmed for <strong>{activeGig.faculty_request.class_name}</strong> from{' '}
@@ -496,6 +495,10 @@ function ModelDashboard({ user }) {
             </>
           ) : (
             <Form onSubmit={handleSubmitAvailability}>
+              <Form.Group className="mb-3" controlId="availability-date">
+                <Form.Label>Date</Form.Label>
+                <Form.Control type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} required />
+              </Form.Group>
               <Row>
                 <Form.Group as={Col} controlId="availability-start">
                   <Form.Label>Start Time</Form.Label>

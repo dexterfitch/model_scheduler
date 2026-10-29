@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelDashboard from './ModelDashboard';
 import api from '../services/api';
@@ -117,6 +117,19 @@ describe('ModelDashboard', () => {
     const card = (await screen.findAllByText('Gesture Drawing'))[0].closest('.card');
     expect(within(card).getByText('Completed')).toBeInTheDocument();
     expect(within(card).queryByRole('button', { name: 'Cancel' })).toBeNull();
+  });
+
+  it('lets the model choose the day as well as the times', async () => {
+    renderWithDialogs(<ModelDashboard user={model} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Manage Availability' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Pick a date' }));
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Date'), { target: { value: '2099-02-10' } });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add Availability' }));
+
+    const { starts_at } = api.post.mock.calls[0][1].art_model_availability;
+    expect(starts_at.toLocaleDateString('en-CA')).toBe('2099-02-10');
   });
 
   it("explains why the server wouldn't save an availability slot", async () => {

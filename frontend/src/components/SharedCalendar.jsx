@@ -33,14 +33,18 @@ const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }
   }, []);
 
   // A way to add time without tapping the grid (the list view has no grid).
-  // Starts on today's date; the window that opens lets people change it.
-  const addToday = () => onDateSelect({ startStr: new Date().toLocaleDateString('en-CA') });
+  // Starts on tomorrow; the window that opens has a Date field to change it.
+  const addNew = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    onDateSelect({ startStr: tomorrow.toLocaleDateString('en-CA') });
+  };
 
   return (
     <div className="card shadow-sm p-3" ref={wrapperRef}>
       {editable && onDateSelect && (
         <div className="d-flex justify-content-end mb-2">
-          <Button variant="success" onClick={addToday}>
+          <Button variant="success" onClick={addNew}>
             <i className="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Availability
           </Button>
         </div>

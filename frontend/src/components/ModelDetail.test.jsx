@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import ModelDetail from './ModelDetail';
@@ -28,6 +28,23 @@ beforeEach(() => {
 });
 
 describe("ModelDetail (admin's view of a model)", () => {
+  it("lets an admin choose the day as well as the times for a model's availability", async () => {
+    api.post.mockResolvedValue({ data: {} });
+    renderWithDialogs(
+      <MemoryRouter initialEntries={['/models/5']}>
+        <Routes><Route path="/models/:id" element={<ModelDetail />} /></Routes>
+      </MemoryRouter>
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Pick a date' }));
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Date'), { target: { value: '2099-02-10' } });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add Availability' }));
+
+    const { starts_at } = api.post.mock.calls[0][1].art_model_availability;
+    expect(starts_at.toLocaleDateString('en-CA')).toBe('2099-02-10');
+  });
+
   it("explains why the server wouldn't save an availability slot", async () => {
     api.post.mockRejectedValue({ response: { data: { errors: ['Overlaps another availability slot'] } } });
     renderWithDialogs(
