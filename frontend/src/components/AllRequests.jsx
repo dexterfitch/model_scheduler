@@ -317,10 +317,10 @@ function AllRequests() {
               <button
                 type="button"
                 className="btn btn-link p-0 ms-2 align-baseline"
-                aria-label={`Correct the record for ${name} on ${formatDateShort(req.starts_at)}`}
+                aria-label={`Make Correction for ${name} on ${formatDateShort(req.starts_at)}`}
                 onClick={() => setCorrecting({ gig, date: req, series: s })}
               >
-                Correct
+                Make Correction
               </button>
             </li>
           );
@@ -396,7 +396,7 @@ function AllRequests() {
   );
 
   const renderActionButtons = (s, showAction, matchedCount, bookedCount) => {
-    if (isFinished(s)) return <span className="text-muted small">Finished. Use Correct next to a date to fix its record.</span>;
+    if (isFinished(s)) return <span className="text-muted small">Finished. Use Make Correction next to a date to fix its record.</span>;
     const activeCount = s.faculty_requests?.filter(r => r.status !== 'archived').length || 0;
     const isSingle = activeCount <= 1;
 
@@ -428,7 +428,7 @@ function AllRequests() {
 
   // Phone cards: the main button, plus a More menu for everything else
   const renderCardActions = (s, showAction, matchedCount, bookedCount) => {
-    if (isFinished(s)) return <div className="text-muted small">Finished. Use Correct next to a date to fix its record.</div>;
+    if (isFinished(s)) return <div className="text-muted small">Finished. Use Make Correction next to a date to fix its record.</div>;
     const activeCount = s.faculty_requests?.filter(r => r.status !== 'archived').length || 0;
     const isSingle = activeCount <= 1;
     const showFind = showAction && matchedCount === 0;

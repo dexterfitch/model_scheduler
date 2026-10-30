@@ -323,7 +323,7 @@ describe('AllRequests (admin requests page)', () => {
       const row = screen.getAllByText('Gesture Drawing').map(el => el.closest('tr')).find(Boolean);
       expect(within(row).getByText(/Finished/)).toBeInTheDocument();
       // The only thing left to do on a past date is correct its record
-      expect(within(row).getAllByRole('button').every(b => /^Correct the record/.test(b.getAttribute('aria-label')))).toBe(true);
+      expect(within(row).getAllByRole('button').every(b => /^Make Correction for /.test(b.getAttribute('aria-label')))).toBe(true);
     });
   });
 
@@ -347,10 +347,16 @@ describe('AllRequests (admin requests page)', () => {
       expect(screen.getAllByText('Past').length).toBeGreaterThan(0);
     });
 
+    it('tells a finished class to use the Make Correction links', async () => {
+      renderPage();
+      await userEvent.click(await screen.findByRole('button', { name: 'Date Range' }));
+      expect((await screen.findAllByText('Finished. Use Make Correction next to a date to fix its record.')).length).toBeGreaterThan(0);
+    });
+
     it('opens the Correct record window for that model and date', async () => {
       renderPage();
       await userEvent.click(await screen.findByRole('button', { name: 'Past' }));
-      const [button] = await screen.findAllByRole('button', { name: /^Correct the record for Jordan Ellis on / });
+      const [button] = await screen.findAllByRole('button', { name: /^Make Correction for Jordan Ellis on / });
       await userEvent.click(button);
       expect(await screen.findByRole('dialog', { name: 'Correct the record' })).toHaveTextContent('Gesture Drawing');
     });

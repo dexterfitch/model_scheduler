@@ -93,7 +93,7 @@ function CorrectRecordModal({ gig, date, series, onSaved, onClose }) {
         <Modal.Body>
           <Alert variant="warning">
             <strong>This date has already happened.</strong> Changes here only fix the record and the
-            billing report. Nobody is emailed, and no one is rebooked.
+            billing report.
           </Alert>
 
           <p className="mb-1"><strong>{fullName(model)}</strong> · {series?.class_name}</p>

@@ -36,7 +36,7 @@ describe('CorrectRecordModal', () => {
     open();
     const dialog = screen.getByRole('dialog', { name: 'Correct the record' });
     expect(dialog).toHaveTextContent('This date has already happened.');
-    expect(dialog).toHaveTextContent('Nobody is emailed, and no one is rebooked.');
+    expect(dialog).toHaveTextContent('Changes here only fix the record and the billing report.');
     expect(dialog).toHaveTextContent('Jordan Ellis');
     expect(dialog).toHaveTextContent('Confirmed');
   });
