@@ -133,34 +133,38 @@ test('Requests cards keep one main button and tuck the rest into More (phone)', 
   await expect(page.getByRole('button', { name: 'Cancel Class' }).filter({ visible: true })).toHaveCount(0);
 });
 
-test('Requests puts the date filters below the status filters, with a line between (phone)', async ({ page }) => {
-  await loginAs(page, 'preyes@mica.edu');
-  await page.goto('/requests');
-  const status = page.getByRole('group', { name: 'Status' });
-  const dates = page.getByRole('group', { name: 'Dates' });
-  await expect(dates).toBeVisible();
+for (const [pageName, path] of [['Requests', '/requests'], ['Gigs', '/gigs']]) {
+  test(`${pageName} puts the date filters below the status filters, with a line between (phone)`, async ({ page }) => {
+    await loginAs(page, 'preyes@mica.edu');
+    await page.goto(path);
+    const status = page.getByRole('group', { name: 'Status' });
+    const dates = page.getByRole('group', { name: 'Dates' });
+    await expect(dates).toBeVisible();
 
-  const statusBox = await status.boundingBox();
-  const datesBox = await dates.boundingBox();
-  expect(datesBox.y, 'the date filters should come after the status filters').toBeGreaterThanOrEqual(statusBox.y + statusBox.height);
-  const line = await dates.evaluate(el => getComputedStyle(el).borderTopWidth);
-  expect(line, 'a line should divide the two groups').not.toBe('0px');
-});
+    const statusBox = await status.boundingBox();
+    const datesBox = await dates.boundingBox();
+    expect(datesBox.y, 'the date filters should come after the status filters').toBeGreaterThanOrEqual(statusBox.y + statusBox.height);
+    const line = await dates.evaluate(el => getComputedStyle(el).borderTopWidth);
+    expect(line, 'a line should divide the two groups').not.toBe('0px');
+  });
+}
 
 test.describe('desktop calendar', () => {
   test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
 
-  test('Requests puts the date filters on the right, on the same row as the status filters', async ({ page }) => {
-    await loginAs(page, 'preyes@mica.edu');
-    await page.goto('/requests');
-    const statusBox = await page.getByRole('group', { name: 'Status' }).boundingBox();
-    const datesBox = await page.getByRole('group', { name: 'Dates' }).boundingBox();
-    const barBox = await page.locator('.date-filter-box').boundingBox();
+  for (const [pageName, path] of [['Requests', '/requests'], ['Gigs', '/gigs']]) {
+    test(`${pageName} puts the date filters on the right, on the same row as the status filters`, async ({ page }) => {
+      await loginAs(page, 'preyes@mica.edu');
+      await page.goto(path);
+      const statusBox = await page.getByRole('group', { name: 'Status' }).boundingBox();
+      const datesBox = await page.getByRole('group', { name: 'Dates' }).boundingBox();
+      const barBox = await page.locator('.date-filter-box').boundingBox();
 
-    expect(datesBox.x, 'the date filters should sit to the right of the status filters').toBeGreaterThan(statusBox.x + statusBox.width);
-    expect(Math.abs((datesBox.x + datesBox.width) - (barBox.x + barBox.width)), 'the date filters should line up with the right edge').toBeLessThan(4);
-    expect(Math.abs(datesBox.y - statusBox.y), 'both groups should share a row').toBeLessThan(4);
-  });
+      expect(datesBox.x, 'the date filters should sit to the right of the status filters').toBeGreaterThan(statusBox.x + statusBox.width);
+      expect(Math.abs((datesBox.x + datesBox.width) - (barBox.x + barBox.width)), 'the date filters should line up with the right edge').toBeLessThan(4);
+      expect(Math.abs(datesBox.y - statusBox.y), 'both groups should share a row').toBeLessThan(4);
+    });
+  }
 
   test('still opens on the week grid', async ({ page }) => {
     await loginAs(page, 'preyes@mica.edu');

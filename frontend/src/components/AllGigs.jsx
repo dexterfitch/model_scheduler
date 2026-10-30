@@ -33,7 +33,8 @@ function AllGigs() {
   const [filterEnd, setFilterEnd] = useState(
     new Date(today.getFullYear(), today.getMonth() + 1, 0).toLocaleDateString('en-CA')
   );
-  const [showAll, setShowAll] = useState(true);
+  // Which dates to show: 'all' (the default), 'upcoming', 'past', or a date 'range'
+  const [when, setWhen] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
   const fetchGigs = useCallback(() => {
@@ -52,7 +53,7 @@ function AllGigs() {
   }, [fetchGigs]);
 
   const filteredGigs = gigs.filter(gig => {
-    const term = search.toLowerCase();
+    const term = search.trim().toLowerCase();
     const modelName = personName(gig.art_model_availability?.user).toLowerCase();
     const facultyName = personName(gig.faculty_request?.user).toLowerCase();
     const className = (gig.faculty_request?.class_name || '').toLowerCase();
@@ -60,8 +61,12 @@ function AllGigs() {
 
     if (!matchesSearch) return false;
     if (statusFilter !== 'all' && gig.status !== statusFilter) return false;
-    if (showAll) return true;
+    if (when === 'all') return true;
 
+    // Upcoming: hasn't finished yet. Past: has finished.
+    const now = new Date();
+    if (when === 'upcoming') return new Date(gig.faculty_request.ends_at) >= now;
+    if (when === 'past') return new Date(gig.faculty_request.ends_at) < now;
     const gigDate = new Date(gig.faculty_request.starts_at);
     return gigDate >= new Date(filterStart + "T00:00:00") && gigDate <= new Date(filterEnd + "T23:59:59");
   });
@@ -106,43 +111,56 @@ function AllGigs() {
         </InputGroup>
       </div>
 
-      <div className="py-3 border-bottom border-info mb-4 d-flex align-items-end date-filter-box">
-        <Row className="g-2 align-items-end w-100">
-          <Col xs={12} md="auto">
+      {/* Two kinds of filter, laid out like Requests: what state a gig is in
+          (left), and which dates to show (right, or under a line on phones) */}
+      <div className="py-3 border-bottom border-info mb-4 date-filter-box">
+        <div className="d-flex flex-column flex-md-row flex-md-wrap justify-content-md-between align-items-md-start gap-3">
+          <div role="group" aria-labelledby="gigs-status-label">
+            <div id="gigs-status-label" className="filter-group-label">Status</div>
             <div className="d-flex flex-wrap gap-2">
-              <Button className="status-filter-btn" variant={statusFilter === 'all' ? 'dark' : 'outline-dark'} onClick={() => setStatusFilter('all')}>
-                All
-              </Button>
-              <Button className="status-filter-btn" variant={statusFilter === 'confirmed' ? 'primary' : 'outline-primary'} onClick={() => setStatusFilter('confirmed')}>
-                Confirmed
-              </Button>
-              <Button className="status-filter-btn" variant={statusFilter === 'cancelled' ? 'secondary' : 'outline-secondary'} onClick={() => setStatusFilter('cancelled')}>
-                Cancelled
-              </Button>
+              {[['all', 'All', 'dark'], ['confirmed', 'Confirmed', 'primary'], ['cancelled', 'Cancelled', 'secondary']].map(([key, label, color]) => (
+                <Button
+                  key={key}
+                  className="status-filter-btn"
+                  variant={statusFilter === key ? color : `outline-${color}`}
+                  aria-pressed={statusFilter === key}
+                  onClick={() => setStatusFilter(key)}
+                >
+                  {label}
+                </Button>
+              ))}
             </div>
-          </Col>
-          <Col xs={12} md="auto">
-            <Button
-              className="w-100 status-filter-btn"
-              variant={showAll ? "secondary" : "outline-secondary"}
-              onClick={() => setShowAll(!showAll)}
-            >
-              {showAll ? "Filter by Date" : "Show All"}
-            </Button>
-          </Col>
-          {!showAll && (
-            <>
-              <Form.Group as={Col} xs={6} md="auto" controlId="gigs-from">
-                <Form.Label className="small fw-bold mb-1">From</Form.Label>
-                <Form.Control type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
-              </Form.Group>
-              <Form.Group as={Col} xs={6} md="auto" controlId="gigs-to">
-                <Form.Label className="small fw-bold mb-1">To</Form.Label>
-                <Form.Control type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
-              </Form.Group>
-            </>
-          )}
-        </Row>
+          </div>
+
+          <div role="group" aria-labelledby="gigs-dates-label" className="filter-dates">
+            <div id="gigs-dates-label" className="filter-group-label">Dates</div>
+            <div className="d-flex flex-wrap gap-2">
+              {[['all', 'All Dates'], ['upcoming', 'Upcoming'], ['past', 'Past'], ['range', 'Date Range']].map(([key, label]) => (
+                <Button
+                  key={key}
+                  className="status-filter-btn"
+                  variant={when === key ? 'secondary' : 'outline-secondary'}
+                  aria-pressed={when === key}
+                  onClick={() => setWhen(key)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+            {when === 'range' && (
+              <Row className="g-2 mt-1">
+                <Form.Group as={Col} xs={6} controlId="gigs-from">
+                  <Form.Label className="small fw-bold mb-1">From</Form.Label>
+                  <Form.Control type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
+                </Form.Group>
+                <Form.Group as={Col} xs={6} controlId="gigs-to">
+                  <Form.Label className="small fw-bold mb-1">To</Form.Label>
+                  <Form.Control type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
+                </Form.Group>
+              </Row>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Wider screens: one row per gig */}

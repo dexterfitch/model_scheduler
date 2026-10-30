@@ -30,7 +30,7 @@ function AllRequests() {
   }, []);
 
   const filterSeries = (statusFilter) => {
-    const term = search.toLowerCase();
+    const term = search.trim().toLowerCase();
     return allSeries
       .filter(s => {
         if (statusFilter === 'pending') return s.faculty_requests?.some(r => r.status === 'pending');
@@ -51,8 +51,10 @@ function AllRequests() {
       .filter(s => {
         const className = s.class_name?.toLowerCase() || "";
         const department = s.department?.toLowerCase() || "";
-        const firstName = s.faculty_requests?.[0]?.user?.first_name?.toLowerCase() || "";
-        const lastName = s.faculty_requests?.[0]?.user?.last_name?.toLowerCase() || "";
+        // The faculty member is on the class itself; its dates don't carry them
+        const faculty = s.user || s.faculty_requests?.[0]?.user;
+        const firstName = faculty?.first_name?.toLowerCase() || "";
+        const lastName = faculty?.last_name?.toLowerCase() || "";
         const fullName = `${firstName} ${lastName}`;
         return className.includes(term) || department.includes(term) ||
           firstName.includes(term) || lastName.includes(term) || fullName.includes(term);
@@ -556,6 +558,8 @@ function AllRequests() {
           <InputGroup.Text>🔍</InputGroup.Text>
           <Form.Control
             placeholder="Search class, faculty, dept..."
+            aria-label="Search class, faculty or department"
+            value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </InputGroup>

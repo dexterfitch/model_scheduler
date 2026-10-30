@@ -247,4 +247,38 @@ describe('AllRequests (admin requests page)', () => {
     expect(within(status).getByRole('button', { name: 'Pending' })).toHaveAttribute('aria-pressed', 'true');
     expect(within(status).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'false');
   });
+
+  describe('search', () => {
+    // Like the real server: the faculty member is on the class, not on each date
+    const bell = {
+      ...series, id: 3, class_name: 'Sculpture Basics', department: 'Sculpture',
+      user: { first_name: 'Marcus', last_name: 'Bell' },
+      faculty_requests: [{ ...series.faculty_requests[0], id: 31, user: undefined, confirmed_gigs: [] }]
+    };
+    beforeEach(() => api.get.mockResolvedValue({ data: [series, bell] }));
+
+    const searchFor = async (text) => {
+      renderPage();
+      await screen.findAllByText('Sculpture Basics');
+      await userEvent.type(screen.getByRole('textbox', { name: /Search/ }), text);
+    };
+
+    it("finds a class by the faculty member's last name", async () => {
+      await searchFor('Bell');
+      expect(screen.getAllByText('Sculpture Basics').length).toBeGreaterThan(0);
+      expect(screen.queryAllByText('Figure Drawing I')).toHaveLength(0);
+    });
+
+    it("finds a class by the faculty member's full name", async () => {
+      await searchFor('marcus bell');
+      expect(screen.getAllByText('Sculpture Basics').length).toBeGreaterThan(0);
+      expect(screen.queryAllByText('Figure Drawing I')).toHaveLength(0);
+    });
+
+    it('finds a class by name or department, ignoring extra spaces', async () => {
+      await searchFor('  sculpture ');
+      expect(screen.getAllByText('Sculpture Basics').length).toBeGreaterThan(0);
+      expect(screen.queryAllByText('Figure Drawing I')).toHaveLength(0);
+    });
+  });
 });
