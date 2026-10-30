@@ -77,9 +77,14 @@ class PastGigCorrection
     "Undid the no-show: #{name_of(@gig)} is paid again"
   end
 
+  # Only a cancellation can be paid or not: a model who worked is always paid,
+  # and one who didn't come is a no-show
   def set_paid!(paid)
+    unless @gig.cancelled? && !@gig.no_show
+      raise Error, "A model who worked is always paid. Use No-show if they didn't come, or Fix the hours if they worked less."
+    end
     @gig.update_columns(billable: paid, updated_at: Time.current)
-    paid ? "Set to paid" : "Set to not paid"
+    paid ? "Paid the cancellation" : "Stopped paying the cancellation"
   end
 
   def fix_hours!

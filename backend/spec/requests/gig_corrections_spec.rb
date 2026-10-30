@@ -79,11 +79,18 @@ RSpec.describe "Correcting the record of a past gig", type: :request do
   end
 
   describe "paid or not paid" do
-    it "can stop a gig being paid, and pay it again" do
-      correct({ kind: "unpaid", note: "Left after ten minutes" })
+    it "won't stop paying a model who worked (that's a no-show, or fewer hours)" do
+      correct({ kind: "unpaid" })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["errors"].join).to include("No-show")
+      expect(gig.reload.billable).to be_nil
+    end
+
+    it "can take back a cancellation that was paid by mistake" do
+      gig.update_columns(status: Gig.statuses[:cancelled], billable: true)
+      correct({ kind: "unpaid" })
+      expect(response).to have_http_status(:ok)
       expect(gig.reload.billable).to be false
-      correct({ kind: "paid" })
-      expect(gig.reload.billable).to be true
     end
 
     it "can pay a cancellation the coordinator decided to honour" do

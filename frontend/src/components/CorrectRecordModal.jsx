@@ -38,7 +38,11 @@ function CorrectRecordModal({ gig, date, series, onSaved, onClose }) {
   const choices = [
     !gig.no_show && gig.status !== 'cancelled' && ['no_show', `${first} didn't show up (not paid)`],
     gig.no_show && ['undo_no_show', `Undo the no-show (${first} did come)`],
-    isPaid(gig) ? ['unpaid', "Don't pay this gig"] : ['paid', 'Pay this gig'],
+    // A model who worked is always paid (fewer hours is Fix the hours), so
+    // paying or not only applies to a cancellation
+    gig.status === 'cancelled' && !gig.no_show && (isPaid(gig)
+      ? ['unpaid', 'Stop paying this cancellation']
+      : ['paid', 'Pay this gig']),
     ['hours', `Fix the hours ${first} worked`],
     gig.worked_starts_at && ['reset_hours', 'Go back to the booked hours'],
     !gig.no_show && gig.status !== 'cancelled' && ['covered_by', `Someone else covered for ${first}`],

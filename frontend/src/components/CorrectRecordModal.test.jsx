@@ -63,10 +63,17 @@ describe('CorrectRecordModal', () => {
     expect(screen.getByRole('radio', { name: 'Undo the no-show (Jordan did come)' })).toBeInTheDocument();
   });
 
-  it('offers the opposite of how the gig is paid now', () => {
+  it("doesn't offer to stop paying a model who worked", () => {
     open();
-    expect(screen.getByRole('radio', { name: "Don't pay this gig" })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /Don't pay|Stop paying/ })).toBeNull();
     expect(screen.queryByRole('radio', { name: 'Pay this gig' })).toBeNull();
+  });
+
+  it('can take back a cancellation that was paid by mistake', async () => {
+    open(booked({ status: 'cancelled', billable: true }));
+    await userEvent.click(screen.getByRole('radio', { name: 'Stop paying this cancellation' }));
+    await save();
+    expect(api.post).toHaveBeenCalledWith('/gigs/100/corrections', { correction: { kind: 'unpaid' } });
   });
 
   it('pays a cancellation the coordinator decided to honour', async () => {
@@ -128,7 +135,7 @@ describe('CorrectRecordModal', () => {
   it("explains why the server wouldn't save the correction, and stays open", async () => {
     api.post.mockRejectedValue({ response: { data: { errors: ['Someone else is recorded in this spot.'] } } });
     open();
-    await userEvent.click(screen.getByRole('radio', { name: "Don't pay this gig" }));
+    await userEvent.click(screen.getByRole('radio', { name: "Jordan didn't show up (not paid)" }));
     await save();
     expect(await screen.findByText('Someone else is recorded in this spot.')).toBeInTheDocument();
     expect(onSaved).not.toHaveBeenCalled();
