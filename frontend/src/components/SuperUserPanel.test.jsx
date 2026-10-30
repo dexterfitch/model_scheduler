@@ -174,4 +174,41 @@ describe('SuperUserPanel', () => {
     expect(await screen.findByRole('dialog', { name: "You're now using the app as a model" }))
       .toHaveTextContent('Restore Admin Role');
   });
+
+  describe('clearing my test data', () => {
+    const counts = { classes: 1, dates: 2, availability: 2, real_classes_booked: 1 };
+    const withCounts = (c) => api.get.mockImplementation((url) =>
+      Promise.resolve({ data: url === '/test_data' ? c : [me, priya, otherAdmin] }));
+
+    it('says exactly what will be cleared before doing anything, and Keep It changes nothing', async () => {
+      withCounts(counts);
+      renderPanel();
+      await userEvent.click(await screen.findByRole('button', { name: 'Clear My Test Data' }));
+      const dialog = await screen.findByRole('dialog');
+      expect(dialog).toHaveTextContent('1 class (2 dates)');
+      expect(dialog).toHaveTextContent('2 availability blocks');
+      expect(dialog).toHaveTextContent('1 real class you were booked into as a model goes back to needing a model');
+      expect(dialog).toHaveTextContent("Nobody else's classes or availability are touched.");
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Keep It' }));
+      expect(api.delete).not.toHaveBeenCalled();
+    });
+
+    it('clears it once confirmed, and says what was cleared', async () => {
+      withCounts(counts);
+      api.delete.mockResolvedValue({ data: counts });
+      renderPanel();
+      await userEvent.click(await screen.findByRole('button', { name: 'Clear My Test Data' }));
+      await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Clear Test Data' }));
+      expect(api.delete).toHaveBeenCalledWith('/test_data');
+      expect(await screen.findByText('Cleared 1 class and 2 availability blocks.')).toBeInTheDocument();
+    });
+
+    it("says so when there's nothing to clear", async () => {
+      withCounts({ classes: 0, dates: 0, availability: 0, real_classes_booked: 0 });
+      renderPanel();
+      await userEvent.click(await screen.findByRole('button', { name: 'Clear My Test Data' }));
+      expect(await screen.findByRole('dialog')).toHaveTextContent("You don't have any test classes or availability.");
+      expect(api.delete).not.toHaveBeenCalled();
+    });
+  });
 });

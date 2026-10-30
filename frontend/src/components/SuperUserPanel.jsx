@@ -11,6 +11,8 @@ import { useDialog } from "./DialogProvider";
 
 const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [users, setUsers] = useState([]);
+  // What "Clear My Test Data" last cleared
+  const [clearedMessage, setClearedMessage] = useState('');
   const navigate = useNavigate();
   const { confirm, notify } = useDialog();
   const showError = (title, err) => notify({ title, message: extractErrorMessages(err, 'Please try again.') });
@@ -259,6 +261,43 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
 
   if (!currentUser?.superuser) return null;
 
+  // Clearing the classes and availability you made while trying the app as
+  // Faculty or Model. The server only removes records owned by your own account.
+  const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+  const handleClearTestData = async () => {
+    setClearedMessage('');
+    let counts;
+    try {
+      counts = (await api.get('/test_data')).data;
+    } catch (err) {
+      return showError("Couldn't check your test data", err);
+    }
+    if (counts.classes === 0 && counts.dates === 0 && counts.availability === 0) {
+      return notify({ title: 'Nothing to clear', message: "You don't have any test classes or availability." });
+    }
+    const parts = [
+      counts.classes > 0 && `${plural(counts.classes, 'class', 'classes')} (${plural(counts.dates, 'date')})`,
+      counts.availability > 0 && plural(counts.availability, 'availability block'),
+    ].filter(Boolean);
+    const reopened = counts.real_classes_booked > 0
+      ? ` ${plural(counts.real_classes_booked, 'real class', 'real classes')} you were booked into as a model goes back to needing a model.`
+      : '';
+    const ok = await confirm({
+      title: 'Clear your test data?',
+      message: `This deletes ${parts.join(' and ')} that you made under your own account, with their bookings.${reopened} Nobody else's classes or availability are touched. This can't be undone.`,
+      confirmLabel: 'Clear Test Data',
+      cancelLabel: 'Keep It',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      const { data } = await api.delete('/test_data');
+      setClearedMessage(`Cleared ${plural(data.classes, 'class', 'classes')} and ${plural(data.availability, 'availability block')}.`);
+    } catch (err) {
+      showError("Couldn't clear your test data", err);
+    }
+  };
+
   return (
     <Container className="mt-4 mb-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -280,6 +319,14 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
             <button className="btn btn-outline-success" onClick={() => handleSwitchRole('model')}>Become Model</button>
             <button className="btn btn-outline-secondary" onClick={() => handleSwitchRole('admin')} disabled={currentUser.role === 'admin'}>Restore Admin</button>
           </div>
+
+          <hr />
+          <p className="mb-2">
+            Done testing? This clears the classes you requested and the availability you added
+            under your own account. Nobody else's records are touched.
+          </p>
+          <button type="button" className="btn btn-outline-danger" onClick={handleClearTestData}>Clear My Test Data</button>
+          {clearedMessage && <p className="text-success mt-2 mb-0" role="status">{clearedMessage}</p>}
         </div>
       </div>
 

@@ -17,6 +17,10 @@ Rails.application.routes.draw do
   # Fixing the record of a gig after its class happened
   post "gigs/:id/corrections", to: "gigs#correct"
 
+  # A SuperUser clearing the classes and availability they made while testing
+  get "test_data", to: "test_data#show"
+  delete "test_data", to: "test_data#destroy"
+
   resources :request_series, only: [:index, :create, :destroy, :update] do
     collection do
       get "available_for_model"
