@@ -4,6 +4,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import AllRequests from './AllRequests';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
+import { formatDateWithWeekday } from '../utils/time';
 import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({
@@ -420,6 +421,27 @@ describe('AllRequests (admin requests page)', () => {
       const [menu] = await screen.findAllByRole('button', { name: 'Notify Models' });
       await userEvent.click(menu);
       expect(await screen.findByRole('link', { name: 'All models willing to pose nude (1)' })).toBeInTheDocument();
+    });
+
+    it('only offers Notify Models when a date has no matching model free', async () => {
+      const fat = person(1, { body_type: 'Fat' });
+      load({ users: [fat], availability: [freeAllDay(fat)] });
+      renderPage();
+      await screen.findAllByText('1 matching free');
+      expect(screen.queryAllByRole('button', { name: 'Notify Models' })).toHaveLength(0);
+    });
+
+    it('emails only about the dates that still have no matching model free', async () => {
+      const fat = person(1, { body_type: 'Fat' });
+      const covered = series.faculty_requests[0];
+      const uncovered = { ...covered, id: 12, starts_at: daysFromNow(14, 15), ends_at: daysFromNow(14, 17), confirmed_gigs: [] };
+      load({ list: [{ ...fatClass, faculty_requests: [covered, uncovered] }], users: [fat], availability: [freeAllDay(fat)] });
+      renderPage();
+      const [menu] = await screen.findAllByRole('button', { name: 'Notify Models' });
+      await userEvent.click(menu);
+      const body = decodeURIComponent((await screen.findByRole('link', { name: 'Models who match (1)' })).getAttribute('href'));
+      expect(body).toContain(formatDateWithWeekday(uncovered.starts_at));
+      expect(body).not.toContain(formatDateWithWeekday(covered.starts_at));
     });
 
     it("doesn't offer an email when no model fits", async () => {

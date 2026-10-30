@@ -329,11 +329,16 @@ function AllRequests() {
     .filter(r => r.status === 'pending' && !hasStarted(r))
     .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
 
+  // Dates still waiting where no model who fits is free: the ones worth emailing about
+  const uncoveredDates = (s) => pool
+    ? openDates(s).filter(d => dateCoverage(d, s, pool).matching.length === 0)
+    : [];
+
   // Ready emails, in the coordinator's own mail app, to the models who fit the
-  // class or to every model willing to pose that way
+  // class or to every model willing to pose that way, about the uncovered dates
   const renderNotifyItems = (s) => {
     const { matching, all } = notifyLists(s, pool.models);
-    const dates = openDates(s);
+    const dates = uncoveredDates(s);
     const everyone = s.model_mode === 'nude' ? 'All models willing to pose nude' : 'All models';
     const item = (label, people) => people.length === 0
       ? <Dropdown.ItemText key={label} className="text-muted">{label} (0)</Dropdown.ItemText>
@@ -344,7 +349,8 @@ function AllRequests() {
       );
     return [item('Models who match', matching), item(everyone, all)];
   };
-  const canNotify = (s) => !!pool && openDates(s).length > 0;
+  // Only offered when at least one date has no model who fits free
+  const canNotify = (s) => uncoveredDates(s).length > 0;
 
   // A date that already started: everyone on its record, how they're paid,
   // and a Correct button for each, in place of release and rebook
