@@ -413,6 +413,50 @@ FacultyRequest.create!(
   status: :pending
 )
 
+# ============================================================
+# SCENARIO P: Classes that already happened — for the Past filters on Requests
+# and Gigs, Completed gigs on My Gigs, how My Classes shows past classes, and Reports.
+# Booked as future dates first (the app won't book the past), then moved back.
+# ============================================================
+def backdate!(faculty_request, to:)
+  length = faculty_request.ends_at - faculty_request.starts_at
+  faculty_request.update_columns(starts_at: to, ends_at: to + length)
+  faculty_request.confirmed_gigs.each do |gig|
+    gig.art_model_availability.update_columns(starts_at: to, ends_at: to + length)
+  end
+end
+
+def past_class!(faculty:, model:, class_name:, department:, building:, room:, days_ago:, start_hour:, end_hour:, confirmed_by:)
+  series = RequestSeries.create!(
+    user: faculty, class_name: class_name, department: department,
+    building: building, room_number: room, model_mode: :clothed,
+    pref_skin_tone: "Any", pref_gender: "Any", status: :pending
+  )
+  days_ago.each_with_index do |ago, i|
+    # Somewhere far enough ahead that it can't clash with the other seeded gigs
+    ahead = (100 + i).days.from_now
+    fr = FacultyRequest.create!(
+      request_series: series, user: faculty, class_name: series.class_name,
+      department: series.department, building: series.building, room_number: series.room_number,
+      model_mode: series.model_mode, pref_skin_tone: series.pref_skin_tone, pref_gender: series.pref_gender,
+      starts_at: ahead.change(hour: start_hour, min: 0), ends_at: ahead.change(hour: end_hour, min: 0),
+      status: :pending
+    )
+    avail = ArtModelAvailability.create!(user: model, starts_at: fr.starts_at, ends_at: fr.ends_at, status: :active)
+    book!(fr, avail, confirmed_by: confirmed_by)
+    backdate!(fr, to: ago.days.ago.change(hour: start_hour, min: 0))
+  end
+  series.update_status!
+  series
+end
+
+# Alice's two-date class from the last two weeks, modelled by Jordan
+past_class!(faculty: faculty1, model: model1, class_name: "Gesture Drawing", department: "Drawing",
+  building: "Fox", room: "120", days_ago: [14, 7], start_hour: 10, end_hour: 12, confirmed_by: admin2)
+# Marcus's one-off class last week, modelled by Sofia
+past_class!(faculty: faculty2, model: model2, class_name: "Portrait Sketching", department: "Painting",
+  building: "Main", room: "220", days_ago: [5], start_hour: 13, end_hour: 15, confirmed_by: superadmin)
+
 puts "Done!"
 puts "-" * 60
 puts "Users created:"
