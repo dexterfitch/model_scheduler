@@ -1,4 +1,4 @@
-import { availabilityEvents, formatTimeForInput } from './time';
+import { availabilityEvents, formatTimeForInput, newClassTimes, endAfterStart } from './time';
 import { CALENDAR_COLORS } from './constants';
 
 // Available 9 AM–5 PM (Eastern), Nov 2
@@ -72,5 +72,24 @@ describe('formatTimeForInput', () => {
 
   it('never rounds past the end of the day', () => {
     expect(formatTimeForInput(new Date(2026, 10, 2, 23, 58))).toBe('23:55');
+  });
+});
+
+describe('class times', () => {
+  it('start a new date at 9:00 AM, for 2 hours', () => {
+    expect(newClassTimes()).toEqual({ start: '09:00', end: '11:00' });
+  });
+
+  it('move the end along with the start, 2 hours later', () => {
+    expect(endAfterStart('09:00', '11:00', '13:30')).toBe('15:30');
+  });
+
+  it("keep an end time someone chose themselves, as long as it's still after the start", () => {
+    expect(endAfterStart('09:00', '12:00', '10:00')).toBe('12:00');
+    expect(endAfterStart('09:00', '12:00', '12:30')).toBe('14:30');
+  });
+
+  it('never set the end after 10:00 PM', () => {
+    expect(endAfterStart('09:00', '11:00', '21:00')).toBe('22:00');
   });
 });

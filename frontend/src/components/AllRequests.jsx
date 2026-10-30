@@ -5,7 +5,7 @@ import api from "../services/api";
 import styles from "./AllRequests.module.css";
 import { useDialog } from "./DialogProvider";
 import { formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateShort, firstStartsAt, formatTimeForInput } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateShort, firstStartsAt, formatTimeForInput, newClassTimes, endAfterStart } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 import { payStatusLabel, wasCorrected } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
@@ -229,14 +229,17 @@ function AllRequests() {
   const addSeriesDate = () => {
     setSeriesForm(prev => ({
       ...prev,
-      dates: [...prev.dates, { id: `new-${Date.now()}`, status: 'pending', isNew: true, date: '', start: '', end: '' }]
+      dates: [...prev.dates, { id: `new-${Date.now()}`, status: 'pending', isNew: true, date: '', ...newClassTimes() }]
     }));
   };
 
   const updateSeriesDate = (index, field, value) => {
     setSeriesForm(prev => ({
       ...prev,
-      dates: prev.dates.map((d, i) => i === index ? { ...d, [field]: value } : d)
+      // The end follows the start (see endAfterStart)
+      dates: prev.dates.map((d, i) => i !== index ? d
+        : field === 'start' ? { ...d, start: value, end: endAfterStart(d.start, d.end, value) }
+        : { ...d, [field]: value })
     }));
   };
 

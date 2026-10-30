@@ -59,6 +59,25 @@ export const availabilitySavedMessage = (saved, fallback, { forAdmin = false } =
     : `Availability saved, and joined to time you'd already set: you're free ${hours} that day.`;
 };
 
+// New class dates start at 9:00 AM for 2 hours, so time pickers never open on
+// the current time (Chrome's choice for an empty field)
+const CLASS_HOURS = 2;
+const LATEST_END = 22 * 60;
+const toMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const toTime = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+const twoHoursAfter = (t) => toTime(Math.min(toMinutes(t) + CLASS_HOURS * 60, LATEST_END));
+
+export const newClassTimes = () => ({ start: '09:00', end: twoHoursAfter('09:00') });
+
+// When the start time changes, the end moves with it (2 hours later, no later than
+// 10:00 PM), unless someone chose the end themselves and it's still after the start
+export const endAfterStart = (oldStart, oldEnd, newStart) => {
+  if (!newStart) return oldEnd;
+  const followedStart = !oldEnd || !oldStart || oldEnd === twoHoursAfter(oldStart);
+  if (followedStart || toMinutes(oldEnd) <= toMinutes(newStart)) return twoHoursAfter(newStart);
+  return oldEnd;
+};
+
 // A saved time as a time field shows it ("21:00"). Time fields step by 5 minutes,
 // so it's rounded to the nearest 5-minute mark, but never past 23:55.
 export const formatTimeForInput = (date) => {

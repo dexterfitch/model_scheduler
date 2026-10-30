@@ -290,4 +290,39 @@ describe('FacultyDashboard', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText('Start Time')).toHaveValue('21:00');
   });
+
+  describe('times on a new date', () => {
+    const openNewRequest = async () => {
+      renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+      await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
+      return within(await screen.findByRole('dialog')).getByRole('group', { name: 'Date 1' });
+    };
+
+    it('start at 9:00 to 11:00 AM instead of empty', async () => {
+      const date1 = await openNewRequest();
+      expect(within(date1).getByLabelText('Start Time')).toHaveValue('09:00');
+      expect(within(date1).getByLabelText('End Time')).toHaveValue('11:00');
+    });
+
+    it('move the end time along when the start time changes', async () => {
+      const date1 = await openNewRequest();
+      fireEvent.change(within(date1).getByLabelText('Start Time'), { target: { value: '13:00' } });
+      expect(within(date1).getByLabelText('End Time')).toHaveValue('15:00');
+    });
+
+    it('keep an end time the faculty member chose', async () => {
+      const date1 = await openNewRequest();
+      fireEvent.change(within(date1).getByLabelText('End Time'), { target: { value: '16:00' } });
+      fireEvent.change(within(date1).getByLabelText('Start Time'), { target: { value: '13:00' } });
+      expect(within(date1).getByLabelText('End Time')).toHaveValue('16:00');
+    });
+
+    it('start at 9:00 to 11:00 AM on a date added with Add Date, too', async () => {
+      renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+      const [addDate] = await screen.findAllByRole('button', { name: /Add Date/ });
+      await userEvent.click(addDate);
+      expect(screen.getByLabelText('Start')).toHaveValue('09:00');
+      expect(screen.getByLabelText('End')).toHaveValue('11:00');
+    });
+  });
 });

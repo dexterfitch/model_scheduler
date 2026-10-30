@@ -466,4 +466,17 @@ describe('AllRequests (admin requests page)', () => {
       expect(screen.queryByRole('button', { name: 'Models who match (0)' })).toBeNull();
     });
   });
+
+  it('starts a date added in Edit Class at 9:00 to 11:00 AM, with the end following the start', async () => {
+    renderPage();
+    const [edit] = await screen.findAllByRole('button', { name: 'Edit Class' });
+    await userEvent.click(edit);
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: /Add Date/ }));
+
+    expect(within(dialog).getByLabelText('Start time 2')).toHaveValue('09:00');
+    expect(within(dialog).getByLabelText('End time 2')).toHaveValue('11:00');
+    fireEvent.change(within(dialog).getByLabelText('Start time 2'), { target: { value: '14:00' } });
+    expect(within(dialog).getByLabelText('End time 2')).toHaveValue('16:00');
+  });
 });

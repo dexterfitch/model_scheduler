@@ -4,7 +4,7 @@ import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
 import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, firstStartsAt, formatTimeForInput } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, firstStartsAt, formatTimeForInput, newClassTimes, endAfterStart } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
 import ModelPreferenceFields from "./ModelPreferenceFields";
 import {
@@ -18,7 +18,10 @@ const pickPreferences = (obj) =>
 // Classes where faculty set preferences for each model separately
 const hasModelSlots = (s) => (s.model_slots || []).length > 0;
 
-const emptyDate = () => ({ date: "", start_time: "", end_time: "" });
+const emptyDate = () => {
+  const { start, end } = newClassTimes();
+  return { date: "", start_time: start, end_time: end };
+};
 
 function FacultyDashboard({ user }) {
   const { confirm, notify } = useDialog();
@@ -88,14 +91,19 @@ function FacultyDashboard({ user }) {
     setClassFormData(prev => applyPreferenceChange(prev, name, value));
   };
 
+  // A date's times, with the end following the start (see endAfterStart)
+  const withTime = (d, field, value) => field === 'start_time'
+    ? { ...d, start_time: value, end_time: endAfterStart(d.start_time, d.end_time, value) }
+    : { ...d, [field]: value };
+
   const handleDateChange = (index, field, value) => {
-    setDates(prev => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
+    setDates(prev => prev.map((d, i) => i === index ? withTime(d, field, value) : d));
   };
 
   const handleDateBlur = (index, field, value) => {
     if (field === 'start_time' || field === 'end_time') {
       const cleaned = roundToNearest5(value);
-      setDates(prev => prev.map((d, i) => i === index ? { ...d, [field]: cleaned } : d));
+      setDates(prev => prev.map((d, i) => i === index ? withTime(d, field, cleaned) : d));
     }
   };
 
@@ -309,17 +317,17 @@ function FacultyDashboard({ user }) {
 
   const openAddDateForm = (seriesId) => {
     setAddingDateSeriesId(seriesId);
-    setNewDateForm({ date: '', start_time: '', end_time: '' });
+    setNewDateForm(emptyDate());
     setAddDateError('');
   };
 
   const handleAddDateChange = (field, value) => {
-    setNewDateForm(prev => ({ ...prev, [field]: value }));
+    setNewDateForm(prev => withTime(prev, field, value));
   };
 
   const handleAddDateBlur = (field, value) => {
     if (field === 'start_time' || field === 'end_time') {
-      setNewDateForm(prev => ({ ...prev, [field]: roundToNearest5(value) }));
+      setNewDateForm(prev => withTime(prev, field, roundToNearest5(value)));
     }
   };
 
@@ -453,7 +461,7 @@ function FacultyDashboard({ user }) {
                         </Alert>
                       )}
                       <Row className="g-2">
-                        <Col xs={12} sm={4}>
+                        <Form.Group as={Col} xs={12} sm={4} controlId={`add-date-${s.id}-date`}>
                           <Form.Label className="small mb-1">Date</Form.Label>
                           <Form.Control
                             type="date"
@@ -461,8 +469,8 @@ function FacultyDashboard({ user }) {
                             value={newDateForm.date}
                             onChange={e => handleAddDateChange('date', e.target.value)}
                           />
-                        </Col>
-                        <Col xs={6} sm={4}>
+                        </Form.Group>
+                        <Form.Group as={Col} xs={6} sm={4} controlId={`add-date-${s.id}-start`}>
                           <Form.Label className="small mb-1">Start</Form.Label>
                           <Form.Control
                             type="time" step={300} min="00:00"
@@ -471,8 +479,8 @@ function FacultyDashboard({ user }) {
                             onChange={e => handleAddDateChange('start_time', e.target.value)}
                             onBlur={e => handleAddDateBlur('start_time', e.target.value)}
                           />
-                        </Col>
-                        <Col xs={6} sm={4}>
+                        </Form.Group>
+                        <Form.Group as={Col} xs={6} sm={4} controlId={`add-date-${s.id}-end`}>
                           <Form.Label className="small mb-1">End</Form.Label>
                           <Form.Control
                             type="time" step={300} min="00:00"
@@ -481,7 +489,7 @@ function FacultyDashboard({ user }) {
                             onChange={e => handleAddDateChange('end_time', e.target.value)}
                             onBlur={e => handleAddDateBlur('end_time', e.target.value)}
                           />
-                        </Col>
+                        </Form.Group>
                       </Row>
                       <div className="d-flex justify-content-end gap-2 mt-2">
                         <Button variant="secondary" size="sm" onClick={() => setAddingDateSeriesId(null)}>Cancel</Button>
