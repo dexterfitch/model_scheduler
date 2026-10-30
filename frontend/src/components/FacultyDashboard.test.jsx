@@ -325,4 +325,38 @@ describe('FacultyDashboard', () => {
       expect(screen.getByLabelText('End')).toHaveValue('11:00');
     });
   });
+
+  describe('adding and removing dates from the keyboard', () => {
+    const openNewRequest = async () => {
+      renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+      await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
+      return screen.findByRole('dialog');
+    };
+    const comesAfter = (a, b) => !!(b.compareDocumentPosition(a) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+    it('puts Add Another Date after the last date, before the model preferences', async () => {
+      const dialog = await openNewRequest();
+      const add = within(dialog).getByRole('button', { name: /Add Another Date/ });
+      expect(comesAfter(add, within(dialog).getByRole('group', { name: 'Date 1' }))).toBe(true);
+      expect(comesAfter(within(dialog).getByLabelText('Nudity'), add)).toBe(true);
+
+      await userEvent.click(add);
+      expect(comesAfter(add, within(dialog).getByRole('group', { name: 'Date 2' }))).toBe(true);
+    });
+
+    it('moves to the new date after adding one', async () => {
+      const dialog = await openNewRequest();
+      await userEvent.click(within(dialog).getByRole('button', { name: /Add Another Date/ }));
+      const date2 = within(dialog).getByRole('group', { name: 'Date 2' });
+      expect(within(date2).getByLabelText('Date')).toHaveFocus();
+    });
+
+    it('moves to the date before after removing one', async () => {
+      const dialog = await openNewRequest();
+      await userEvent.click(within(dialog).getByRole('button', { name: /Add Another Date/ }));
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Remove date 2' }));
+      const date1 = within(dialog).getByRole('group', { name: 'Date 1' });
+      expect(within(date1).getByLabelText('Date')).toHaveFocus();
+    });
+  });
 });

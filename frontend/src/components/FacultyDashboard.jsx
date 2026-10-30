@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert, Tabs, Tab } from "react-bootstrap";
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
@@ -107,10 +107,23 @@ function FacultyDashboard({ user }) {
     }
   };
 
-  const addDate = () => setDates(prev => [...prev, emptyDate()]);
+  // Keyboard users land on the Date field of the new date, or of the date
+  // before the one they removed, instead of being sent back to the top
+  const focusDateIndex = useRef(null);
+  useEffect(() => {
+    if (focusDateIndex.current === null) return;
+    document.getElementById(`new-date-${focusDateIndex.current}-date`)?.focus();
+    focusDateIndex.current = null;
+  }, [dates]);
+
+  const addDate = () => {
+    focusDateIndex.current = dates.length;
+    setDates(prev => [...prev, emptyDate()]);
+  };
 
   const removeDate = (index) => {
     if (dates.length === 1) return; // always keep at least one
+    focusDateIndex.current = Math.max(index - 1, 0);
     setDates(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -651,12 +664,7 @@ function FacultyDashboard({ user }) {
 
             <hr />
 
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <h5 className="mb-0">Dates & Times</h5>
-              <Button variant="outline-primary" size="sm" type="button" onClick={addDate}>
-                <i className="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Another Date
-              </Button>
-            </div>
+            <h5 className="mb-2">Dates & Times</h5>
 
             {dates.map((d, index) => (
               <div key={index} className="p-3 mb-2 bg-light rounded border" role="group" aria-labelledby={`new-date-${index}-heading`}>
@@ -701,6 +709,11 @@ function FacultyDashboard({ user }) {
                 </Row>
               </div>
             ))}
+
+            {/* After the dates, so Tab reaches it once the last date is filled in */}
+            <Button variant="outline-primary" size="sm" type="button" onClick={addDate} className="mb-2">
+              <i className="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Another Date
+            </Button>
 
             <hr />
             <h5>Model Preferences</h5>
