@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from "react-bootstrap";
+import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert, Tabs, Tab } from "react-bootstrap";
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
 import { useDialog } from "./DialogProvider";
@@ -54,6 +54,8 @@ function FacultyDashboard({ user }) {
   });
 
   const [dates, setDates] = useState([emptyDate()]);
+  // Which tab of My Classes is showing: 'upcoming' or 'past'
+  const [view, setView] = useState('upcoming');
 
   const fetchSeries = useCallback(() => {
     api.get(`/request_series`)
@@ -354,6 +356,205 @@ function FacultyDashboard({ user }) {
     }
   };
 
+  // A date is over once it has finished. A class is past once all its dates are.
+  const hasEnded = (req) => new Date(req.ends_at) < new Date();
+  const liveDates = (s) => (s.faculty_requests || []).filter(r => r.status !== 'archived');
+  const lastEndsAt = (s) => Math.max(...liveDates(s).map(r => new Date(r.ends_at).getTime()));
+  const pastSeries = series
+    .filter(s => liveDates(s).length > 0 && liveDates(s).every(hasEnded))
+    .sort((a, b) => lastEndsAt(b) - lastEndsAt(a));
+  const upcomingSeries = series.filter(s => liveDates(s).some(r => !hasEnded(r)));
+
+  // One class card. Past classes are read-only: no edit, add or cancel.
+  const renderClassCard = (s, past) => {
+    const requests = (s.faculty_requests || [])
+      .filter(r => r.status !== 'archived')
+      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+    const firstReq = requests[0];
+    if (!firstReq) return null;
+
+    return (
+      <Col md={6} lg={4} key={s.id} className="mb-4">
+        <Card className={`h-100 shadow-sm border-0 ${styles.card}`}>
+          <Card.Header className={`text-white fw-bold ${past ? 'bg-secondary' : s.status === 'matched' ? 'bg-success' : 'bg-warning'}`}>
+            {past
+              ? 'Finished'
+              : s.status === 'matched'
+                ? ((s.models_needed || 1) > 1 ? 'Models Confirmed' : 'Model Confirmed')
+                : 'Pending'}
+            {requests.length > 1 && (
+              <Badge bg="light" text="dark" className="ms-2">{requests.length} dates</Badge>
+            )}
+          </Card.Header>
+          <Card.Body>
+            <div className="d-flex justify-content-between align-items-start">
+              <Card.Title>{s.class_name}</Card.Title>
+              {s.department && <Badge bg="secondary" className="small">{s.department}</Badge>}
+            </div>
+
+            <div className="mb-2">
+              {requests.map((req, idx) => {
+                const ended = hasEnded(req);
+                return (
+                <div key={req.id} className={idx > 0 ? "mt-1 pt-1 border-top" : ""}>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <div className="fw-bold">{formatDateWithWeekday(req.starts_at)}</div>
+                      <div className="text-muted small">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
+                      {(() => {
+                        const booked = req.confirmed_gigs || [];
+                        const needed = req.models_needed || 1;
+                        if (booked.length === 0) return null;
+                        const contact = booked.find(g => g.confirmed_by?.email)?.confirmed_by;
+                        return (
+                          <div>
+                            {req.status === 'matched'
+                              ? <Badge bg="success">{needed > 1 ? `All ${needed} Models Confirmed` : 'Model Confirmed'}</Badge>
+                              : <Badge bg="warning" text="dark">{booked.length} of {needed} Models Confirmed</Badge>}
+                            <br />
+                            {contact?.email && !ended && (
+                              <a
+                                href={`mailto:${contact.email}?subject=${encodeURIComponent(`Edit request: ${s.class_name} (${formatDateWithWeekday(req.starts_at)})`)}&body=${encodeURIComponent(`Hi ${contact.first_name},\n\nI need to make a change to my confirmed request for ${s.class_name} on ${formatDateWithWeekday(req.starts_at)} at ${formatTime(req.starts_at)}.\n\nDetails:\n`)}`}
+                                className="small"
+                                title={`Email ${contact.first_name} about this date`}
+                              >
+                                <small>Need to edit? Contact {contact.email}</small>
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    <div className="d-flex gap-1">
+                      {ended && !past && <Badge bg="light" text="dark" className="border">Already happened</Badge>}
+                      {!ended && req.status === 'pending' && (req.confirmed_gigs || []).length === 0 && (
+                        <Button variant="outline-secondary" size="sm" onClick={() => openEditModal(req)}>
+                          <i className="bi bi-pencil" aria-hidden="true"></i> Edit Date
+                        </Button>
+                      )}
+                      {!ended && req.status !== 'archived' && (
+                        <Button variant="outline-danger" size="sm" onClick={() => handleCancelDate(req)}>
+                          <i className="bi bi-x-lg" aria-hidden="true"></i> Cancel Date
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                );
+              })}
+              
+              {!past && s.status === 'pending' && (
+                <div className="mt-2 pt-2 border-top">
+                  {addingDateSeriesId === s.id ? (
+                    <div className="p-2 bg-light rounded border">
+                      {addDateError && (
+                        <Alert variant="danger" dismissible onClose={() => setAddDateError('')} className="py-2 small">
+                          {addDateError}
+                        </Alert>
+                      )}
+                      <Row className="g-2">
+                        <Col xs={12} sm={4}>
+                          <Form.Label className="small mb-1">Date</Form.Label>
+                          <Form.Control
+                            type="date"
+                            size="sm"
+                            value={newDateForm.date}
+                            onChange={e => handleAddDateChange('date', e.target.value)}
+                          />
+                        </Col>
+                        <Col xs={6} sm={4}>
+                          <Form.Label className="small mb-1">Start</Form.Label>
+                          <Form.Control
+                            type="time"
+                            size="sm"
+                            value={newDateForm.start_time}
+                            onChange={e => handleAddDateChange('start_time', e.target.value)}
+                            onBlur={e => handleAddDateBlur('start_time', e.target.value)}
+                          />
+                        </Col>
+                        <Col xs={6} sm={4}>
+                          <Form.Label className="small mb-1">End</Form.Label>
+                          <Form.Control
+                            type="time"
+                            size="sm"
+                            value={newDateForm.end_time}
+                            onChange={e => handleAddDateChange('end_time', e.target.value)}
+                            onBlur={e => handleAddDateBlur('end_time', e.target.value)}
+                          />
+                        </Col>
+                      </Row>
+                      <div className="d-flex justify-content-end gap-2 mt-2">
+                        <Button variant="secondary" size="sm" onClick={() => setAddingDateSeriesId(null)}>Cancel</Button>
+                        <Button variant="primary" size="sm" onClick={() => handleAddDateSubmit(s)}>Add</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button variant="outline-primary" size="sm" onClick={() => openAddDateForm(s.id)}>
+                      <i className="bi bi-plus-circle me-1"></i> Add Date
+                    </Button>
+                  )}
+                </div>
+              )}
+              {(s.building || s.room_number) && (
+                <div className="text-muted small mt-1 pt-1 border-top">
+                  <i className="bi bi-door-open me-1"></i>
+                  {s.building}{s.building && s.room_number && " "}{s.room_number}
+                </div>
+              )}
+            </div>
+
+            <div className="d-flex flex-wrap gap-2 mb-3">
+              {s.model_mode === 'nude'
+                ? <Badge bg="danger">Nude Required</Badge>
+                : <Badge bg="success">Clothed</Badge>}
+              {!hasModelSlots(s) && s.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(s.pref_skin_tone)}</Badge>}
+              {(s.models_needed || 1) > 1 && <Badge bg="primary">{formatModelCount(s.models_needed)}</Badge>}
+              {!hasModelSlots(s) && s.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">Gender: {formatGenderPreference(s)}</Badge>}
+              {!hasModelSlots(s) && s.pref_body_type && s.pref_body_type !== 'Any' && <Badge bg="light" text="dark" className="border">{formatBodyType(s.pref_body_type)}</Badge>}
+              {!hasModelSlots(s) && s.model_mode === 'nude' && s.pref_genitalia && s.pref_genitalia !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenitalia(s.pref_genitalia)}</Badge>}
+            </div>
+            {hasModelSlots(s) && (
+              <ul className="list-unstyled small mb-3">
+                {s.model_slots.map(slot => (
+                  <li key={slot.position}>
+                    <strong>Model {slot.position}:</strong> {formatPreferenceSummary(slot, s.model_mode)}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {s.notes && (
+              <div className="mt-1 text-muted small fst-italic">
+                <i className="bi bi-journal-text"></i>:&nbsp;&nbsp;{s.notes}
+              </div>
+            )}
+
+            {!past && s.status !== 'archived' && !requests.some(r => (r.confirmed_gigs || []).length > 0) && (
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                className="w-100 mt-2"
+                onClick={() => openClassModal(s)}
+              >
+                <i className="bi bi-pencil me-1" aria-hidden="true"></i>Edit Class
+              </Button>
+            )}
+            {!past && s.status !== 'archived' && (
+              <Button
+                variant="outline-danger"
+                size="sm"
+                className="w-100 mt-2"
+                onClick={() => handleCancelSeries(s.id)}
+              >
+                Cancel Class
+              </Button>
+            )}
+          </Card.Body>
+        </Card>
+      </Col>
+    );
+  };
+
   return (
     <Container className={`py-4 ${styles.container}`}>
       {submitSuccess && (
@@ -386,190 +587,20 @@ function FacultyDashboard({ user }) {
         <Alert variant="info">You haven't requested any models yet. Click "New Request" to start.</Alert>
       )}
 
-      <Row>
-        {series.map((s) => {
-          const requests = (s.faculty_requests || [])
-            .filter(r => r.status !== 'archived')
-            .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
-          const firstReq = requests[0];
-          if (!firstReq) return null;
-
-          return (
-            <Col md={6} lg={4} key={s.id} className="mb-4">
-              <Card className={`h-100 shadow-sm border-0 ${styles.card}`}>
-                <Card.Header className={`text-white fw-bold ${s.status === 'matched' ? 'bg-success' : 'bg-warning'}`}>
-                  {s.status === 'matched'
-                    ? ((s.models_needed || 1) > 1 ? 'Models Confirmed' : 'Model Confirmed')
-                    : 'Pending'}
-                  {requests.length > 1 && (
-                    <Badge bg="light" text="dark" className="ms-2">{requests.length} dates</Badge>
-                  )}
-                </Card.Header>
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-start">
-                    <Card.Title>{s.class_name}</Card.Title>
-                    {s.department && <Badge bg="secondary" className="small">{s.department}</Badge>}
-                  </div>
-
-                  <div className="mb-2">
-                    {requests.map((req, idx) => (
-                      <div key={req.id} className={idx > 0 ? "mt-1 pt-1 border-top" : ""}>
-                        <div className="d-flex justify-content-between align-items-center">
-                          <div>
-                            <div className="fw-bold">{formatDateWithWeekday(req.starts_at)}</div>
-                            <div className="text-muted small">{formatTime(req.starts_at)} - {formatTime(req.ends_at)}</div>
-                            {(() => {
-                              const booked = req.confirmed_gigs || [];
-                              const needed = req.models_needed || 1;
-                              if (booked.length === 0) return null;
-                              const contact = booked.find(g => g.confirmed_by?.email)?.confirmed_by;
-                              return (
-                                <div>
-                                  {req.status === 'matched'
-                                    ? <Badge bg="success">{needed > 1 ? `All ${needed} Models Confirmed` : 'Model Confirmed'}</Badge>
-                                    : <Badge bg="warning" text="dark">{booked.length} of {needed} Models Confirmed</Badge>}
-                                  <br />
-                                  {contact?.email && (
-                                    <a
-                                      href={`mailto:${contact.email}?subject=${encodeURIComponent(`Edit request: ${s.class_name} (${formatDateWithWeekday(req.starts_at)})`)}&body=${encodeURIComponent(`Hi ${contact.first_name},\n\nI need to make a change to my confirmed request for ${s.class_name} on ${formatDateWithWeekday(req.starts_at)} at ${formatTime(req.starts_at)}.\n\nDetails:\n`)}`}
-                                      className="small"
-                                      title={`Email ${contact.first_name} about this date`}
-                                    >
-                                      <small>Need to edit? Contact {contact.email}</small>
-                                    </a>
-                                  )}
-                                </div>
-                              );
-                            })()}
-                          </div>
-                          <div className="d-flex gap-1">
-                            {req.status === 'pending' && (req.confirmed_gigs || []).length === 0 && (
-                              <Button variant="outline-secondary" size="sm" onClick={() => openEditModal(req)}>
-                                <i className="bi bi-pencil" aria-hidden="true"></i> Edit Date
-                              </Button>
-                            )}
-                            {req.status !== 'archived' && (
-                              <Button variant="outline-danger" size="sm" onClick={() => handleCancelDate(req)}>
-                                <i className="bi bi-x-lg" aria-hidden="true"></i> Cancel Date
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {s.status === 'pending' && (
-                      <div className="mt-2 pt-2 border-top">
-                        {addingDateSeriesId === s.id ? (
-                          <div className="p-2 bg-light rounded border">
-                            {addDateError && (
-                              <Alert variant="danger" dismissible onClose={() => setAddDateError('')} className="py-2 small">
-                                {addDateError}
-                              </Alert>
-                            )}
-                            <Row className="g-2">
-                              <Col xs={12} sm={4}>
-                                <Form.Label className="small mb-1">Date</Form.Label>
-                                <Form.Control
-                                  type="date"
-                                  size="sm"
-                                  value={newDateForm.date}
-                                  onChange={e => handleAddDateChange('date', e.target.value)}
-                                />
-                              </Col>
-                              <Col xs={6} sm={4}>
-                                <Form.Label className="small mb-1">Start</Form.Label>
-                                <Form.Control
-                                  type="time"
-                                  size="sm"
-                                  value={newDateForm.start_time}
-                                  onChange={e => handleAddDateChange('start_time', e.target.value)}
-                                  onBlur={e => handleAddDateBlur('start_time', e.target.value)}
-                                />
-                              </Col>
-                              <Col xs={6} sm={4}>
-                                <Form.Label className="small mb-1">End</Form.Label>
-                                <Form.Control
-                                  type="time"
-                                  size="sm"
-                                  value={newDateForm.end_time}
-                                  onChange={e => handleAddDateChange('end_time', e.target.value)}
-                                  onBlur={e => handleAddDateBlur('end_time', e.target.value)}
-                                />
-                              </Col>
-                            </Row>
-                            <div className="d-flex justify-content-end gap-2 mt-2">
-                              <Button variant="secondary" size="sm" onClick={() => setAddingDateSeriesId(null)}>Cancel</Button>
-                              <Button variant="primary" size="sm" onClick={() => handleAddDateSubmit(s)}>Add</Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <Button variant="outline-primary" size="sm" onClick={() => openAddDateForm(s.id)}>
-                            <i className="bi bi-plus-circle me-1"></i> Add Date
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                    {(s.building || s.room_number) && (
-                      <div className="text-muted small mt-1 pt-1 border-top">
-                        <i className="bi bi-door-open me-1"></i>
-                        {s.building}{s.building && s.room_number && " "}{s.room_number}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="d-flex flex-wrap gap-2 mb-3">
-                    {s.model_mode === 'nude'
-                      ? <Badge bg="danger">Nude Required</Badge>
-                      : <Badge bg="success">Clothed</Badge>}
-                    {!hasModelSlots(s) && s.pref_skin_tone !== 'Any' && <Badge bg="light" text="dark" className="border">{formatSkinTone(s.pref_skin_tone)}</Badge>}
-                    {(s.models_needed || 1) > 1 && <Badge bg="primary">{formatModelCount(s.models_needed)}</Badge>}
-                    {!hasModelSlots(s) && s.pref_gender !== 'Any' && <Badge bg="light" text="dark" className="border">Gender: {formatGenderPreference(s)}</Badge>}
-                    {!hasModelSlots(s) && s.pref_body_type && s.pref_body_type !== 'Any' && <Badge bg="light" text="dark" className="border">{formatBodyType(s.pref_body_type)}</Badge>}
-                    {!hasModelSlots(s) && s.model_mode === 'nude' && s.pref_genitalia && s.pref_genitalia !== 'Any' && <Badge bg="light" text="dark" className="border">{formatGenitalia(s.pref_genitalia)}</Badge>}
-                  </div>
-                  {hasModelSlots(s) && (
-                    <ul className="list-unstyled small mb-3">
-                      {s.model_slots.map(slot => (
-                        <li key={slot.position}>
-                          <strong>Model {slot.position}:</strong> {formatPreferenceSummary(slot, s.model_mode)}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {s.notes && (
-                    <div className="mt-1 text-muted small fst-italic">
-                      <i className="bi bi-journal-text"></i>:&nbsp;&nbsp;{s.notes}
-                    </div>
-                  )}
-
-                  {s.status !== 'archived' && !requests.some(r => (r.confirmed_gigs || []).length > 0) && (
-                    <Button
-                      variant="outline-secondary"
-                      size="sm"
-                      className="w-100 mt-2"
-                      onClick={() => openClassModal(s)}
-                    >
-                      <i className="bi bi-pencil me-1" aria-hidden="true"></i>Edit Class
-                    </Button>
-                  )}
-                  {s.status !== 'archived' && (
-                    <Button
-                      variant="outline-danger"
-                      size="sm"
-                      className="w-100 mt-2"
-                      onClick={() => handleCancelSeries(s.id)}
-                    >
-                      Cancel Class
-                    </Button>
-                  )}
-                </Card.Body>
-              </Card>
-            </Col>
-          );
-        })}
-      </Row>
+      {series.length > 0 && (
+        <Tabs activeKey={view} onSelect={(key) => setView(key)} id="my-classes-tabs" className="mb-3" transition={false} mountOnEnter unmountOnExit>
+          <Tab eventKey="upcoming" title={`Upcoming (${upcomingSeries.length})`}>
+            {upcomingSeries.length === 0 && (
+              <p className="text-muted">No upcoming classes. Choose New Request to ask for a model.</p>
+            )}
+            <Row>{upcomingSeries.map(s => renderClassCard(s, false))}</Row>
+          </Tab>
+          <Tab eventKey="past" title={`Past (${pastSeries.length})`}>
+            {pastSeries.length === 0 && <p className="text-muted">No past classes yet.</p>}
+            <Row>{pastSeries.map(s => renderClassCard(s, true))}</Row>
+          </Tab>
+        </Tabs>
+      )}
 
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>

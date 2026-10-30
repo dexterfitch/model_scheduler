@@ -226,4 +226,56 @@ describe('FacultyDashboard', () => {
     const titles = screen.getAllByText(/^(Earlier|Later) Class$/).map(el => el.textContent);
     expect(titles).toEqual(['Earlier Class', 'Later Class']);
   });
+
+  describe('past classes', () => {
+    const pastDate = (id, days) => ({ id, status: 'matched', models_needed: 1, starts_at: daysFromNow(days, 15), ends_at: daysFromNow(days, 17),
+      confirmed_gigs: [{ id: id + 500, status: 'confirmed', confirmed_by: { first_name: 'Dex', email: 'dfitch@mica.edu' } }] });
+    const gesture = { ...series, id: 5, class_name: 'Gesture Drawing', status: 'matched', models_needed: 1,
+      faculty_requests: [pastDate(51, -14), pastDate(52, -7)] };
+    const sketching = { ...series, id: 6, class_name: 'Portrait Sketching', status: 'matched', models_needed: 1,
+      faculty_requests: [pastDate(61, -30)] };
+    // One date already happened, one still to come
+    const halfway = { ...series, id: 7, class_name: 'Halfway Class', status: 'pending', models_needed: 1,
+      faculty_requests: [
+        { ...pastDate(71, -2) },
+        { id: 72, status: 'pending', models_needed: 1, starts_at: daysFromNow(5, 15), ends_at: daysFromNow(5, 17), confirmed_gigs: [] },
+      ] };
+
+    beforeEach(() => api.get.mockResolvedValue({ data: [series, gesture, sketching, halfway] }));
+
+    it('opens on upcoming classes, with past ones on their own tab', async () => {
+      renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+      expect(await screen.findByText('Figure Drawing I')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Upcoming (2)' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.queryByText('Gesture Drawing')).toBeNull();
+
+      await userEvent.click(screen.getByRole('tab', { name: 'Past (2)' }));
+      expect(screen.getByText('Gesture Drawing')).toBeInTheDocument();
+      expect(screen.queryByText('Figure Drawing I')).toBeNull();
+    });
+
+    it('lists past classes most recent first', async () => {
+      renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+      await userEvent.click(await screen.findByRole('tab', { name: 'Past (2)' }));
+      const titles = screen.getAllByText(/^(Gesture Drawing|Portrait Sketching)$/).map(el => el.textContent);
+      expect(titles).toEqual(['Gesture Drawing', 'Portrait Sketching']);
+    });
+
+    it('offers no way to change or cancel a past class', async () => {
+      renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+      await userEvent.click(await screen.findByRole('tab', { name: 'Past (2)' }));
+      const panel = screen.getByRole('tabpanel');
+      for (const name of [/Edit Date/, /Cancel Date/, /Add Date/, /Edit Class/, /Cancel Class/]) {
+        expect(within(panel).queryByRole('button', { name })).toBeNull();
+      }
+      expect(within(panel).queryByText(/Need to edit\?/)).toBeNull();
+    });
+
+    it("doesn't offer to cancel a date that already happened in an ongoing class", async () => {
+      renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+      const card = (await screen.findByText('Halfway Class')).closest('.card');
+      expect(within(card).getAllByRole('button', { name: /Cancel Date/ })).toHaveLength(1);
+      expect(within(card).getByText('Already happened')).toBeInTheDocument();
+    });
+  });
 });
