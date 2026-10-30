@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import AllGigs from './AllGigs';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
+import { formatTime } from '../utils/time';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
@@ -138,5 +139,18 @@ describe('AllGigs (Gig Registry)', () => {
       await vi.waitFor(() => expect(api.get.mock.calls.filter(([url]) => url === '/gigs').length).toBe(2));
       expect(screen.queryByRole('dialog')).toBeNull();
     });
+  });
+
+  it('shows the hours really worked when they were corrected, with the booked hours underneath', async () => {
+    const longer = gig(7, { first_name: 'Jordan', last_name: 'Ellis' }, {
+      worked_starts_at: daysFromNow(12, 15), worked_ends_at: daysFromNow(12, 18)
+    });
+    api.get.mockResolvedValue({ data: [longer] });
+    render(<AllGigs />);
+    const table = await screen.findByRole('table');
+    await within(table).findByText('Jordan Ellis');
+    const time = tableRows(table)[0][1];
+    expect(time).toContain(`${formatTime(daysFromNow(12, 15))} – ${formatTime(daysFromNow(12, 18))}`);
+    expect(time).toContain(`booked ${formatTime(longer.faculty_request.starts_at)} – ${formatTime(longer.faculty_request.ends_at)}`);
   });
 });

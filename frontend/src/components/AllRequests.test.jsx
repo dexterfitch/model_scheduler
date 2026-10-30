@@ -4,7 +4,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import AllRequests from './AllRequests';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
-import { formatDateWithWeekday } from '../utils/time';
+import { formatDateWithWeekday, formatTime } from '../utils/time';
 import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({
@@ -352,6 +352,17 @@ describe('AllRequests (admin requests page)', () => {
       renderPage();
       await userEvent.click(await screen.findByRole('button', { name: 'Date Range' }));
       expect((await screen.findAllByText('Finished. Use Make Correction next to a date to fix its record.')).length).toBeGreaterThan(0);
+    });
+
+    it('shows the hours really worked on a past date when they were corrected', async () => {
+      const longer = { ...pastDate, gigs: [{ id: 301, status: 'confirmed', billable: null, no_show: false,
+        art_model_availability: { user: jordan }, worked_starts_at: daysFromNow(-7, 10), worked_ends_at: daysFromNow(-7, 13),
+        corrections: [{ id: 2, kind: 'hours', summary: 'Hours changed', user: { first_name: 'Pat', last_name: 'Reyes' } }] }] };
+      api.get.mockImplementation((url) => Promise.resolve({ data: url === '/request_series' ? [{ ...gesture, faculty_requests: [longer] }] : [] }));
+      renderPage();
+      await userEvent.click(await screen.findByRole('button', { name: 'Past' }));
+      const worked = `worked ${formatTime(daysFromNow(-7, 10))} – ${formatTime(daysFromNow(-7, 13))}`;
+      expect((await screen.findAllByText(new RegExp(worked))).length).toBeGreaterThan(0);
     });
 
     it('opens the Correct record window for that model and date', async () => {

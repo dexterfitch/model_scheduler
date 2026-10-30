@@ -363,7 +363,9 @@ function AllRequests() {
           const name = [gig.art_model_availability?.user?.first_name, gig.art_model_availability?.user?.last_name].filter(Boolean).join(' ');
           return (
             <li key={gig.id}>
-              {name} &middot; {payStatusLabel(gig)}{wasCorrected(gig) && ' · corrected'}
+              {name} &middot; {payStatusLabel(gig)}
+              {gig.worked_starts_at && ` · worked ${formatTime(gig.worked_starts_at)} – ${formatTime(gig.worked_ends_at)}`}
+              {wasCorrected(gig) && ' · corrected'}
               <button
                 type="button"
                 className="btn btn-link p-0 ms-2 align-baseline"

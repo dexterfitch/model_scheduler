@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Table, Container, Badge, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import api from "../services/api";
 import { formatTime, formatDateWithWeekday, formatDateShort } from "../utils/time";
-import { isPaid, payStatusLabel } from "../utils/pay";
+import { isPaid, payStatusLabel, workedTimes } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
 
 const personName = (person) => [person?.first_name, person?.last_name].filter(Boolean).join(' ');
@@ -108,7 +108,18 @@ function AllGigs() {
     </button>
   );
 
-  const gigTime = (gig) => `${formatTime(gig.faculty_request?.starts_at)} – ${formatTime(gig.faculty_request?.ends_at)}`;
+  // The hours really worked; when a correction changed them, the booked hours are noted too
+  const gigTime = (gig) => {
+    const worked = workedTimes(gig);
+    const range = `${formatTime(worked.starts_at)} – ${formatTime(worked.ends_at)}`;
+    if (!gig.worked_starts_at) return range;
+    return (
+      <>
+        {range}
+        <span className="d-block small text-muted">booked {formatTime(gig.faculty_request?.starts_at)} – {formatTime(gig.faculty_request?.ends_at)}</span>
+      </>
+    );
+  };
 
   return (
     <Container className="py-4">
