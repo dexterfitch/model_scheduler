@@ -465,7 +465,7 @@ function FacultyDashboard({ user }) {
                         <Col xs={6} sm={4}>
                           <Form.Label className="small mb-1">Start</Form.Label>
                           <Form.Control
-                            type="time" step={300}
+                            type="time" step={300} min="00:00"
                             size="sm"
                             value={newDateForm.start_time}
                             onChange={e => handleAddDateChange('start_time', e.target.value)}
@@ -475,7 +475,7 @@ function FacultyDashboard({ user }) {
                         <Col xs={6} sm={4}>
                           <Form.Label className="small mb-1">End</Form.Label>
                           <Form.Control
-                            type="time" step={300}
+                            type="time" step={300} min="00:00"
                             size="sm"
                             value={newDateForm.end_time}
                             onChange={e => handleAddDateChange('end_time', e.target.value)}
@@ -674,7 +674,7 @@ function FacultyDashboard({ user }) {
                     <Form.Label className="small">Start Time</Form.Label>
                     <Form.Control
                       required
-                      type="time" step={300}
+                      type="time" step={300} min="00:00"
                       value={d.start_time}
                       onChange={e => handleDateChange(index, 'start_time', e.target.value)}
                       onBlur={e => handleDateBlur(index, 'start_time', e.target.value)}
@@ -684,7 +684,7 @@ function FacultyDashboard({ user }) {
                     <Form.Label className="small">End Time</Form.Label>
                     <Form.Control
                       required
-                      type="time" step={300}
+                      type="time" step={300} min="00:00"
                       value={d.end_time}
                       onChange={e => handleDateChange(index, 'end_time', e.target.value)}
                       onBlur={e => handleDateBlur(index, 'end_time', e.target.value)}
@@ -740,11 +740,11 @@ function FacultyDashboard({ user }) {
               </Form.Group>
               <Form.Group as={Col} md={4} className="mb-3" controlId="edit-start">
                 <Form.Label>Start Time</Form.Label>
-                <Form.Control required type="time" step={300} name="starts_time" value={editFormData.starts_time} onChange={handleEditInputChange} />
+                <Form.Control required type="time" step={300} min="00:00" name="starts_time" value={editFormData.starts_time} onChange={handleEditInputChange} />
               </Form.Group>
               <Form.Group as={Col} md={4} className="mb-3" controlId="edit-end">
                 <Form.Label>End Time</Form.Label>
-                <Form.Control required type="time" step={300} name="ends_time" value={editFormData.ends_time} onChange={handleEditInputChange} />
+                <Form.Control required type="time" step={300} min="00:00" name="ends_time" value={editFormData.ends_time} onChange={handleEditInputChange} />
               </Form.Group>
             </Row>
 

@@ -142,11 +142,11 @@ function CorrectRecordModal({ gig, date, series, onSaved, onClose }) {
             <Row className="g-2 mb-3">
               <Form.Group as={Col} xs={6} controlId="correction-started">
                 <Form.Label>Started</Form.Label>
-                <Form.Control type="time" step={300} value={started} onChange={e => setStarted(e.target.value)} required />
+                <Form.Control type="time" step={300} min="00:00" value={started} onChange={e => setStarted(e.target.value)} required />
               </Form.Group>
               <Form.Group as={Col} xs={6} controlId="correction-finished">
                 <Form.Label>Finished</Form.Label>
-                <Form.Control type="time" step={300} value={finished} onChange={e => setFinished(e.target.value)} required />
+                <Form.Control type="time" step={300} min="00:00" value={finished} onChange={e => setFinished(e.target.value)} required />
               </Form.Group>
               <Form.Text className="text-muted">
                 Reports pays these hours. The class keeps its booked times.

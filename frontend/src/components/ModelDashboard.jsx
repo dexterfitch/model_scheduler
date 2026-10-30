@@ -511,11 +511,11 @@ function ModelDashboard({ user }) {
               <Row>
                 <Form.Group as={Col} controlId="availability-start">
                   <Form.Label>Start Time</Form.Label>
-                  <Form.Control type="time" step={300} name="start" value={times.start} onChange={handleTimeChange} onBlur={handleBlur} required />
+                  <Form.Control type="time" step={300} min="00:00" name="start" value={times.start} onChange={handleTimeChange} onBlur={handleBlur} required />
                 </Form.Group>
                 <Form.Group as={Col} controlId="availability-end">
                   <Form.Label>End Time</Form.Label>
-                  <Form.Control type="time" step={300} name="end" value={times.end} onChange={handleTimeChange} onBlur={handleBlur} required />
+                  <Form.Control type="time" step={300} min="00:00" name="end" value={times.end} onChange={handleTimeChange} onBlur={handleBlur} required />
                 </Form.Group>
               </Row>
               

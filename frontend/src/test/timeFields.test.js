@@ -22,6 +22,13 @@ describe('time fields', () => {
     }
   });
 
+  it('count their steps from the hour, not from whatever time is already filled in', () => {
+    // Without a min, the browser counts steps from the field's current value, so
+    // an existing 8:59 would offer :54, :59, :04 … instead of :00, :05, :10 …
+    const missing = timeFields.filter(f => !/min="\d\d:00"/.test(f.tag)).map(f => f.file);
+    expect(missing, `time fields without a min on the hour: ${missing.join(', ')}`).toEqual([]);
+  });
+
   it('all list 5-minute steps', () => {
     const missing = timeFields.filter(f => !/step=\{300\}/.test(f.tag)).map(f => f.file);
     expect(missing, `time fields without step={300}: ${missing.join(', ')}`).toEqual([]);
