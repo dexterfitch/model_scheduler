@@ -1,4 +1,4 @@
-import { availabilityEvents } from './time';
+import { availabilityEvents, formatTimeForInput } from './time';
 import { CALENDAR_COLORS } from './constants';
 
 // Available 9 AM–5 PM (Eastern), Nov 2
@@ -59,5 +59,18 @@ describe('availabilityEvents', () => {
       expect(e.id).toBe(7);
       expect(e.extendedProps.starts_at).toBe(slot.starts_at);
     }
+  });
+});
+
+describe('formatTimeForInput', () => {
+  // Time fields step by 5 minutes, so a saved time is shown on the nearest 5-minute mark
+  it('rounds a saved time to the nearest 5 minutes for the time pickers', () => {
+    expect(formatTimeForInput(new Date(2026, 10, 2, 20, 59))).toBe('21:00');
+    expect(formatTimeForInput(new Date(2026, 10, 2, 10, 2))).toBe('10:00');
+    expect(formatTimeForInput(new Date(2026, 10, 2, 10, 3))).toBe('10:05');
+  });
+
+  it('never rounds past the end of the day', () => {
+    expect(formatTimeForInput(new Date(2026, 10, 2, 23, 58))).toBe('23:55');
   });
 });

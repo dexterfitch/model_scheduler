@@ -59,7 +59,12 @@ export const availabilitySavedMessage = (saved, fallback, { forAdmin = false } =
     : `Availability saved, and joined to time you'd already set: you're free ${hours} that day.`;
 };
 
-export const formatTimeForInput = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+// A saved time as a time field shows it ("21:00"). Time fields step by 5 minutes,
+// so it's rounded to the nearest 5-minute mark, but never past 23:55.
+export const formatTimeForInput = (date) => {
+  const minutes = Math.min(Math.round((date.getHours() * 60 + date.getMinutes()) / 5) * 5, 23 * 60 + 55);
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+};
 
 export const availabilityCoversRequest = (avail, req) => {
   const availStart = new Date(avail.starts_at);

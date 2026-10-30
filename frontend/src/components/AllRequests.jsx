@@ -5,7 +5,7 @@ import api from "../services/api";
 import styles from "./AllRequests.module.css";
 import { useDialog } from "./DialogProvider";
 import { formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateShort, firstStartsAt } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateShort, firstStartsAt, formatTimeForInput } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 import { payStatusLabel, wasCorrected } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
@@ -162,8 +162,8 @@ function AllRequests() {
           status: r.status,
           booked: r.confirmed_gigs?.length || 0,
           date: `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}`,
-          start: `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`,
-          end: `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`
+          start: formatTimeForInput(startDate),
+          end: formatTimeForInput(endDate)
         };
       })
     });

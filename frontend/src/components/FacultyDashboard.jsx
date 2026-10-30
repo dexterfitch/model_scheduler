@@ -4,7 +4,7 @@ import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
 import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, firstStartsAt } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, firstStartsAt, formatTimeForInput } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
 import ModelPreferenceFields from "./ModelPreferenceFields";
 import {
@@ -221,8 +221,8 @@ function FacultyDashboard({ user }) {
     setEditingRequest(req);
     setEditFormData({
       starts_at: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
-      starts_time: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
-      ends_time: `${pad(end.getHours())}:${pad(end.getMinutes())}`
+      starts_time: formatTimeForInput(start),
+      ends_time: formatTimeForInput(end)
     });
     setEditError('');
     setShowEditModal(true);

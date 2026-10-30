@@ -278,4 +278,16 @@ describe('FacultyDashboard', () => {
       expect(within(card).getByText('Already happened')).toBeInTheDocument();
     });
   });
+
+  it('opens Edit Date on the nearest 5-minute mark when a saved time is between them', async () => {
+    const day = new Date(); day.setDate(day.getDate() + 10);
+    const at = (h, m) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m).toISOString();
+    const oddTime = { ...series, faculty_requests: [{ id: 21, status: 'pending', models_needed: 1,
+      starts_at: at(20, 59), ends_at: at(22, 0), confirmed_gigs: [] }] };
+    api.get.mockResolvedValue({ data: [oddTime] });
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit Date' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Start Time')).toHaveValue('21:00');
+  });
 });
