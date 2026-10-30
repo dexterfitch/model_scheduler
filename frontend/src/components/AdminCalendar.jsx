@@ -51,8 +51,21 @@ function AdminCalendar() {
       .filter(piece => piece.kind === 'free' && new Date(piece.end) > now)
       .sort((a, b) => new Date(a.start) - new Date(b.start));
 
+    // One entry per model, in order of their first free time, each with their
+    // free times in date order
+    const byModel = [];
+    openTime.forEach(piece => {
+      const user = piece.extendedProps.user;
+      let entry = byModel.find(m => m.user.id === user.id);
+      if (!entry) {
+        entry = { user, times: [] };
+        byModel.push(entry);
+      }
+      entry.times.push(piece);
+    });
+
     setCalendarEvents([...gigs, ...requests]);
-    setAvailabilities(openTime);
+    setAvailabilities(byModel);
   }).catch(err => {
     console.error("Error loading calendar data", err);
     setError("Failed to load calendar data. Please try again later.");
@@ -117,21 +130,26 @@ function AdminCalendar() {
             aria-labelledby="upcoming-availability-heading"
           >
             {availabilities.length === 0 ? <p>No upcoming availability.</p> : (
-              <ListGroup variant="flush">
-                {availabilities.map(({ start, end, extendedProps: avail }) => (
-                  <ListGroup.Item key={`${avail.id}-${start}`} className="bg-light mb-2 rounded border">
-                    <div className="d-flex justify-content-between align-items-center mb-1">
-                      <strong>{avail.user.first_name} {avail.user.last_name}</strong>
-                      {avail.user.willing_to_model_nude ? <Badge bg="danger">Nude OK</Badge> : <Badge bg="success">Clothed</Badge>}
-                    </div>
-                    <div className="small text-muted">
-                      {formatDateWithWeekday(start)}
-                    </div>
-                    <div className="small fw-bold">
-                      {formatTime(start)} - {formatTime(end)}
-                    </div>
-                  </ListGroup.Item>
-                ))}
+              <ListGroup variant="flush" as="ul" className="ps-0">
+                {availabilities.map(({ user, times }) => {
+                  const name = `${user.first_name} ${user.last_name}`;
+                  return (
+                    <ListGroup.Item as="li" key={user.id} className="bg-light mb-2 rounded border">
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <strong>{name}</strong>
+                        {user.willing_to_model_nude ? <Badge bg="danger">Nude OK</Badge> : <Badge bg="success">Clothed</Badge>}
+                      </div>
+                      <ul className="list-unstyled mb-0 small">
+                        {times.map(({ start, end, extendedProps: avail }) => (
+                          <li key={`${avail.id}-${start}`} className="py-1 border-top">
+                            <span className="text-muted">{formatDateWithWeekday(start)}</span>
+                            <span className="d-block fw-bold">{formatTime(start)} - {formatTime(end)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </ListGroup.Item>
+                  );
+                })}
               </ListGroup>
             )}
           </div>

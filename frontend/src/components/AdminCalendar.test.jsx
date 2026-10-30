@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import AdminCalendar from './AdminCalendar';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
+import { formatDateWithWeekday } from '../utils/time';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn() } }));
 // A stand-in calendar: one button per event, so tests can "click" an event
@@ -47,10 +48,35 @@ describe('AdminCalendar availability list', () => {
     const list = await screen.findByRole('region', { name: 'Upcoming Model Availability' });
 
     // Jordan's day appears as the two open stretches around the class
-    expect(await within(list).findAllByText('Jordan Ellis')).toHaveLength(2);
+    const [jordanName] = await within(list).findAllByText('Jordan Ellis');
+    expect(within(list).getAllByText('Jordan Ellis')).toHaveLength(1);
+    expect(within(jordanName.closest('li')).getAllByRole('listitem')).toHaveLength(2);
     // Riley is fully booked, and Sam cancelled
     expect(within(list).queryByText('Riley Park')).toBeNull();
     expect(within(list).queryByText('Sam Woods')).toBeNull();
+  });
+
+  it('groups free time by model: one card each, times in order, soonest model first', async () => {
+    const later = block(20, riley, 6, 14, 16);
+    const sooner = block(21, riley, 2, 14, 16);
+    const jordanLater = block(22, jordan, 8, 14, 16);
+    api.get.mockImplementation((url) => Promise.resolve({
+      data: url === '/art_model_availabilities' ? [jordanLater, later, jordansDay, sooner] : []
+    }));
+    renderWithDialogs(<MemoryRouter><AdminCalendar /></MemoryRouter>);
+    const list = await screen.findByRole('region', { name: 'Upcoming Model Availability' });
+
+    // Riley's first free time (day 2) comes before Jordan's (day 3)
+    const names = await within(list).findAllByText(/^(Riley Park|Jordan Ellis)$/);
+    expect(names.map(n => n.textContent)).toEqual(['Riley Park', 'Jordan Ellis']);
+    const cards = names.map(n => n.closest('li'));
+
+    const times = (card) => within(card).getAllByRole('listitem').map(li => li.textContent);
+    const day = (n) => formatDateWithWeekday(daysFromNow(n, 14));
+    expect(times(cards[0])[0]).toContain(day(2));
+    expect(times(cards[0])[1]).toContain(day(6));
+    expect(times(cards[1])[0]).toContain(day(3));
+    expect(times(cards[1])[1]).toContain(day(8));
   });
 
   it("shows a booked class's details in a window, not a browser popup", async () => {
