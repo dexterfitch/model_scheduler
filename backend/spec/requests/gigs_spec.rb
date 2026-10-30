@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Gigs API", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
   let(:admin) { create(:user, :admin) }
 
   describe "listing gigs" do
@@ -138,13 +139,17 @@ RSpec.describe "Gigs API", type: :request do
     end
 
     it "is billable when released on the day of the class" do
-      # A class later today that hasn't started yet
-      soon = Time.current + 5.minutes
-      gig.faculty_request.update_columns(starts_at: soon, ends_at: soon + 1.hour)
-      gig.art_model_availability.update_columns(starts_at: soon - 1.hour, ends_at: soon + 2.hours)
+      # Pretend it's noon, so "later today" is always inside the 8 AM to 10 PM
+      # booking hours, whatever time the tests are run
+      travel_to Time.current.change(hour: 12) do
+        # A class later today that hasn't started yet
+        soon = Time.current + 5.minutes
+        gig.faculty_request.update_columns(starts_at: soon, ends_at: soon + 1.hour)
+        gig.art_model_availability.update_columns(starts_at: soon - 1.hour, ends_at: soon + 2.hours)
 
-      delete "/gigs/#{gig.id}", headers: auth_headers(admin)
-      expect(gig.reload.billable).to be true
+        delete "/gigs/#{gig.id}", headers: auth_headers(admin)
+        expect(gig.reload.billable).to be true
+      end
     end
   end
 
