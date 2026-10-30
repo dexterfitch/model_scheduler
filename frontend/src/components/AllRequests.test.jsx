@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import AllRequests from './AllRequests';
@@ -279,6 +279,80 @@ describe('AllRequests (admin requests page)', () => {
       await searchFor('  sculpture ');
       expect(screen.getAllByText('Sculpture Basics').length).toBeGreaterThan(0);
       expect(screen.queryAllByText('Figure Drawing I')).toHaveLength(0);
+    });
+  });
+
+  describe('classes that already happened', () => {
+    const booked = (id, days, name) => ({
+      id, status: 'matched', models_needed: 1, starts_at: daysFromNow(days, 15), ends_at: daysFromNow(days, 17),
+      confirmed_gigs: [{ id: id + 500, status: 'confirmed', art_model_availability: { user: { first_name: name, last_name: 'Model' } } }]
+    });
+    const finished = { ...series, id: 8, class_name: 'Gesture Drawing', status: 'matched', models_needed: 1,
+      faculty_requests: [booked(81, -14, 'Jordan'), booked(82, -7, 'Jordan')] };
+    // One date already happened, the next is still to come
+    const ongoing = { ...series, id: 9, class_name: 'Ongoing Class', status: 'matched', models_needed: 1,
+      faculty_requests: [booked(91, -3, 'Past'), booked(92, 6, 'Future')] };
+
+    beforeEach(() => api.get.mockResolvedValue({ data: [finished, ongoing] }));
+
+    it('offers no actions on a class whose dates have all happened', async () => {
+      renderPage();
+      await userEvent.click(await screen.findByRole('button', { name: 'Past' }));
+      await screen.findAllByText('Gesture Drawing');
+      for (const name of [/Release/, /Edit Class/, /Cancel Class/, /Find/, /More actions/]) {
+        expect(screen.queryAllByRole('button', { name })).toHaveLength(0);
+      }
+      expect(screen.queryAllByRole('columnheader', { name: 'Action' })).toHaveLength(0);
+    });
+
+    it('only offers to release a model from dates still to come', async () => {
+      renderPage();
+      await screen.findAllByText('Ongoing Class');
+      expect(screen.getAllByRole('button', { name: 'Release Future Model from this date and find someone else' }).length).toBeGreaterThan(0);
+      expect(screen.queryAllByRole('button', { name: 'Release Past Model from this date and find someone else' })).toHaveLength(0);
+    });
+
+    it('marks a finished class as Finished when it shows up in a date range', async () => {
+      renderPage();
+      await userEvent.click(await screen.findByRole('button', { name: 'Date Range' }));
+      const from = new Date(Date.now() - 30 * 86400000).toLocaleDateString('en-CA');
+      const to = new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-CA');
+      fireEvent.change(screen.getAllByLabelText('From')[0], { target: { value: from } });
+      fireEvent.change(screen.getAllByLabelText('To')[0], { target: { value: to } });
+
+      const row = screen.getAllByText('Gesture Drawing').map(el => el.closest('tr')).find(Boolean);
+      expect(within(row).getByText(/Finished/)).toBeInTheDocument();
+      // The only thing left to do on a past date is correct its record
+      expect(within(row).getAllByRole('button').every(b => /^Correct the record/.test(b.getAttribute('aria-label')))).toBe(true);
+    });
+  });
+
+  describe('correcting a past date', () => {
+    const jordan = { id: 1, first_name: 'Jordan', last_name: 'Ellis' };
+    const pastDate = {
+      id: 81, status: 'matched', models_needed: 1, starts_at: daysFromNow(-7, 10), ends_at: daysFromNow(-7, 12),
+      confirmed_gigs: [],
+      gigs: [{ id: 300, status: 'cancelled', billable: false, no_show: true, art_model_availability: { user: jordan },
+        corrections: [{ id: 1, kind: 'no_show', summary: 'Marked Jordan Ellis as a no-show (not paid)', user: { first_name: 'Pat', last_name: 'Reyes' } }] }]
+    };
+    const gesture = { ...series, id: 8, class_name: 'Gesture Drawing', status: 'matched', models_needed: 1, faculty_requests: [pastDate] };
+    beforeEach(() => api.get.mockImplementation((url) =>
+      Promise.resolve({ data: url === '/request_series' ? [gesture] : [] })));
+
+    it("lists who was on a past date, how they're paid, and that it was corrected", async () => {
+      renderPage();
+      await userEvent.click(await screen.findByRole('button', { name: 'Past' }));
+      expect((await screen.findAllByText(/No-show \(Not paid\)/)).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/corrected/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Past').length).toBeGreaterThan(0);
+    });
+
+    it('opens the Correct record window for that model and date', async () => {
+      renderPage();
+      await userEvent.click(await screen.findByRole('button', { name: 'Past' }));
+      const [button] = await screen.findAllByRole('button', { name: /^Correct the record for Jordan Ellis on / });
+      await userEvent.click(button);
+      expect(await screen.findByRole('dialog', { name: 'Correct the record' })).toHaveTextContent('Gesture Drawing');
     });
   });
 });

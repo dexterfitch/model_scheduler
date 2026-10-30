@@ -105,4 +105,36 @@ describe('Reports (model hours)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Generate Report' }));
     expect(screen.getByText('Please select both a start and end date.')).toBeInTheDocument();
   });
+
+  describe('after a past gig was corrected', () => {
+    const corrected = { corrections: [{ id: 1, kind: 'hours', summary: 'Hours changed', user: { first_name: 'Pat', last_name: 'Reyes' } }] };
+    const run = async (extra) => {
+      api.get.mockResolvedValue({ data: [gig(riley, '2026-11-10T15:00:00Z', '2026-11-10T17:00:00Z', extra)] });
+      await runReport('2026-11-01', '2026-11-30');
+    };
+    const printRows = async () => within(await screen.findByRole('table')).getAllByRole('row').slice(1)
+      .map(r => within(r).getAllByRole('cell').map(c => c.textContent));
+
+    it('pays the hours really worked, and says the record was corrected', async () => {
+      await run({ worked_starts_at: '2026-11-10T15:00:00Z', worked_ends_at: '2026-11-10T16:30:00Z', ...corrected });
+      expect(await screen.findByText('Payable Total: 1.5 hrs')).toBeInTheDocument();
+      expect((await printRows())[0][5]).toBe('Confirmed (corrected)');
+    });
+
+    it('leaves out a gig that was set to not paid', async () => {
+      await run({ billable: false, ...corrected });
+      expect(await screen.findByText('No gigs found in this date range.')).toBeInTheDocument();
+    });
+
+    it('leaves out a no-show', async () => {
+      await run({ status: 'cancelled', billable: false, no_show: true, ...corrected });
+      expect(await screen.findByText('No gigs found in this date range.')).toBeInTheDocument();
+    });
+
+    it('pays a no-show that was set back to paid, and labels it', async () => {
+      await run({ status: 'cancelled', billable: true, no_show: true, ...corrected });
+      expect(await screen.findByText('Payable Total: 2 hrs')).toBeInTheDocument();
+      expect((await printRows())[0][5]).toBe('No-show (paid, corrected)');
+    });
+  });
 });

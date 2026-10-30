@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_23_174231) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_30_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -50,6 +50,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_23_174231) do
     t.index ["user_id"], name: "index_faculty_requests_on_user_id"
   end
 
+  create_table "gig_corrections", force: :cascade do |t|
+    t.bigint "gig_id", null: false
+    t.bigint "user_id", null: false
+    t.string "kind", null: false
+    t.string "summary", null: false
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["gig_id"], name: "index_gig_corrections_on_gig_id"
+    t.index ["user_id"], name: "index_gig_corrections_on_user_id"
+  end
+
   create_table "gigs", force: :cascade do |t|
     t.bigint "faculty_request_id", null: false
     t.bigint "art_model_availability_id", null: false
@@ -59,6 +71,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_23_174231) do
     t.datetime "updated_at", null: false
     t.bigint "confirmed_by_id"
     t.integer "model_slot_position"
+    t.boolean "no_show", default: false, null: false
+    t.datetime "worked_starts_at"
+    t.datetime "worked_ends_at"
     t.index ["art_model_availability_id"], name: "index_gigs_on_art_model_availability_id"
     t.index ["confirmed_by_id"], name: "index_gigs_on_confirmed_by_id"
     t.index ["faculty_request_id"], name: "index_gigs_on_faculty_request_id"
@@ -119,6 +134,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_23_174231) do
 
   add_foreign_key "art_model_availabilities", "users"
   add_foreign_key "faculty_requests", "users"
+  add_foreign_key "gig_corrections", "gigs"
+  add_foreign_key "gig_corrections", "users"
   add_foreign_key "gigs", "art_model_availabilities"
   add_foreign_key "gigs", "faculty_requests"
   add_foreign_key "gigs", "users", column: "confirmed_by_id"

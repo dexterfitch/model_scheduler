@@ -14,6 +14,8 @@ Rails.application.routes.draw do
 
   resources :faculty_requests, only: [:index, :create, :update, :destroy]
   resources :gigs, only: [:index, :create, :destroy]
+  # Fixing the record of a gig after its class happened
+  post "gigs/:id/corrections", to: "gigs#correct"
 
   resources :request_series, only: [:index, :create, :destroy, :update] do
     collection do

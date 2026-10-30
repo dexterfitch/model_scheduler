@@ -2,6 +2,11 @@ class Gig < ApplicationRecord
   belongs_to :faculty_request
   belongs_to :art_model_availability
   belongs_to :confirmed_by, class_name: 'User', optional: true
+  has_many :gig_corrections, -> { order(:created_at) }, dependent: :destroy
+
+  # Set when an admin records a class that already happened (someone covered),
+  # so the "already started" booking check doesn't apply
+  attr_accessor :recording_past
 
   enum :status, { confirmed: 0, completed: 1, cancelled: 2 }
 
@@ -19,6 +24,11 @@ class Gig < ApplicationRecord
     }))
   end
 
+  # The corrections an admin made after the class happened, oldest first (admins only)
+  def corrections
+    gig_corrections.map(&:as_json)
+  end
+
   private
   
   def must_be_bookable
@@ -30,7 +40,7 @@ class Gig < ApplicationRecord
     if faculty_request.archived?
       errors.add(:base, "This class has been cancelled")
     end
-    if faculty_request.starts_at && faculty_request.starts_at <= Time.current
+    if !recording_past && faculty_request.starts_at && faculty_request.starts_at <= Time.current
       errors.add(:base, "This class has already started, so a model can't be booked into it")
     end
   end

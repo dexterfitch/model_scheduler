@@ -92,4 +92,14 @@ describe('AllGigs (Gig Registry)', () => {
     await userEvent.type(screen.getByRole('textbox', { name: /Search/ }), ' jordan ellis ');
     expect(tableRows(table).map(r => r[4])).toEqual(['Jordan Ellis']);
   });
+
+  it('spells out corrected gigs: no-shows and gigs set to not paid', async () => {
+    const noShow = gig(3, { first_name: 'Riley', last_name: 'Okafor' }, { status: 'cancelled', billable: false, no_show: true });
+    const unpaid = gig(4, { first_name: 'Devon', last_name: 'Price' }, { billable: false });
+    api.get.mockResolvedValue({ data: [noShow, unpaid] });
+    render(<AllGigs />);
+    const table = await screen.findByRole('table');
+    await within(table).findByText('Riley Okafor');
+    expect(tableRows(table).map(r => r[5])).toEqual(['No-show (Not paid)', 'Confirmed (Not paid)']);
+  });
 });

@@ -7,12 +7,16 @@ import { useDialog } from "./DialogProvider";
 import { formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateShort, firstStartsAt } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
+import { payStatusLabel, wasCorrected } from "../utils/pay";
+import CorrectRecordModal from "./CorrectRecordModal";
 
 function AllRequests() {
   const navigate = useNavigate();
   const { confirm, notify } = useDialog();
   const sameDayNote = "Releases on the day of a class are still paid.";
   const [allSeries, setAllSeries] = useState([]);
+  // The past gig whose record is being corrected: { gig, date, series }
+  const [correcting, setCorrecting] = useState(null);
   const [search, setSearch] = useState("");
   const today = new Date();
   const [filterStart, setFilterStart] = useState(
@@ -258,6 +262,16 @@ function AllRequests() {
     }
   };
 
+  // A date is over once it has finished; a class is finished once all its dates are.
+  // Nothing about the past can be changed, so finished dates and classes get no actions.
+  const hasEnded = (req) => new Date(req.ends_at) < new Date();
+  // Once a date has started, its record can only be corrected, not rebooked
+  const hasStarted = (req) => new Date(req.starts_at) <= new Date();
+  const isFinished = (s) => {
+    const live = (s.faculty_requests || []).filter(r => r.status !== 'archived');
+    return live.length > 0 && live.every(hasEnded);
+  };
+
   const getSeriesMeta = (s) => {
     const allRequests = s.faculty_requests || [];
     const displayRequests = (s.status === 'archived' ? allRequests : allRequests.filter(r => r.status !== 'archived'))
@@ -266,8 +280,9 @@ function AllRequests() {
     const matchedCount = allRequests.filter(r => r.status === 'matched').length;
     const pendingCount = allRequests.filter(r => r.status === 'pending').length;
     const archivedCount = allRequests.filter(r => r.status === 'archived').length;
+    // Only models on dates that haven't started yet can be released
     const bookedCount = allRequests
-      .filter(r => r.status !== 'archived')
+      .filter(r => r.status !== 'archived' && !hasStarted(r))
       .reduce((sum, r) => sum + (r.confirmed_gigs?.length || 0), 0);
 
     return { allRequests, displayRequests, matchedCount, pendingCount, archivedCount, bookedCount };
@@ -287,7 +302,34 @@ function AllRequests() {
     ));
   };
 
-  const renderDateRow = (req, showBadge, isSingle) => (
+  // A date that already started: everyone on its record, how they're paid,
+  // and a Correct button for each, in place of release and rebook
+  const renderPastGigs = (req, s) => {
+    const onRecord = req.gigs ?? req.confirmed_gigs ?? [];
+    if (onRecord.length === 0) return <div className="ms-3">No model was booked.</div>;
+    return (
+      <ul className="list-unstyled ms-3 mb-0">
+        {onRecord.map(gig => {
+          const name = [gig.art_model_availability?.user?.first_name, gig.art_model_availability?.user?.last_name].filter(Boolean).join(' ');
+          return (
+            <li key={gig.id}>
+              {name} &middot; {payStatusLabel(gig)}{wasCorrected(gig) && ' · corrected'}
+              <button
+                type="button"
+                className="btn btn-link p-0 ms-2 align-baseline"
+                aria-label={`Correct the record for ${name} on ${formatDateShort(req.starts_at)}`}
+                onClick={() => setCorrecting({ gig, date: req, series: s })}
+              >
+                Correct
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
+  const renderDateRow = (req, showBadge, isSingle, s) => (
     <div key={req.id} className="small text-muted mb-1">
       {showBadge && req.status === 'matched' && (
         <Badge bg="success" className={`me-2 ${styles.badge}`}>Matched</Badge>
@@ -297,6 +339,9 @@ function AllRequests() {
       )}
       {showBadge && req.status === 'archived' && (
         <Badge bg="secondary" className={`me-2 ${styles.badge}`}>Cancelled</Badge>
+      )}
+      {hasEnded(req) && req.status !== 'archived' && (
+        <Badge bg="secondary" className={`me-2 ${styles.badge}`}>Past</Badge>
       )}
       <i className="bi bi-calendar3 me-1"></i>
       {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
@@ -310,14 +355,15 @@ function AllRequests() {
           Needs Attention: {req.dropped_out_model_name || 'a model'} dropped out
         </Badge>
       )}
-      {req.status !== 'archived' && (req.confirmed_gigs || []).length > 0 && (
+      {req.status !== 'archived' && hasStarted(req) && renderPastGigs(req, s)}
+      {req.status !== 'archived' && !hasStarted(req) && (req.confirmed_gigs || []).length > 0 && (
         <>
           {' ('}
           {req.confirmed_gigs.map((gig, i) => (
             <React.Fragment key={gig.id}>
               {i > 0 && ', '}
               {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-              {(!isSingle || (req.models_needed || 1) > 1) && (
+              {(!isSingle || (req.models_needed || 1) > 1) && !hasEnded(req) && (
                 <button
                   type="button"
                   className="btn btn-link p-0 ms-1 align-baseline text-primary"
@@ -333,7 +379,7 @@ function AllRequests() {
           {') '}
         </>
       )}
-      {req.status === 'pending' && showBadge && (
+      {req.status === 'pending' && showBadge && !hasEnded(req) && (
         <>
           {' ('}
           <button
@@ -350,6 +396,7 @@ function AllRequests() {
   );
 
   const renderActionButtons = (s, showAction, matchedCount, bookedCount) => {
+    if (isFinished(s)) return <span className="text-muted small">Finished. Use Correct next to a date to fix its record.</span>;
     const activeCount = s.faculty_requests?.filter(r => r.status !== 'archived').length || 0;
     const isSingle = activeCount <= 1;
 
@@ -381,6 +428,7 @@ function AllRequests() {
 
   // Phone cards: the main button, plus a More menu for everything else
   const renderCardActions = (s, showAction, matchedCount, bookedCount) => {
+    if (isFinished(s)) return <div className="text-muted small">Finished. Use Correct next to a date to fix its record.</div>;
     const activeCount = s.faculty_requests?.filter(r => r.status !== 'archived').length || 0;
     const isSingle = activeCount <= 1;
     const showFind = showAction && matchedCount === 0;
@@ -459,7 +507,7 @@ function AllRequests() {
           </div>
 
           <div className="mb-2">
-            {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0, isSingle))}
+            {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0, isSingle, s))}
           </div>
 
           <div className="small text-muted mb-1">
@@ -505,7 +553,7 @@ function AllRequests() {
               return (
                 <tr key={s.id}>
                   <td>
-                    {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0, isSingle))}
+                    {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0, isSingle, s))}
                   </td>
                   <td>
                     <div className="fw-bold">{s.class_name}</div>
@@ -620,14 +668,14 @@ function AllRequests() {
       {(statusFilter === 'all' || statusFilter === 'pending') && (
         <div className="mb-4">
           <h5 className="fw-bold text-warning mb-2">Pending ({pending.length})</h5>
-          {renderSection(pending, true)}
+          {renderSection(pending, true, when !== 'past')}
         </div>
       )}
 
       {(statusFilter === 'all' || statusFilter === 'matched') && (
         <div className="mb-4">
           <h5 className="fw-bold text-success mb-2">Matched ({matched.length})</h5>
-          {renderSection(matched, false)}
+          {renderSection(matched, false, when !== 'past')}
         </div>
       )}
 
@@ -797,6 +845,16 @@ function AllRequests() {
           <Button variant="primary" onClick={handleSaveSeriesEdit}>Save Changes</Button>
         </Modal.Footer>
       </Modal>
+      {correcting && (
+        <CorrectRecordModal
+          {...correcting}
+          onClose={() => setCorrecting(null)}
+          onSaved={() => {
+            setCorrecting(null);
+            api.get("/request_series").then(res => setAllSeries(res.data));
+          }}
+        />
+      )}
     </Container>
   );
 }

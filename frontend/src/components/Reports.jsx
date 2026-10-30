@@ -3,12 +3,25 @@ import { Container, Row, Col, Form, Button, Card, Badge, Alert } from "react-boo
 import api from "../services/api";
 import { formatTimeShort, formatDateNumeric } from "../utils/time";
 import styles from "./Reports.module.css";
+import { isPaid, workedTimes, paidHours, wasCorrected } from "../utils/pay";
 
 // The first and last day of the current month, as date fields expect them (YYYY-MM-DD)
 const monthBounds = (today = new Date()) => ({
   start: new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en-CA'),
   end: new Date(today.getFullYear(), today.getMonth() + 1, 0).toLocaleDateString('en-CA')
 });
+
+// How a cancelled gig that is still paid is labelled
+const CANCELLED_STATUS = {
+  late: "Late cancel (billable)",
+  'no-show': "No-show (paid, corrected)",
+  corrected: "Cancelled (paid, corrected)",
+};
+const CANCELLED_BADGE = {
+  late: "⚠️ Late Cancel — Billable",
+  'no-show': "No-show — Paid (corrected)",
+  corrected: "Cancelled — Paid (corrected)",
+};
 
 function Reports() {
   const [gigs, setGigs] = useState([]);
@@ -23,11 +36,6 @@ function Reports() {
       .then(res => setGigs(res.data))
       .catch(() => setFetchError("Failed to load gig data. Please try again."));
   }, []);
-
-  const calculateHours = (startsAt, endsAt) => {
-    const ms = new Date(endsAt) - new Date(startsAt);
-    return Math.round((ms / 36e5) * 4) / 4;
-  };
 
   const generateReport = () => {
     if (!startDate || !endDate) {
@@ -53,10 +61,12 @@ function Reports() {
       const facultyName = `${gig.faculty_request.user.first_name} ${gig.faculty_request.user.last_name}`;
       const department = gig.faculty_request.department || "Unknown";
       const mode = gig.faculty_request.model_mode;
-      const hours = calculateHours(gig.faculty_request.starts_at, gig.faculty_request.ends_at);
-      const isConfirmed = gig.status === "confirmed";
-      const isLateCancelled = gig.status === "cancelled" && gig.billable === true;
-      const isCancelled = gig.status === "cancelled";
+      // Corrections can change the hours, and whether a gig is paid at all
+      if (!isPaid(gig)) return;
+      const worked = workedTimes(gig);
+      const hours = paidHours(gig);
+      const corrected = wasCorrected(gig);
+      const isConfirmed = gig.status !== "cancelled";
 
       if (!byModel[modelKey]) {
         byModel[modelKey] = { id: modelKey, name: modelName, departments: {} };
@@ -78,15 +88,18 @@ function Reports() {
         facultyName,
         className: gig.faculty_request.class_name,
         date: formatDateNumeric(gig.faculty_request.starts_at),
-        timeRange: `${formatTimeShort(gig.faculty_request.starts_at)} - ${formatTimeShort(gig.faculty_request.ends_at)}`,
-        hours
+        timeRange: `${formatTimeShort(worked.starts_at)} - ${formatTimeShort(worked.ends_at)}`,
+        hours,
+        corrected
       };
 
       if (isConfirmed) {
         deptData.confirmed[mode].total += hours;
         deptData.confirmed[mode].shifts.push(shiftInfo);
-      } else if (isCancelled && isLateCancelled) {
-        deptData.cancelled.push({ ...shiftInfo, mode, isLateCancelled });
+      } else {
+        // Cancelled but still paid: a late cancellation, or one a correction paid
+        const kind = gig.no_show ? 'no-show' : corrected ? 'corrected' : 'late';
+        deptData.cancelled.push({ ...shiftInfo, mode, kind });
       }
     });
 
@@ -128,17 +141,17 @@ function Reports() {
             dept.confirmed.clothed.shifts.forEach(s => deptRows.push({
               modelName: modelData.name, department: dept.name, className: s.className,
               facultyName: s.facultyName, date: s.date, timeRange: s.timeRange,
-              mode: "Clothed", status: "Confirmed", hours: s.hours
+              mode: "Clothed", status: s.corrected ? "Confirmed (corrected)" : "Confirmed", hours: s.hours
             }));
             dept.confirmed.nude.shifts.forEach(s => deptRows.push({
               modelName: modelData.name, department: dept.name, className: s.className,
               facultyName: s.facultyName, date: s.date, timeRange: s.timeRange,
-              mode: "Nude", status: "Confirmed", hours: s.hours
+              mode: "Nude", status: s.corrected ? "Confirmed (corrected)" : "Confirmed", hours: s.hours
             }));
             dept.cancelled.forEach(c => deptRows.push({
               modelName: modelData.name, department: dept.name, className: c.className,
               facultyName: c.facultyName, date: c.date, timeRange: c.timeRange,
-              mode: c.mode === 'nude' ? "Nude" : "Clothed", status: "Late cancel (billable)", hours: c.hours
+              mode: c.mode === 'nude' ? "Nude" : "Clothed", status: CANCELLED_STATUS[c.kind], hours: c.hours
             }));
 
             deptRows.sort((a, b) => new Date(a.date) - new Date(b.date) || a.mode.localeCompare(b.mode));
@@ -151,13 +164,13 @@ function Reports() {
   const renderShiftLine = (shift) => (
     <div className={`py-1 border-bottom border-light ${styles.shiftLine}`}>
       <div className={`d-flex justify-content-between ${styles.shiftLineDesktop}`}>
-        <span>{shift.facultyName}, {shift.date}, {shift.timeRange}</span>
+        <span>{shift.facultyName}, {shift.date}, {shift.timeRange}{shift.corrected && ' (corrected)'}</span>
         <span className="ms-2 fw-bold">{shift.hours} hrs</span>
       </div>
       <div className={styles.shiftLineMobile}>
         <div>{shift.facultyName}</div>
         <div className="d-flex justify-content-between">
-          <span>{shift.date}, {shift.timeRange}</span>
+          <span>{shift.date}, {shift.timeRange}{shift.corrected && ' (corrected)'}</span>
           <span className="fw-bold">{shift.hours} hrs</span>
         </div>
       </div>
@@ -186,7 +199,7 @@ function Reports() {
           <Badge bg={can.mode === 'nude' ? 'danger' : 'success'} className="me-2">
             {can.mode === 'nude' ? 'Nude' : 'Clothed'}
           </Badge>
-          <Badge bg="warning" text="dark">⚠️ Late Cancel — Billable</Badge>
+          <Badge bg="warning" text="dark">{CANCELLED_BADGE[can.kind]}</Badge>
         </span>
         <span className="fw-bold">{can.hours} hrs</span>
       </div>

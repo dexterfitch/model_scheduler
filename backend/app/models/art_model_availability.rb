@@ -7,10 +7,13 @@ class ArtModelAvailability < ApplicationRecord
 
   enum :status, { active: 0, cancelled: 1 }
 
+  # Set when an admin records time a model already worked (covering a no-show)
+  attr_accessor :recording_past
+
   validates :starts_at, :ends_at, presence: true
   validate :end_after_start
   validate :must_be_within_business_hours
-  validate :must_be_future_time, on: :create
+  validate :must_be_future_time, on: :create, unless: :recording_past
   validate :prevent_edit_with_active_gig, on: :update
 
   # Saves time a person added or changed, joined with any free time the same

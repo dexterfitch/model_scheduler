@@ -2,17 +2,16 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Table, Container, Badge, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import api from "../services/api";
 import { formatTime, formatDateWithWeekday } from "../utils/time";
+import { isPaid, payStatusLabel } from "../utils/pay";
 
 const personName = (person) => [person?.first_name, person?.last_name].filter(Boolean).join(' ');
 
 // Words first, colour second, so the status reads the same for everyone
-const statusLabel = (gig) => {
-  if (gig.status === 'cancelled') return gig.billable ? 'Cancelled (Billable)' : 'Cancelled';
-  return gig.status === 'confirmed' ? 'Confirmed' : 'Completed';
-};
+const statusLabel = (gig) => payStatusLabel(gig);
 const statusColor = (gig) => {
-  if (gig.status === 'cancelled') return gig.billable ? 'warning' : 'secondary';
-  return gig.status === 'confirmed' ? 'primary' : 'success';
+  if (gig.no_show) return 'danger';
+  if (gig.status === 'cancelled') return isPaid(gig) ? 'warning' : 'secondary';
+  return isPaid(gig) ? 'primary' : 'dark';
 };
 const StatusBadge = ({ gig }) => <Badge bg={statusColor(gig)}>{statusLabel(gig)}</Badge>;
 

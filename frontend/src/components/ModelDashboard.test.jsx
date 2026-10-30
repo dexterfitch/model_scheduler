@@ -83,6 +83,15 @@ describe('ModelDashboard', () => {
     expect(screen.getByText('Cancelled (Paid — Late Cancellation)')).toBeInTheDocument();
   });
 
+  it('tells the model when a past gig was recorded as a no-show', async () => {
+    const missed = gig(104, 'Gesture Drawing', '2026-10-14T14:00:00Z', '2026-10-14T16:00:00Z',
+      { status: 'cancelled', billable: false, no_show: true });
+    api.get.mockImplementation((url) => Promise.resolve({ data: url === '/gigs' ? [missed] : [] }));
+    renderWithDialogs(<ModelDashboard user={model} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancelled' }));
+    expect(await screen.findByText('No-show (Not paid)')).toBeInTheDocument();
+  });
+
   it('shows group sessions in open calls', async () => {
     renderWithDialogs(<ModelDashboard user={model} />);
     await userEvent.click(screen.getByRole('tab', { name: 'Manage Availability' }));

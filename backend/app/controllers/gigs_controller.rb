@@ -1,6 +1,6 @@
 class GigsController < ApplicationController
   before_action -> { require_role(:admin, :model) }, only: [:index]
-  before_action -> { require_role(:admin) }, only: [:create, :destroy]
+  before_action -> { require_role(:admin) }, only: [:create, :destroy, :correct]
 
   def index
     gigs = if current_user.role_admin?
@@ -13,10 +13,7 @@ class GigsController < ApplicationController
     end
 
     if current_user.role_admin?
-      render json: gigs, include: {
-        faculty_request: { include: :user },
-        art_model_availability: { include: :user }
-      }
+      render json: gigs.includes(gig_corrections: :user).map { |gig| admin_json(gig) }
     else
       render json: gigs.map { |gig| model_card(gig) }
     end
@@ -73,12 +70,29 @@ class GigsController < ApplicationController
     render json: { message: "Gig cancelled. Billable: #{is_late_cancel}" }, status: :ok
   end
 
+  # An admin fixes the record of a gig whose class already happened
+  def correct
+    gig = Gig.find(params[:id])
+    PastGigCorrection.new(gig: gig, admin: current_user, params: correction_params).apply!
+    render json: admin_json(gig.reload)
+  rescue PastGigCorrection::Error => e
+    render json: { errors: [e.message] }, status: :unprocessable_content
+  end
+
   private
+
+  def admin_json(gig)
+    gig.as_json.merge("corrections" => gig.corrections)
+  end
+
+  def correction_params
+    params.require(:correction).permit(:kind, :note, :worked_starts_at, :worked_ends_at, :reset_hours, :stand_in_user_id)
+  end
 
   # What a model's own gig cards need, and nothing more: no faculty notes,
   # no faculty contact details
   def model_card(gig)
-    gig.serializable_hash(only: [:id, :status, :billable, :model_slot_position, :faculty_request_id, :art_model_availability_id]).merge(
+    gig.serializable_hash(only: [:id, :status, :billable, :no_show, :worked_starts_at, :worked_ends_at, :model_slot_position, :faculty_request_id, :art_model_availability_id]).merge(
       "faculty_request" => gig.faculty_request.serializable_hash(
         only: [:id, :request_series_id, :class_name, :department, :building, :room_number, :model_mode, :starts_at, :ends_at, :status],
         include: { user: { only: [:first_name, :last_name] } }

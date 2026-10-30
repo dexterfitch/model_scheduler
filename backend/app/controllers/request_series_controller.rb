@@ -6,6 +6,9 @@ class RequestSeriesController < ApplicationController
 
   def index
     preload = { faculty_requests: { confirmed_gigs: [:confirmed_by, { art_model_availability: :user }] } }
+    if current_user.role_admin?
+      preload[:faculty_requests][:gigs] = [{ gig_corrections: :user }, { art_model_availability: :user }]
+    end
     @series = if current_user.role_admin?
       RequestSeries.all.includes(:user, :model_slots, preload)
     else
@@ -18,7 +21,11 @@ class RequestSeriesController < ApplicationController
       faculty_requests: {
         # Only admins see which model dropped out
         methods: current_user.role_admin? ? [:dropped_out_model_name] : [],
-        include: {
+        include: (current_user.role_admin? ? {
+          # Every gig of each date, including no-shows and cancellations, so a
+          # past date's record can be corrected
+          gigs: { methods: [:corrections], include: { art_model_availability: { include: :user } } }
+        } : {}).merge(
           confirmed_gigs: current_user.role_admin? ? {
             include: { art_model_availability: { include: :user } }
           } : {
@@ -27,7 +34,7 @@ class RequestSeriesController < ApplicationController
               confirmed_by: { only: [:id, :first_name, :last_name, :email] }
             }
           }
-        }
+        )
       }
     }
   end

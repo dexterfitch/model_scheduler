@@ -3,6 +3,7 @@ raise "Refusing to run db/seeds.rb in production: it deletes nearly every record
 
 puts "🌱 Seeding Database..."
 
+GigCorrection.delete_all
 Gig.delete_all
 FacultyRequest.delete_all
 ModelSlot.delete_all

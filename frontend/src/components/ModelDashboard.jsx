@@ -221,6 +221,13 @@ function ModelDashboard({ user }) {
   // Gigs are never marked completed in the database, so treat any that already started as completed
   const hasStarted = (gig) => new Date(gig.faculty_request.starts_at) <= new Date();
   const renderGigStatusBadge = (gig) => {
+    // Set by an admin after the class, when the model didn't come
+    if (gig.no_show) {
+      return <Badge bg="danger" className="mb-2">{gig.billable ? 'No-show (Paid)' : 'No-show (Not paid)'}</Badge>;
+    }
+    if (gig.status === 'confirmed' && hasStarted(gig) && gig.billable === false) {
+      return <Badge bg="secondary" className="mb-2">Completed (Not paid)</Badge>;
+    }
     if (gig.status === 'confirmed' && !hasStarted(gig)) {
       return <Badge bg="success" className="mb-2">Confirmed</Badge>;
     }
