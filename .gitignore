@@ -142,3 +142,4 @@ docker-logs/
 certs/
 audit.md
 /frontend/user-guide/
+*.tar.gz
