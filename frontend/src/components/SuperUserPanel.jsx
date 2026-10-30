@@ -529,13 +529,13 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                       </Col>
                       <Col xs={5} sm={3}>
                         <label className="form-label small mb-1" htmlFor={`new-slot-${i}-start`}>Start</label>
-                        <input id={`new-slot-${i}-start`} type="time" className="form-control form-control-sm" value={slot.start}
+                        <input id={`new-slot-${i}-start`} type="time" step={300} className="form-control form-control-sm" value={slot.start}
                           onChange={e => updateNewSlot(i, 'start', e.target.value)}
                           onBlur={e => updateNewSlot(i, 'start', roundToNearest5(e.target.value))} />
                       </Col>
                       <Col xs={5} sm={3}>
                         <label className="form-label small mb-1" htmlFor={`new-slot-${i}-end`}>End</label>
-                        <input id={`new-slot-${i}-end`} type="time" className="form-control form-control-sm" value={slot.end}
+                        <input id={`new-slot-${i}-end`} type="time" step={300} className="form-control form-control-sm" value={slot.end}
                           onChange={e => updateNewSlot(i, 'end', e.target.value)}
                           onBlur={e => updateNewSlot(i, 'end', roundToNearest5(e.target.value))} />
                       </Col>

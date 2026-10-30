@@ -57,7 +57,7 @@ export const notifyEmailLink = (series, dates, recipients, appUrl) => {
   const where = [series.building, series.room_number].filter(Boolean).join(' ');
   const mode = series.model_mode === 'nude' ? 'Nude' : 'Clothed';
   const lines = dates.map(d =>
-    `- ${formatDateWithWeekday(d.starts_at)}, ${formatTimeShort(d.starts_at)} – ${formatTimeShort(d.ends_at)}${where ? `, ${where}` : ''}`);
+    `${formatDateWithWeekday(d.starts_at)}, ${formatTimeShort(d.starts_at)} - ${formatTimeShort(d.ends_at)}${where ? `, ${where}` : ''}`);
   const subject = `Model needed: ${series.class_name}, ${formatDateWithWeekday(dates[0].starts_at)}`;
   const body = [
     'Hi,',
@@ -66,7 +66,7 @@ export const notifyEmailLink = (series, dates, recipients, appUrl) => {
     '',
     ...lines,
     '',
-    "If you can do any of these, open Pose Pool and choose I'm Available on this class under Open Calls:",
+    `If you can work on ${dates.length > 1 ? 'any of these dates and times' : 'this date and time'}, open MICA Pose Pool and choose "I'm Available" on this class under Open Calls:`,
     appUrl,
     '',
     'Thank you!',

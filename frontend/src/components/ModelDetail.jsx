@@ -234,11 +234,11 @@ function ModelDetail() {
               <Row>
                 <Form.Group as={Col} controlId="availability-start">
                   <Form.Label>Start Time</Form.Label>
-                  <Form.Control type="time" name="start" value={times.start} onChange={handleTimeChange} min="08:00" max="22:00" required />
+                  <Form.Control type="time" step={300} name="start" value={times.start} onChange={handleTimeChange} min="08:00" max="22:00" required />
                 </Form.Group>
                 <Form.Group as={Col} controlId="availability-end">
                   <Form.Label>End Time</Form.Label>
-                  <Form.Control type="time" name="end" value={times.end} onChange={handleTimeChange} min="08:00" max="22:00" required />
+                  <Form.Control type="time" step={300} name="end" value={times.end} onChange={handleTimeChange} min="08:00" max="22:00" required />
                 </Form.Group>
               </Row>
               <div className="mt-4 d-flex justify-content-between">

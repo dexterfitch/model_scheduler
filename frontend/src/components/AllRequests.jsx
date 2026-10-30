@@ -859,7 +859,7 @@ function AllRequests() {
               </Col>
               <Col xs={3} md={3}>
                 <Form.Control
-                  type="time"
+                  type="time" step={300}
                   aria-label={`Start time ${i + 1}`}
                   value={d.start}
                   onChange={e => updateSeriesDate(i, 'start', e.target.value)}
@@ -868,7 +868,7 @@ function AllRequests() {
               </Col>
               <Col xs={3} md={2}>
                 <Form.Control
-                  type="time"
+                  type="time" step={300}
                   aria-label={`End time ${i + 1}`}
                   value={d.end}
                   onChange={e => updateSeriesDate(i, 'end', e.target.value)}
