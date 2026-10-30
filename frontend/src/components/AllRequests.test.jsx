@@ -226,4 +226,25 @@ describe('AllRequests (admin requests page)', () => {
     const titles = screen.getAllByText(/^(Earlier|Later) Class$/).map(el => el.textContent);
     expect(titles.indexOf('Earlier Class')).toBeLessThan(titles.indexOf('Later Class'));
   });
+
+  it('keeps the status filters and the date filters in separate, named groups', async () => {
+    renderPage();
+    await screen.findAllByText('Figure Drawing I');
+
+    const status = screen.getByRole('group', { name: 'Status' });
+    const dates = screen.getByRole('group', { name: 'Dates' });
+    expect(within(status).getAllByRole('button').map(b => b.textContent.trim())).toEqual(['All', 'Pending', 'Matched', 'Cancelled']);
+    expect(within(dates).getAllByRole('button').map(b => b.textContent.trim())).toEqual(['Upcoming', 'Past', 'Date Range']);
+  });
+
+  it('says which status filter is on', async () => {
+    renderPage();
+    await screen.findAllByText('Figure Drawing I');
+    const status = screen.getByRole('group', { name: 'Status' });
+    expect(within(status).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(within(status).getByRole('button', { name: 'Pending' }));
+    expect(within(status).getByRole('button', { name: 'Pending' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(status).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'false');
+  });
 });

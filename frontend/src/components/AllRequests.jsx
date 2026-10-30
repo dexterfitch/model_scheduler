@@ -561,26 +561,30 @@ function AllRequests() {
         </InputGroup>
       </div>
 
-      <div className="py-3 border-bottom border-info mb-4 d-flex align-items-end date-filter-box">
-        <Row className="g-2 align-items-end w-100">
-          <Col xs={12} md="auto">
+      {/* Two kinds of filter: what state a class is in (left), and which dates to
+          show (right on wider screens, under a dividing line on phones) */}
+      <div className="py-3 border-bottom border-info mb-4 date-filter-box">
+        <div className="d-flex flex-column flex-md-row flex-md-wrap justify-content-md-between align-items-md-start gap-3">
+          <div role="group" aria-labelledby="requests-status-label">
+            <div id="requests-status-label" className="filter-group-label">Status</div>
             <div className="d-flex flex-wrap gap-2">
-              <Button className="status-filter-btn" variant={statusFilter === 'all' ? 'dark' : 'outline-dark'} onClick={() => setStatusFilter('all')}>
-                All
-              </Button>
-              <Button className="status-filter-btn" variant={statusFilter === 'pending' ? 'warning' : 'outline-warning'} onClick={() => setStatusFilter('pending')}>
-                Pending
-              </Button>
-              <Button className="status-filter-btn" variant={statusFilter === 'matched' ? 'success' : 'outline-success'} onClick={() => setStatusFilter('matched')}>
-                Matched
-              </Button>
-              <Button className="status-filter-btn" variant={statusFilter === 'archived' ? 'secondary' : 'outline-secondary'} onClick={() => setStatusFilter('archived')}>
-                Cancelled
-              </Button>
+              {[['all', 'All', 'dark'], ['pending', 'Pending', 'warning'], ['matched', 'Matched', 'success'], ['archived', 'Cancelled', 'secondary']].map(([key, label, color]) => (
+                <Button
+                  key={key}
+                  className="status-filter-btn"
+                  variant={statusFilter === key ? color : `outline-${color}`}
+                  aria-pressed={statusFilter === key}
+                  onClick={() => setStatusFilter(key)}
+                >
+                  {label}
+                </Button>
+              ))}
             </div>
-          </Col>
-          <Col xs={12} md="auto">
-            <div className="d-flex flex-wrap gap-2" role="group" aria-label="Which dates">
+          </div>
+
+          <div role="group" aria-labelledby="requests-dates-label" className="filter-dates">
+            <div id="requests-dates-label" className="filter-group-label">Dates</div>
+            <div className="d-flex flex-wrap gap-2">
               {[['upcoming', 'Upcoming'], ['past', 'Past'], ['range', 'Date Range']].map(([key, label]) => (
                 <Button
                   key={key}
@@ -593,20 +597,20 @@ function AllRequests() {
                 </Button>
               ))}
             </div>
-          </Col>
-          {when === 'range' && (
-            <>
-              <Form.Group as={Col} xs={6} md="auto" controlId="requests-from">
-                <Form.Label className="small fw-bold mb-1">From</Form.Label>
-                <Form.Control type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
-              </Form.Group>
-              <Form.Group as={Col} xs={6} md="auto" controlId="requests-to">
-                <Form.Label className="small fw-bold mb-1">To</Form.Label>
-                <Form.Control type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
-              </Form.Group>
-            </>
-          )}
-        </Row>
+            {when === 'range' && (
+              <Row className="g-2 mt-1">
+                <Form.Group as={Col} xs={6} controlId="requests-from">
+                  <Form.Label className="small fw-bold mb-1">From</Form.Label>
+                  <Form.Control type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
+                </Form.Group>
+                <Form.Group as={Col} xs={6} controlId="requests-to">
+                  <Form.Label className="small fw-bold mb-1">To</Form.Label>
+                  <Form.Control type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
+                </Form.Group>
+              </Row>
+            )}
+          </div>
+        </div>
       </div>
 
       {(statusFilter === 'all' || statusFilter === 'pending') && (
