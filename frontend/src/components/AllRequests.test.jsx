@@ -361,4 +361,76 @@ describe('AllRequests (admin requests page)', () => {
       expect(await screen.findByRole('dialog', { name: 'Correct the record' })).toHaveTextContent('Gesture Drawing');
     });
   });
+
+  describe('who could take a pending date', () => {
+    const person = (id, extra = {}) => ({ id, role: 'model', first_name: `Model${id}`, last_name: 'Test', email: `model${id}@mica.edu`,
+      skin_tone: 'Light', gender_identity: 'Woman', body_type: 'Average', willing_to_model_nude: false, ...extra });
+    const freeAllDay = (user) => ({ id: user.id * 10, status: 'active', user,
+      starts_at: daysFromNow(12, 8), ends_at: daysFromNow(12, 22) });
+    const fatClass = { ...series, pref_body_type: 'Fat' };
+
+    const load = ({ list = [fatClass], users = [], availability = [] } = {}) => api.get.mockImplementation((url) => {
+      if (url === '/users') return Promise.resolve({ data: users });
+      if (url.startsWith('/art_model_availabilities')) return Promise.resolve({ data: availability });
+      if (url === '/gigs') return Promise.resolve({ data: [] });
+      return Promise.resolve({ data: list });
+    });
+
+    it('says when no model at all is free', async () => {
+      load({ users: [person(1)] });
+      renderPage();
+      expect((await screen.findAllByText('No models free')).length).toBeGreaterThan(0);
+    });
+
+    it("says when models are free but none fits what the faculty asked for", async () => {
+      const average = person(1);
+      load({ users: [average], availability: [freeAllDay(average)] });
+      renderPage();
+      expect((await screen.findAllByText('No matching models free · 1 free')).length).toBeGreaterThan(0);
+    });
+
+    it('counts the matching models who are free', async () => {
+      const fat1 = person(1, { body_type: 'Fat' });
+      const fat2 = person(2, { body_type: 'Fat' });
+      load({ users: [fat1, fat2], availability: [freeAllDay(fat1), freeAllDay(fat2)] });
+      renderPage();
+      expect((await screen.findAllByText('2 matching free')).length).toBeGreaterThan(0);
+    });
+
+    it('offers a ready email to the matching models, or to every model', async () => {
+      const fat = person(1, { body_type: 'Fat' });
+      const average = person(2);
+      load({ users: [fat, average] });
+      renderPage();
+      const [menu] = await screen.findAllByRole('button', { name: 'Notify Models' });
+      await userEvent.click(menu);
+
+      const matching = await screen.findByRole('link', { name: 'Models who match (1)' });
+      const everyone = screen.getByRole('link', { name: 'All models (2)' });
+      expect(matching.getAttribute('href')).toMatch(/^mailto:\?bcc=model1@mica\.edu&/);
+      expect(everyone.getAttribute('href')).toMatch(/^mailto:\?bcc=model1@mica\.edu,model2@mica\.edu&/);
+      expect(decodeURIComponent(matching.getAttribute('href'))).toContain('Figure Drawing I');
+    });
+
+    it("only offers models willing to pose nude for a nude class", async () => {
+      const nudeOk = person(1, { willing_to_model_nude: true });
+      const clothedOnly = person(2);
+      load({ list: [{ ...series, model_mode: 'nude' }], users: [nudeOk, clothedOnly] });
+      renderPage();
+      const [menu] = await screen.findAllByRole('button', { name: 'Notify Models' });
+      await userEvent.click(menu);
+      expect(await screen.findByRole('link', { name: 'All models willing to pose nude (1)' })).toBeInTheDocument();
+    });
+
+    it("doesn't offer an email when no model fits", async () => {
+      load({ users: [person(1)] });
+      renderPage();
+      const [menu] = await screen.findAllByRole('button', { name: 'Notify Models' });
+      await userEvent.click(menu);
+      // Shown, so the coordinator knows, but not something to click
+      expect((await screen.findAllByText('Models who match (0)')).length).toBeGreaterThan(0);
+      expect(screen.queryByRole('link', { name: 'Models who match (0)' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Models who match (0)' })).toBeNull();
+    });
+  });
 });

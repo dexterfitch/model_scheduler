@@ -9,6 +9,7 @@ import { roundToNearest5, formatTime, formatDateShort, firstStartsAt } from "../
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 import { payStatusLabel, wasCorrected } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
+import { dateCoverage, notifyLists, notifyEmailLink } from "../utils/coverage";
 
 function AllRequests() {
   const navigate = useNavigate();
@@ -31,6 +32,15 @@ function AllRequests() {
 
   useEffect(() => {
     api.get("/request_series").then(res => setAllSeries(res.data));
+  }, []);
+
+  // Every model, their free time and their bookings, to show who could take each
+  // pending date and who to email. Without it, the page just leaves those out.
+  const [pool, setPool] = useState(null);
+  useEffect(() => {
+    Promise.all([api.get("/users"), api.get("/art_model_availabilities"), api.get("/gigs")])
+      .then(([users, availabilities, gigs]) => setPool({ models: users.data, availabilities: availabilities.data, gigs: gigs.data }))
+      .catch(() => setPool(null));
   }, []);
 
   const filterSeries = (statusFilter) => {
@@ -302,6 +312,40 @@ function AllRequests() {
     ));
   };
 
+  // How many models could take a pending date: none free at all, none who fit
+  // what the faculty asked for, or how many who fit
+  const renderCoverage = (req, s) => {
+    if (!pool || !s) return null;
+    const { free, matching } = dateCoverage(req, s, pool);
+    if (free.length === 0) return <Badge bg="danger" className={`ms-2 ${styles.badge}`}>No models free</Badge>;
+    if (matching.length === 0) {
+      return <Badge bg="warning" text="dark" className={`ms-2 ${styles.badge}`}>No matching models free · {free.length} free</Badge>;
+    }
+    return <Badge bg="light" text="dark" className={`ms-2 border ${styles.badge}`}>{matching.length} matching free</Badge>;
+  };
+
+  // The dates of a class still waiting for a model
+  const openDates = (s) => (s.faculty_requests || [])
+    .filter(r => r.status === 'pending' && !hasStarted(r))
+    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+
+  // Ready emails, in the coordinator's own mail app, to the models who fit the
+  // class or to every model willing to pose that way
+  const renderNotifyItems = (s) => {
+    const { matching, all } = notifyLists(s, pool.models);
+    const dates = openDates(s);
+    const everyone = s.model_mode === 'nude' ? 'All models willing to pose nude' : 'All models';
+    const item = (label, people) => people.length === 0
+      ? <Dropdown.ItemText key={label} className="text-muted">{label} (0)</Dropdown.ItemText>
+      : (
+        <Dropdown.Item key={label} href={notifyEmailLink(s, dates, people, window.location.origin)}>
+          {label} ({people.length})
+        </Dropdown.Item>
+      );
+    return [item('Models who match', matching), item(everyone, all)];
+  };
+  const canNotify = (s) => !!pool && openDates(s).length > 0;
+
   // A date that already started: everyone on its record, how they're paid,
   // and a Correct button for each, in place of release and rebook
   const renderPastGigs = (req, s) => {
@@ -379,6 +423,7 @@ function AllRequests() {
           {') '}
         </>
       )}
+      {req.status === 'pending' && !hasStarted(req) && renderCoverage(req, s)}
       {req.status === 'pending' && showBadge && !hasEnded(req) && (
         <>
           {' ('}
@@ -406,6 +451,12 @@ function AllRequests() {
           <Button size="sm" variant="outline-primary" onClick={() => navigate(`/gigs/new/${s.id}?type=series`)}>
             {bookedCount > 0 ? "Find More Models" : "Find Model"}
           </Button>
+        )}
+        {canNotify(s) && (
+          <Dropdown>
+            <Dropdown.Toggle size="sm" variant="outline-secondary" className="w-100">Notify Models</Dropdown.Toggle>
+            <Dropdown.Menu>{renderNotifyItems(s)}</Dropdown.Menu>
+          </Dropdown>
         )}
         {bookedCount > 0 && (
           <Button size="sm" variant="outline-warning" onClick={() => handleReleaseRemaining(s.id)}>
@@ -449,6 +500,13 @@ function AllRequests() {
               More
             </Dropdown.Toggle>
             <Dropdown.Menu>
+              {canNotify(s) && (
+                <>
+                  <Dropdown.Header>Notify models</Dropdown.Header>
+                  {renderNotifyItems(s)}
+                  <Dropdown.Divider />
+                </>
+              )}
               {showRelease && (
                 <Dropdown.Item as="button" onClick={() => handleReleaseRemaining(s.id)}>
                   {(s.models_needed || 1) > 1 ? "Release Models and Rematch" : "Release Model and Rematch"}
