@@ -4,7 +4,7 @@ import AllGigs from './AllGigs';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
 
-vi.mock('../services/api', () => ({ default: { get: vi.fn() } }));
+vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
 const priya = { first_name: 'Priya', last_name: 'Nair' };
 const gig = (id, model, extra = {}) => ({
@@ -101,5 +101,42 @@ describe('AllGigs (Gig Registry)', () => {
     const table = await screen.findByRole('table');
     await within(table).findByText('Riley Okafor');
     expect(tableRows(table).map(r => r[5])).toEqual(['No-show (Not paid)', 'Confirmed (Not paid)']);
+  });
+
+  describe('correcting a past gig', () => {
+    const jordan = { id: 1, first_name: 'Jordan', last_name: 'Ellis', role: 'model' };
+    const lastWeek = gig(5, jordan);
+    lastWeek.faculty_request = { ...lastWeek.faculty_request, class_name: 'Gesture Drawing', starts_at: daysFromNow(-7, 15), ends_at: daysFromNow(-7, 17) };
+    const nextWeek = gig(6, { first_name: 'Sofia', last_name: 'Marsh' });
+
+    beforeEach(() => api.get.mockImplementation((url) => Promise.resolve({ data: url === '/gigs' ? [lastWeek, nextWeek] : [] })));
+
+    it('offers Make Correction on gigs whose class has started, and not on later ones', async () => {
+      render(<AllGigs />);
+      expect((await screen.findAllByRole('button', { name: /^Make Correction for Jordan Ellis on / })).length).toBeGreaterThan(0);
+      expect(screen.queryAllByRole('button', { name: /^Make Correction for Sofia Marsh/ })).toHaveLength(0);
+    });
+
+    it('opens the same Correct the record window as Requests', async () => {
+      render(<AllGigs />);
+      const [button] = await screen.findAllByRole('button', { name: /^Make Correction for Jordan Ellis on / });
+      await userEvent.click(button);
+      const dialog = await screen.findByRole('dialog', { name: 'Correct the record' });
+      expect(dialog).toHaveTextContent('Gesture Drawing');
+      expect(dialog).toHaveTextContent('Jordan Ellis');
+    });
+
+    it('reloads the registry after a correction is saved', async () => {
+      api.post.mockResolvedValue({ data: {} });
+      render(<AllGigs />);
+      const [button] = await screen.findAllByRole('button', { name: /^Make Correction for Jordan Ellis on / });
+      await userEvent.click(button);
+      await userEvent.click(await screen.findByRole('radio', { name: "Jordan didn't show up (not paid)" }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save Correction' }));
+
+      expect(api.post).toHaveBeenCalledWith('/gigs/5/corrections', { correction: { kind: 'no_show' } });
+      await vi.waitFor(() => expect(api.get.mock.calls.filter(([url]) => url === '/gigs').length).toBe(2));
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
   });
 });

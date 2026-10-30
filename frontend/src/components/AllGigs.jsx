@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Table, Container, Badge, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import api from "../services/api";
-import { formatTime, formatDateWithWeekday } from "../utils/time";
+import { formatTime, formatDateWithWeekday, formatDateShort } from "../utils/time";
 import { isPaid, payStatusLabel } from "../utils/pay";
+import CorrectRecordModal from "./CorrectRecordModal";
 
 const personName = (person) => [person?.first_name, person?.last_name].filter(Boolean).join(' ');
 
@@ -35,6 +36,8 @@ function AllGigs() {
   // Which dates to show: 'all' (the default), 'upcoming', 'past', or a date 'range'
   const [when, setWhen] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  // The past gig whose record is being corrected
+  const [correcting, setCorrecting] = useState(null);
 
   const fetchGigs = useCallback(() => {
     api.get("/gigs")
@@ -91,6 +94,19 @@ function AllGigs() {
 
     return groups;
   })();
+
+  // Once a class has started, the only change left is correcting its record
+  const hasStarted = (gig) => new Date(gig.faculty_request?.starts_at) <= new Date();
+  const renderCorrect = (gig) => hasStarted(gig) && (
+    <button
+      type="button"
+      className="btn btn-link p-0 ms-2 align-baseline small"
+      aria-label={`Make Correction for ${personName(gig.art_model_availability?.user)} on ${formatDateShort(gig.faculty_request?.starts_at)}`}
+      onClick={() => setCorrecting(gig)}
+    >
+      Make Correction
+    </button>
+  );
 
   const gigTime = (gig) => `${formatTime(gig.faculty_request?.starts_at)} – ${formatTime(gig.faculty_request?.ends_at)}`;
 
@@ -193,7 +209,7 @@ function AllGigs() {
                   </td>
                   <td>{personName(gig.faculty_request?.user)}</td>
                   <td>{personName(gig.art_model_availability?.user)}</td>
-                  <td><StatusBadge gig={gig} /></td>
+                  <td><StatusBadge gig={gig} />{renderCorrect(gig)}</td>
                 </tr>
               ))
             )}
@@ -224,7 +240,10 @@ function AllGigs() {
                         <div className="text-muted">{gigTime(gig)}</div>
                         <div>{personName(gig.art_model_availability?.user)}</div>
                       </div>
-                      <StatusBadge gig={gig} />
+                      <div className="text-end">
+                        <StatusBadge gig={gig} />
+                        {hasStarted(gig) && <div>{renderCorrect(gig)}</div>}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -234,6 +253,18 @@ function AllGigs() {
         )}
       </div>
 
+      {correcting && (
+        <CorrectRecordModal
+          gig={correcting}
+          date={correcting.faculty_request}
+          series={correcting.faculty_request}
+          onClose={() => setCorrecting(null)}
+          onSaved={() => {
+            setCorrecting(null);
+            fetchGigs();
+          }}
+        />
+      )}
     </Container>
   );
 }
