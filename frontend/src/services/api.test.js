@@ -1,4 +1,4 @@
-import api from './api';
+import api, { API_URL } from './api';
 
 // Instead of a real network call, echo back the request that would have been sent
 const echo = async (config) => ({ data: config, status: 200, statusText: 'OK', headers: {}, config });
@@ -17,9 +17,10 @@ describe('api (backend connection)', () => {
     expect(sent.headers.Authorization).toBeUndefined();
   });
 
-  it('talks to the backend address', async () => {
+  it('talks to the backend address, which is the local server unless one is set', async () => {
     const { data: sent } = await api.get('/me', { adapter: echo });
-    expect(sent.baseURL).toBe('http://localhost:3000');
+    expect(sent.baseURL).toBe(API_URL);
+    expect(API_URL).toBe(import.meta.env.VITE_API_URL || 'http://localhost:3000');
   });
 
   it('tells the app when the server says a signed-in person\'s sign-in has expired', async () => {

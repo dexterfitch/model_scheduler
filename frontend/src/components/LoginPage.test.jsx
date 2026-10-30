@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import LoginPage from './LoginPage';
+import { API_URL } from '../services/api';
 
 const renderAt = (path, props = {}) => render(<MemoryRouter initialEntries={[path]}><LoginPage {...props} /></MemoryRouter>);
 
@@ -18,7 +19,7 @@ describe('LoginPage', () => {
   it('signs in through the same backend address as the rest of the app', () => {
     renderAt('/login');
     const link = screen.getByRole('link', { name: 'Sign in with MICA Google Account' });
-    expect(link).toHaveAttribute('href', 'http://localhost:3000/auth/google_oauth2');
+    expect(link).toHaveAttribute('href', `${API_URL}/auth/google_oauth2`);
   });
 
   it("doesn't load pictures from other websites", () => {
