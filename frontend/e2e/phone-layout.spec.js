@@ -171,6 +171,28 @@ test('Requests tags are compact and stay inside their card (phone)', async ({ pa
   expect(problems, problems.join('\n')).toEqual([]);
 });
 
+test('a success message shows on screen even when the page is scrolled down (phone)', async ({ page }) => {
+  await loginAs(page, 'jellis@mica.edu');
+  await page.getByRole('tab', { name: 'Manage Availability' }).click();
+  const signUp = page.getByRole('button', { name: "I'm Available" }).filter({ visible: true }).last();
+  await signUp.scrollIntoViewIfNeeded();
+  await signUp.click();
+  await expect(page.getByRole('status').filter({ hasText: /Availability added/ })).toBeInViewport();
+});
+
+test("the calendar's month or week heading has its own line, above the buttons (phone)", async ({ page }) => {
+  await loginAs(page, 'preyes@mica.edu');
+  await page.goto('/calendar');
+  const title = page.locator('.fc-toolbar-title').first();
+  await expect(title).toBeVisible();
+  const titleBox = await title.boundingBox();
+  const buttonsBox = await page.locator('.fc-header-toolbar .btn').first().boundingBox();
+  const lineHeight = await title.evaluate(el => parseFloat(getComputedStyle(el).lineHeight) || parseFloat(getComputedStyle(el).fontSize) * 1.2);
+
+  expect(titleBox.height, 'the heading should fit on one line').toBeLessThan(lineHeight * 1.5);
+  expect(titleBox.y + titleBox.height, 'the heading should sit above the buttons').toBeLessThanOrEqual(buttonsBox.y + 1);
+});
+
 test.describe('desktop calendar', () => {
   test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
 

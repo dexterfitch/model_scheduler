@@ -5,6 +5,7 @@ import api from "../services/api";
 import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatModelCount, calculateMatchScore, formatPreferenceSummary } from "../utils/formatters";
 import { formatTime, formatDateWithWeekday, formatDateTime, availabilityCoversRequest, hasSchedulingConflict } from "../utils/time";
+import StatusToast from "./StatusToast";
 
 const modelName = (user) => `${user?.first_name} ${user?.last_name}`;
 // Earliest date first
@@ -266,16 +267,11 @@ function GigCreator() {
           {error}
         </Alert>
       )}
-      {successMsg && (
-        <Alert variant="success" role="status" dismissible onClose={() => setSuccessMsg('')}>
-          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <span>{successMsg}</span>
-            {staffed && (
-              <Button size="sm" variant="outline-dark" onClick={() => navigate('/requests')}>Back to Requests</Button>
-            )}
-          </div>
-        </Alert>
-      )}
+      <StatusToast message={successMsg} onClose={() => setSuccessMsg('')}>
+        {staffed && (
+          <Button size="sm" variant="outline-dark" onClick={() => navigate('/requests')}>Back to Requests</Button>
+        )}
+      </StatusToast>
 
       <Button variant="outline-secondary" className="mb-3" onClick={() => navigate(-1)}>
         <i className="bi bi-arrow-left me-1"></i> Back

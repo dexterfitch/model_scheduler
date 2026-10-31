@@ -167,6 +167,13 @@ describe('ModelDashboard', () => {
     expect(message).toHaveTextContent(`${formatTimeShort(starts)} to ${formatTimeShort(ends)}`);
   });
 
+  it('words the message right when an open call has one date', async () => {
+    renderWithDialogs(<ModelDashboard user={model} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Manage Availability' }));
+    await userEvent.click(await screen.findByRole('button', { name: "I'm Available" }));
+    expect(await screen.findByText('Availability added for this date!')).toBeInTheDocument();
+  });
+
   it('adds open call dates one at a time, so dates on the same day can be joined', async () => {
     const twoDates = { ...groupCall, faculty_requests: [
       { ...groupCall.faculty_requests[0], id: 51, starts_at: '2099-03-02T14:00:00Z', ends_at: '2099-03-02T16:00:00Z' },

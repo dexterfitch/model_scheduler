@@ -6,6 +6,7 @@ import { useDialog } from "./DialogProvider";
 import GigDates from "./GigDates";
 import { extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
+import StatusToast from "./StatusToast";
 
 function ModelDashboard({ user }) {
   const { confirm, notify } = useDialog();
@@ -85,7 +86,7 @@ function ModelDashboard({ user }) {
     fetchData();
 
     if (failed.length === 0) {
-      setPageSuccess(`Availability added for all ${pendingRequests.length} dates!`);
+      setPageSuccess(pendingRequests.length === 1 ? 'Availability added for this date!' : `Availability added for all ${pendingRequests.length} dates!`);
       return;
     }
     setPageSuccess('');
@@ -268,7 +269,7 @@ function ModelDashboard({ user }) {
 
   return (
     <Container className="py-4">
-      {pageSuccess && <Alert variant="success" role="status" dismissible onClose={() => setPageSuccess('')}>{pageSuccess}</Alert>}
+      <StatusToast message={pageSuccess} onClose={() => setPageSuccess('')} />
       <Card className="mb-4 bg-light border-0 shadow-sm">
         <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
           <div>

@@ -7,6 +7,7 @@ import { useDialog } from "./DialogProvider";
 import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
 import GigDates from "./GigDates";
+import StatusToast from "./StatusToast";
 
 function ModelDetail() {
   const { id } = useParams();
@@ -155,11 +156,7 @@ function ModelDetail() {
           {error}
         </Alert>
       )}
-      {pageSuccess && (
-        <Alert variant="success" role="status" dismissible onClose={() => setPageSuccess('')}>
-          {pageSuccess}
-        </Alert>
-      )}
+      <StatusToast message={pageSuccess} onClose={() => setPageSuccess('')} />
 
       <Button variant="outline-secondary" className="mb-3" onClick={() => navigate(-1)}>
         <i className="bi bi-arrow-left me-1"></i> Back

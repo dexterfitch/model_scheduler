@@ -22,3 +22,22 @@
     font-size: 0.75rem !important;
   }
 }
+
+/* Phones: the month or week heading gets its own line above the buttons,
+   instead of being squeezed between them */
+@media (max-width: 767px) {
+  .fc .fc-header-toolbar {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  .fc .fc-header-toolbar .fc-toolbar-chunk:nth-child(2) {
+    order: -1;
+    flex-basis: 100%;
+    text-align: center;
+  }
+
+  .fc-toolbar-title {
+    font-size: 1.1rem !important;
+  }
+}

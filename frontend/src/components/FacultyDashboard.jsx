@@ -10,6 +10,7 @@ import ModelPreferenceFields from "./ModelPreferenceFields";
 import {
   DEFAULT_MODEL_PREFERENCES, DEFAULT_SLOT_STATE, applyPreferenceChange, modelSlotsPayload, slotFormState
 } from "../utils/modelPreferences";
+import StatusToast from "./StatusToast";
 
 const PREFERENCE_KEYS = Object.keys(DEFAULT_MODEL_PREFERENCES);
 const pickPreferences = (obj) =>
@@ -578,11 +579,7 @@ function FacultyDashboard({ user }) {
 
   return (
     <Container className={`py-4 ${styles.container}`}>
-      {submitSuccess && (
-        <Alert variant="success" role="status" dismissible onClose={() => setSubmitSuccess('')}>
-          {submitSuccess}
-        </Alert>
-      )}
+      <StatusToast message={submitSuccess} onClose={() => setSubmitSuccess('')} />
 
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
