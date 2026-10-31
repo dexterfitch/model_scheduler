@@ -9,7 +9,7 @@ RSpec.describe "Correcting the record of a past gig", type: :request do
 
   # Book it as a future date, then move it into the past, like a class that already happened
   def move_into_past(g, start = two_days_ago)
-    g.faculty_booked_class.update_columns(starts_at: start, ends_at: start + 2.hours)
+    g.faculty_request.update_columns(starts_at: start, ends_at: start + 2.hours)
     g.art_model_availability.update_columns(starts_at: start, ends_at: start + 2.hours)
     g
   end
