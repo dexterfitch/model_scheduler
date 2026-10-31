@@ -1,3 +1,7 @@
+/**
+ * Tests for the SuperUser Panel: roles, sock accounts and clearing test data.
+ */
+
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -12,6 +16,7 @@ const me      = { id: 1, role: 'admin',   superuser: true, first_name: 'Dex',   
 const priya   = { id: 2, role: 'faculty', first_name: 'Priya', last_name: 'Nair', email: 'pnair@mica.edu' };
 const otherAdmin = { id: 3, role: 'admin', first_name: 'Sam', last_name: 'Lee', email: 'slee@mica.edu' };
 
+/** Shows the panel for a SuperUser. */
 function renderPanel(user = me) {
   return renderWithDialogs(
     <MemoryRouter initialEntries={['/superuser']}>
@@ -23,7 +28,7 @@ function renderPanel(user = me) {
   );
 }
 
-// The panel shows each user twice (desktop table + phone cards); use the table row
+/** A person's row in the table. */
 async function rowFor(email) {
   const [cell] = await screen.findAllByText(email);
   return cell.closest('tr');
@@ -177,6 +182,7 @@ describe('SuperUserPanel', () => {
 
   describe('clearing my test data', () => {
     const counts = { classes: 1, dates: 2, availability: 2, real_classes_booked: 1 };
+    /** Sets how much test data the fake API reports. */
     const withCounts = (c) => api.get.mockImplementation((url) =>
       Promise.resolve({ data: url === '/test_data' ? c : [me, priya, otherAdmin] }));
 

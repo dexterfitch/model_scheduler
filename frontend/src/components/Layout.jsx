@@ -1,3 +1,8 @@
+/**
+ * The frame around every signed-in page: navigation for the person's role, a skip
+ * link, the page title, the SuperUser banner and the Report a Bug window.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Button, Modal, Form } from 'react-bootstrap';
 import { Outlet, Link, useLocation } from 'react-router-dom';
@@ -7,7 +12,6 @@ import { useDialog } from './DialogProvider';
 import { extractErrorMessages } from '../utils/formatters';
 import { setPageTitle } from '../utils/pageTitle';
 
-// What each page is called in the browser tab
 const HOME_TITLES = { admin: 'Dashboard', faculty: 'My Classes', model: 'My Gigs' };
 const PAGE_TITLES = [
   [/^\/requests/, 'Requests'],
@@ -20,9 +24,11 @@ const PAGE_TITLES = [
   [/^\/superuser/, 'SuperUser Panel'],
   [/^\/profile/, 'My Profile'],
 ];
+/** The tab title for a page. */
 const pageTitle = (path, role) =>
   `${PAGE_TITLES.find(([pattern]) => pattern.test(path))?.[1] || HOME_TITLES[role] || 'Home'} · MICA Pose Pool`;
 
+/** The navigation bar and the page inside it. */
 function Layout({ currentUser, onLogout, refreshUser }) {
   const location = useLocation();
   const { notify } = useDialog();
@@ -35,6 +41,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
   const [showBugModal, setShowBugModal] = useState(false);
   const [bugDescription, setBugDescription] = useState('');
 
+  /** Switches a SuperUser who was trying the app as faculty or a model back to admin. */
   const handleRestoreAdmin = async () => {
     try {
       const res =await api.post(`/users/${currentUser.id}/promote`, { role: 'admin' });
@@ -45,6 +52,9 @@ function Layout({ currentUser, onLogout, refreshUser }) {
     }
   };
 
+  /**
+   * Opens an email to dfitch@mica.edu with the page, the person, their browser and what they wrote.
+   */
   const handleSendBugReport = () => {
     const subject = `Bug Report: ${location.pathname}`;
     const body = `Page: ${window.location.href}

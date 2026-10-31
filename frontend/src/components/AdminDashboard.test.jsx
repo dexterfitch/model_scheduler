@@ -1,3 +1,7 @@
+/**
+ * Tests for the admin Dashboard: pending classes and today's gigs.
+ */
+
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AdminDashboard from './AdminDashboard';
@@ -6,7 +10,7 @@ import { daysFromNow } from '../test/dates';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn() } }));
 
-// A pending class with one upcoming date, needing `needed` models, `booked` of them booked so far
+/** A class needing some models, with some already booked. */
 const classNeeding = (needed, booked, overrides = {}) => ({
   id: 1, class_name: 'Group Pose Lab', models_needed: needed, status: 'pending',
   user: { first_name: 'Priya', last_name: 'Nair' },
@@ -18,6 +22,7 @@ const classNeeding = (needed, booked, overrides = {}) => ({
   ...overrides
 });
 
+/** Shows the Dashboard with these classes. */
 function renderWith(series) {
   api.get.mockImplementation((url) => Promise.resolve({ data: url === '/request_series' ? series : [] }));
   render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
@@ -43,13 +48,14 @@ describe('AdminDashboard', () => {
   });
 
   it("lists today's evening classes in Today's Schedule, and not tomorrow's", async () => {
-    // Local times on purpose: an 8:30 PM class here is already "tomorrow" in UTC
+    /** A time some days from now. */
     const at = (daysAhead, hour, minute = 0) => {
       const d = new Date();
       d.setDate(d.getDate() + daysAhead);
       d.setHours(hour, minute, 0, 0);
       return d.toISOString();
     };
+    /** A confirmed gig. */
     const gig = (id, class_name, starts_at, ends_at) => ({
       id, status: 'confirmed',
       faculty_request: { class_name, starts_at, ends_at, model_mode: 'clothed', user: { first_name: 'Priya', last_name: 'Nair' } },

@@ -1,7 +1,11 @@
+/**
+ * End-to-end: every admin page opens without a script error.
+ */
+
 import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers';
 
-// Fail the test if the page throws a JavaScript error while loading
+/** Collects the page's script errors, to check there were none. */
 function watchForCrashes(page) {
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
@@ -26,7 +30,6 @@ test('every admin page loads without errors', async ({ page }) => {
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
   }
 
-  // A model's detail page, reached from the directory
   await page.getByRole('link', { name: 'Directory', exact: true }).click();
   await page.getByRole('row', { name: /Jordan Ellis/ }).getByRole('link', { name: 'View Availability' }).click();
   await expect(page.getByRole('heading', { name: 'Jordan Ellis', level: 2 })).toBeVisible();

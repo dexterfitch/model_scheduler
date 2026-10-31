@@ -1,8 +1,13 @@
+/**
+ * Accessibility checks with axe on every page and the main windows, at desktop and
+ * phone sizes, plus a check that buttons and links on phones are big enough to tap.
+ * Needs the API running with the seed data.
+ */
+
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { loginAs } from './helpers';
 
-// Checks every page against WCAG 2.1 AA, the usual accessibility standard
 const sizes = {
   desktop: { viewport: { width: 1440, height: 900 } },
   phone:   { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
@@ -33,19 +38,22 @@ const pages = [
     open: (page) => openDialog(page, 'Edit Class') },
 ];
 
-// Clicks the first visible button with this name and waits for its pop-up to finish opening.
-// On phones some buttons live in a card's More menu, so open that first if needed.
+/**
+ * Opens a window by its button, looking in the phone More menu when the button is tucked away
+ * there.
+ */
 async function openDialog(page, name) {
+  /** The first visible button with this name. */
   const button = () => page.getByRole('button', { name }).filter({ visible: true }).first();
   if (await button().count() === 0) {
     await page.getByRole('button', { name: /^More actions for/ }).filter({ visible: true }).first().click();
   }
   await button().click();
   await expect(page.getByRole('dialog')).toBeVisible();
-  await page.waitForTimeout(400); // let the fade-in finish so colours are final
+  await page.waitForTimeout(400);
 }
 
-// Turn axe's findings into a short, readable list for the failure message
+/** axe's findings as a readable list for the failure message. */
 const summarize = (violations) => violations.map(v =>
   `• ${v.id} (${v.impact}, ${v.nodes.length}×): ${v.help}\n    e.g. ${v.nodes[0].target.join(' ')}`
 ).join('\n');
@@ -71,7 +79,6 @@ for (const [size, options] of Object.entries(sizes)) {
   });
 }
 
-// On phone screens, every button and form field should be at least 44px tall
 test.describe('tap targets (phone)', () => {
   test.use(sizes.phone);
 

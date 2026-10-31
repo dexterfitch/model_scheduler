@@ -1,11 +1,15 @@
+/**
+ * A success message pinned to the bottom of the screen, so it's seen even when the
+ * page is scrolled down (often the case on phones). It stays until it's closed.
+ */
+
 import React from 'react';
 import { Alert } from 'react-bootstrap';
 import styles from './StatusToast.module.css';
 
-// A success message pinned to the bottom of the screen, so it's seen even when the
-// page is scrolled down to where the action happened (often the case on phones).
-// It stays until it's closed. The status area is always on the page, so screen
-// readers announce each new message.
+/**
+ * The message, if any, in a status area that's always on the page so screen readers announce it.
+ */
 function StatusToast({ message, onClose, children }) {
   return (
     <div role="status" className={styles.toast}>

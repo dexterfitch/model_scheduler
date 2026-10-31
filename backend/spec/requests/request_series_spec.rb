@@ -1,3 +1,5 @@
+# Classes: who can change them, what faculty and admins see, and what changes reach past dates.
+
 require "rails_helper"
 
 RSpec.describe "Request series permissions", type: :request do
@@ -11,6 +13,7 @@ RSpec.describe "Request series permissions", type: :request do
     request
   end
 
+  # Changes the class, as the given user.
   def patch_series(as:, changes:)
     patch "/request_series/#{series.id}",
       params: { request_series: changes }, headers: auth_headers(as), as: :json
@@ -48,7 +51,7 @@ RSpec.describe "Request series permissions", type: :request do
   end
 
   describe "listing series" do
-    # The booked model cancels their own gig, which flags the date for an admin
+    # The booked model cancels their gig on the booked date; returns that model.
     def model_drops_out
       gig = booked_date.confirmed_gigs.first
       model = gig.art_model_availability.user

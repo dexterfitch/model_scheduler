@@ -1,3 +1,5 @@
+# Settings for running the app on your own computer.
+
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do

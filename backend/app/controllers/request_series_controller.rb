@@ -1,9 +1,15 @@
+# Classes: a set of dates sharing the same details and model preferences.
+# Faculty manage their own classes; admins manage every class and can release
+# models to rebook; models see open calls they could sign up for.
 class RequestSeriesController < ApplicationController
   MAX_DATES_PER_SERIES = 50
   before_action -> { require_role(:admin, :faculty) }, except: [:available_for_model]
   before_action -> { require_role(:admin, :model) }, only: [:available_for_model]
   before_action -> { require_role(:admin) }, only: [:release_remaining]
 
+  # Lists classes with their dates. Admins also get every gig of each date (with
+  # corrections) and who dropped out; faculty only learn whether a date is booked
+  # and which admin to contact, never who the model is.
   def index
     preload = { faculty_requests: { confirmed_gigs: [:confirmed_by, { art_model_availability: :user }] } }
     if current_user.role_admin?
@@ -19,11 +25,8 @@ class RequestSeriesController < ApplicationController
       user: {},
       model_slots: { only: [:position, :pref_skin_tone, :pref_gender, :pref_body_type, :pref_genitalia] },
       faculty_requests: {
-        # Only admins see which model dropped out
         methods: current_user.role_admin? ? [:dropped_out_model_name] : [],
         include: (current_user.role_admin? ? {
-          # Every gig of each date, including no-shows and cancellations, so a
-          # past date's record can be corrected
           gigs: { methods: [:corrections], include: { art_model_availability: { include: :user } } }
         } : {}).merge(
           confirmed_gigs: current_user.role_admin? ? {
@@ -39,13 +42,14 @@ class RequestSeriesController < ApplicationController
     }
   end
 
+  # Open calls for the signed-in model: classes with dates still to come that need a
+  # model, that this model could pose for (nude classes only for models willing),
+  # leaving out dates they're already booked on. Soonest first.
   def available_for_model
     series_list = RequestSeries.visible_to_model(current_user)
       .includes(faculty_requests: { confirmed_gigs: :art_model_availability })
 
     payload = series_list.filter_map do |series|
-      # Hide dates this model is already booked on (multi-model sessions stay
-      # "pending" until every slot is filled)
       open_requests = series.faculty_requests.select do |req|
         req.pending? && req.starts_at > Time.current &&
           req.confirmed_gigs.none? { |g| g.art_model_availability.user_id == current_user.id }
@@ -62,10 +66,11 @@ class RequestSeriesController < ApplicationController
       )
     end
 
-    # Soonest first, by each call's next open date
     render json: payload.sort_by { |call| Time.zone.parse(call["faculty_requests"].first["starts_at"].to_s) }
   end
 
+  # Creates a class and all its dates in one go. Dates are given in Eastern time;
+  # one bad date rolls back the whole class, with an error naming that date.
   def create
     @series = RequestSeries.new(series_params)
     @series.user_id = current_user.id unless current_user.role_admin?
@@ -86,7 +91,6 @@ class RequestSeriesController < ApplicationController
       return render json: { error: "A request can have at most #{MAX_DATES_PER_SERIES} dates" }, status: :unprocessable_content
     end
 
-    # Parse every date up front so one bad entry gives a clear error instead of a crash
     eastern = ActiveSupport::TimeZone["Eastern Time (US & Canada)"]
     times = dates.each_with_index.map do |entry, i|
       entry = entry.permit(:date, :start_time, :end_time) if entry.respond_to?(:permit)
@@ -140,6 +144,10 @@ class RequestSeriesController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_content
   end
 
+  # Changes a class's details or preferences. Only dates still to come pick up the
+  # changes, so past records stay as they were. Faculty can't change a class once a
+  # model is booked; nobody can switch to nude while a clothed-only model is
+  # booked, or ask for fewer models than are already booked.
   def update
     @series = RequestSeries.find(params[:id])
 
@@ -177,13 +185,9 @@ class RequestSeriesController < ApplicationController
     ActiveRecord::Base.transaction do
       @series.update!(series_params)
 
-      # Copy only the fields that were sent, read back from the saved series so
-      # normalization (e.g. clearing the genitalia pref for clothed sessions) carries over
       changed_keys = series_params.keys.map(&:to_s)
       changed_keys |= ["pref_genitalia"] if changed_keys.include?("model_mode")
       shared_attrs = @series.attributes.slice(*(changed_keys & RequestSeries::SHARED_ATTRIBUTES))
-      # Dates that have started (or were cancelled) keep their details, so past
-      # reports and pay records don't change after the fact
       if shared_attrs.present?
         @series.faculty_requests.where("starts_at > ?", Time.current).where.not(status: :archived).update_all(shared_attrs)
       end
@@ -205,12 +209,15 @@ class RequestSeriesController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_content
   end
 
+  # Admins only: releases every booked model from the class's remaining dates so they can be
+  # rebooked.
   def release_remaining
     @series = RequestSeries.find(params[:id])
     @series.release_remaining_for_rematch!
     render json: @series
   end
 
+  # Cancels every date of the class that hasn't started yet.
   def destroy
     @series = RequestSeries.find(params[:id])
 
@@ -222,6 +229,7 @@ class RequestSeriesController < ApplicationController
 
   private
 
+  # Names of models booked on the class who only pose clothed.
   def clothed_only_models_booked_on(series)
     User.joins(art_model_availabilities: { gigs: :faculty_request })
       .where(gigs: { status: Gig.statuses[:confirmed] })
@@ -232,7 +240,7 @@ class RequestSeriesController < ApplicationController
       .map { |u| "#{u.first_name} #{u.last_name}" }
   end
 
-  # Per-model preferences sent with the request, or nil when they weren't sent at all
+  # Per-model preferences sent with the request, or nil when none were sent.
   def model_slot_params
     return nil unless params.key?(:model_slots)
 
@@ -241,10 +249,12 @@ class RequestSeriesController < ApplicationController
     end
   end
 
+  # The message for per-model preferences that don't match the number of models.
   def slot_count_error(needed)
     "Give preferences for each of the #{needed} models, or choose \"Same for every model\"."
   end
 
+  # Allowed class fields; admins may also set the owner.
   def series_params
     permitted = [
       :class_name, :department, :building, :model_mode,

@@ -1,8 +1,13 @@
+/**
+ * Tests for the skin tone circles.
+ */
+
 import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SkinTonePicker from './SkinTonePicker';
 
+/** The picker with real state, as a form would hold it. */
 function Harness({ initial = '', onChange = () => {} }) {
   const [value, setValue] = useState(initial);
   return <SkinTonePicker value={value} onChange={(v) => { setValue(v); onChange(v); }} />;

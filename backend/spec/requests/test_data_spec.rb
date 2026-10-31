@@ -1,18 +1,18 @@
+# Clearing a SuperUser's own test data, and nobody else's.
+
 require "rails_helper"
 
 RSpec.describe "Clearing a SuperUser's own test data", type: :request do
   let(:me)     { create(:user, :admin, superuser: true) }
   let(:admin)  { create(:user, :admin) }
-  let(:alice)  { create(:user) }                 # a real faculty member
-  let(:jordan) { create(:user, :model) }         # a real model
+  let(:alice)  { create(:user) }
+  let(:jordan) { create(:user, :model) }
 
-  # What I made while acting as Faculty: a class with two dates, one booked with a real model
   let!(:my_class)   { create(:request_series, user: me) }
   let!(:my_date1)   { create(:faculty_request, user: me, request_series: my_class) }
   let!(:my_date2)   { create(:faculty_request, user: me, request_series: my_class, starts_at: 9.days.from_now.change(hour: 10)) }
   let!(:jordan_on_my_class) { create(:gig, faculty_request: my_date1, art_model_availability: create(:art_model_availability, user: jordan)) }
 
-  # What I made while acting as Model: free time, and a booking into a real class
   let!(:my_free_time) { create(:art_model_availability, user: me, starts_at: 10.days.from_now.change(hour: 9)) }
   let!(:real_class)   { create(:faculty_request, user: alice) }
   let!(:me_on_real_class) do
@@ -23,7 +23,6 @@ RSpec.describe "Clearing a SuperUser's own test data", type: :request do
     gig
   end
 
-  # Someone else's records, which must never be touched
   let!(:alices_class) { create(:faculty_request, user: alice, starts_at: 11.days.from_now.change(hour: 10)) }
   let!(:jordans_time) { create(:art_model_availability, user: jordan, starts_at: 12.days.from_now.change(hour: 9)) }
 

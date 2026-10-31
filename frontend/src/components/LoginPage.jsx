@@ -1,3 +1,7 @@
+/**
+ * The sign-in page, with the reason when a sign-in didn't work or expired.
+ */
+
 import React, { useEffect } from "react";
 import { Container, Card, Alert, Button } from "react-bootstrap";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -5,6 +9,7 @@ import styles from "./LoginPage.module.css";
 import { API_URL } from "../services/api";
 import { setPageTitle } from '../utils/pageTitle';
 
+/** The sign-in page with the Google sign-in link. */
 function LoginPage({ notice }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

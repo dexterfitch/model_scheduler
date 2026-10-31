@@ -1,3 +1,5 @@
+# Loads Rails and the gems the API uses, then sets up the application.
+
 require_relative "boot"
 
 require "rails"
@@ -9,7 +11,10 @@ require "action_cable/engine"
 
 Bundler.require(*Rails.groups)
 
+# The Pose Pool API.
 module Backend
+  # Rails settings for the API: Eastern time, API-only, and a cookie session used
+  # only during Google sign-in.
   class Application < Rails::Application
     config.load_defaults 8.0
     config.time_zone = "Eastern Time (US & Canada)"

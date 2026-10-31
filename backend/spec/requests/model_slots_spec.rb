@@ -1,3 +1,6 @@
+# Classes with different preferences for each model: saving, changing and booking into the best
+# spot.
+
 require "rails_helper"
 
 RSpec.describe "Per-model preferences", type: :request do
@@ -7,6 +10,7 @@ RSpec.describe "Per-model preferences", type: :request do
   let(:muscular)  { { pref_skin_tone: "Any", pref_gender: "Any", pref_body_type: "Muscular", pref_genitalia: "Any" } }
   let(:fat)       { muscular.merge(pref_body_type: "Fat") }
 
+  # Creates a one-date class with the given per-model preferences, as the faculty member.
   def create_series(model_slots:, models_needed: 2)
     post "/request_series",
       params: {
@@ -18,6 +22,7 @@ RSpec.describe "Per-model preferences", type: :request do
       headers: auth_headers(faculty), as: :json
   end
 
+  # Changes a class, with per-model preferences if given, as the given user.
   def update_series(series, changes, model_slots: nil, as: faculty)
     body = { request_series: changes }
     body[:model_slots] = model_slots unless model_slots.nil?

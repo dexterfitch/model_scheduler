@@ -1,6 +1,11 @@
+/**
+ * End-to-end: the billing report pays a model for a same-day late cancellation.
+ */
+
 import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers';
 
+/** A date some days from today, as a date field expects it. */
 const dayFromNow = (days) => {
   const d = new Date();
   d.setDate(d.getDate() + days);
@@ -13,11 +18,9 @@ test('the billing report pays for a same-day late cancellation', async ({ page }
   await page.getByRole('link', { name: 'Reports', exact: true }).click();
   await gigsLoaded;
 
-  // The seeds include one late cancellation, today: Sam Woods, 2 hours (Scenario H)
   const dates = page.locator('input[type="date"]');
   await dates.nth(0).fill(dayFromNow(0));
   await dates.nth(1).fill(dayFromNow(1));
-  // Regenerate until the page's gig data has arrived
   await expect(async () => {
     await page.getByRole('button', { name: 'Generate Report' }).click();
     await expect(page.getByText('Sam Woods').first()).toBeVisible({ timeout: 1000 });

@@ -1,3 +1,9 @@
+/*
+ * Calendar adjustments for smaller screens: smaller headings and buttons on tablets
+ * and phones, and on phones the month or week heading gets its own line above the
+ * buttons instead of being squeezed between them.
+ */
+
 @media (max-width: 991px) {
   .fc-toolbar-title {
     font-size: 1.2rem !important;
@@ -23,8 +29,6 @@
   }
 }
 
-/* Phones: the month or week heading gets its own line above the buttons,
-   instead of being squeezed between them */
 @media (max-width: 767px) {
   .fc .fc-header-toolbar {
     flex-wrap: wrap;

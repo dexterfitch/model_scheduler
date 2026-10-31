@@ -1,3 +1,5 @@
+# Class dates: switching to nude with booked models, preferences, slots and validation rules.
+
 require "rails_helper"
 
 RSpec.describe FacultyRequest, type: :model do

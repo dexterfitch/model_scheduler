@@ -1,4 +1,12 @@
-/* Font Imports */
+/*
+ * Styles for the whole app: the Theinhardt fonts, MICA brand colors and font
+ * weights, page-wide text styles, the rainbow bar, Bootstrap adjustments, the
+ * status and date filters on the Gig Registry and Requests pages (the date
+ * filters sit under a line on phones and on the right on wider screens), and
+ * equal-height tabs, so the open tab always meets the line underneath even when
+ * another tab wraps onto two lines.
+ */
+
 @font-face {
   font-family: 'Theinhardt';
   src: url('./assets/fonts/Theinhardt-Thin.otf') format('opentype');
@@ -27,9 +35,7 @@
   font-style: normal;
 }
 
-/* Variable Declarations */
 :root {
-  /* Brand Colors */
   --brand-blue: #0047bb;
   --brand-deepblue: #10069f;
   --brand-yellow: #fedb00;
@@ -40,14 +46,12 @@
   --brand-white: #ffffff;
   --brand-black: #000000;
 
-  /* Font Weights */
   --font-thin: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-regular: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-bold: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-black: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
-/* Global Font Variant Classes */
 .font-thin {
   font-family: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-weight: 100;
@@ -68,7 +72,6 @@
   font-weight: 900;
 }
 
-/* Sitewide Styles */
 body {
   font-family: 'Theinhardt', system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-synthesis: style;
@@ -116,7 +119,6 @@ h3, .h3, h4, .h4, h5, .h5 {
   }
 }
 
-/* Bootstrap Overrides */
 .navbar .nav-link {
   --bs-nav-link-color: var(--brand-yellow);
   --bs-nav-link-hover-color: var(--brand-green);
@@ -126,9 +128,6 @@ h3, .h3, h4, .h4, h5, .h5 {
   --bs-badge-font-weight: 400;
 }
 
-/* View-Specific Styles */
-
-/* AllGigs and AllRequests Date Filters */
 .date-filter-box {
   min-height: auto;
 }
@@ -139,8 +138,6 @@ h3, .h3, h4, .h4, h5, .h5 {
   }
 }
 
-
-/* A small heading over each group of filter buttons */
 .filter-group-label {
   font-size: 0.75rem;
   font-weight: 700;
@@ -150,7 +147,6 @@ h3, .h3, h4, .h4, h5, .h5 {
   margin-bottom: 0.35rem;
 }
 
-/* Date filters: under a dividing line on phones, on the right on wider screens */
 .filter-dates {
   border-top: 1px solid var(--bs-border-color);
   padding-top: 0.75rem;
@@ -163,7 +159,6 @@ h3, .h3, h4, .h4, h5, .h5 {
   }
 }
 
-/* AllGigs and AllRequests Filter Buttons */
 @media (max-width: 767px) {
   .status-filter-btn {
     font-size: 0.75rem;
@@ -171,8 +166,6 @@ h3, .h3, h4, .h4, h5, .h5 {
   }
 }
 
-/* Tabs that share the width: each tab is as tall as the tallest, so the open
-   tab always meets the line underneath even when the other tab wraps onto two lines */
 .tabs-equal-height .nav-item {
   display: flex;
 }

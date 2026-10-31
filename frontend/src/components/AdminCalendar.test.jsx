@@ -1,3 +1,7 @@
+/**
+ * Tests for the admin Calendar's list of upcoming free time.
+ */
+
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithDialogs } from '../test/render';
@@ -8,31 +12,31 @@ import { daysFromNow } from '../test/dates';
 import { formatDateWithWeekday } from '../utils/time';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn() } }));
-// A stand-in calendar: one button per event, so tests can "click" an event
 vi.mock('./SharedCalendar', () => ({
   default: ({ events, onEventClick }) => events.map(e => (
     <button key={e.id} onClick={() => onEventClick({ event: { extendedProps: e.extendedProps } })}>{e.title}</button>
   ))
 }));
 
+/** A model. */
 const person = (id, first_name, last_name) => ({ id, first_name, last_name, willing_to_model_nude: false });
 const jordan = person(1, 'Jordan', 'Ellis');
 const riley  = person(2, 'Riley', 'Park');
 const sam    = person(3, 'Sam', 'Woods');
 
-// An availability block `day` days from now, between two hours (UTC)
+/** A block of free time some days from now. */
 const block = (id, user, day, from, to, status = 'active') =>
   ({ id, user, status, starts_at: daysFromNow(day, from), ends_at: daysFromNow(day, to) });
-// A confirmed class booked into a block
+/** A booked gig inside a block of free time. */
 const classIn = (availability, day, from, to) => ({
   id: availability.id * 10, status: 'confirmed',
   art_model_availability: { id: availability.id, user: availability.user },
   faculty_request: { class_name: 'Figure Drawing I', starts_at: daysFromNow(day, from), ends_at: daysFromNow(day, to) }
 });
 
-const jordansDay = block(10, jordan, 3, 14, 22);             // open all day, with one class in the middle
-const rileysDay  = block(11, riley, 4, 14, 16);              // fully booked
-const samsDay    = block(12, sam, 5, 14, 22, 'cancelled');   // the model cancelled it
+const jordansDay = block(10, jordan, 3, 14, 22);
+const rileysDay  = block(11, riley, 4, 14, 16);
+const samsDay    = block(12, sam, 5, 14, 22, 'cancelled');
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -47,11 +51,9 @@ describe('AdminCalendar availability list', () => {
     renderWithDialogs(<MemoryRouter><AdminCalendar /></MemoryRouter>);
     const list = await screen.findByRole('region', { name: 'Upcoming Model Availability' });
 
-    // Jordan's day appears as the two open stretches around the class
     const [jordanName] = await within(list).findAllByText('Jordan Ellis');
     expect(within(list).getAllByText('Jordan Ellis')).toHaveLength(1);
     expect(within(jordanName.closest('li')).getAllByRole('listitem')).toHaveLength(2);
-    // Riley is fully booked, and Sam cancelled
     expect(within(list).queryByText('Riley Park')).toBeNull();
     expect(within(list).queryByText('Sam Woods')).toBeNull();
   });
@@ -66,12 +68,13 @@ describe('AdminCalendar availability list', () => {
     renderWithDialogs(<MemoryRouter><AdminCalendar /></MemoryRouter>);
     const list = await screen.findByRole('region', { name: 'Upcoming Model Availability' });
 
-    // Riley's first free time (day 2) comes before Jordan's (day 3)
     const names = await within(list).findAllByText(/^(Riley Park|Jordan Ellis)$/);
     expect(names.map(n => n.textContent)).toEqual(['Riley Park', 'Jordan Ellis']);
     const cards = names.map(n => n.closest('li'));
 
+    /** The lines of free time on a model's card. */
     const times = (card) => within(card).getAllByRole('listitem').map(li => li.textContent);
+    /** How a day is written on the cards. */
     const day = (n) => formatDateWithWeekday(daysFromNow(n, 14));
     expect(times(cards[0])[0]).toContain(day(2));
     expect(times(cards[0])[1]).toContain(day(6));

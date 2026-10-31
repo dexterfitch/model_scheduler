@@ -1,3 +1,7 @@
+/**
+ * My Profile, for models: their details and the personal questions used for matching.
+ */
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -7,7 +11,7 @@ import ModelBodyFields from './ModelBodyFields';
 import PersonalQuestionsNote from './PersonalQuestionsNote';
 import { extractErrorMessages } from '../utils/formatters';
 
-// The form's values for what's saved on the server
+/** The form's values from the saved profile. */
 const savedValues = (user) => ({
   first_name: user?.first_name || '',
   last_name: user?.last_name || '',
@@ -21,6 +25,7 @@ const savedValues = (user) => ({
   genitalia: user?.genitalia || '',
 });
 
+/** The profile form. */
 const Profile = ({ currentUser, setCurrentUser }) => {
 
   const navigate = useNavigate();
@@ -29,14 +34,13 @@ const Profile = ({ currentUser, setCurrentUser }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // When the saved profile changes (after a save, say), show the new values.
-  // Done while rendering, as React recommends, rather than in an effect.
   const [shownUser, setShownUser] = useState(currentUser);
   if (currentUser !== shownUser) {
     setShownUser(currentUser);
     setFormData(savedValues(currentUser));
   }
 
+  /** Saves a changed field. */
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -46,10 +50,12 @@ const Profile = ({ currentUser, setCurrentUser }) => {
     }));
   };
 
+  /** Saves the chosen skin tone. */
   const handleSkinToneSelect = (value) => {
     setFormData(prev => ({ ...prev, skin_tone: value }));
   };
 
+  /** Saves the profile; on a refusal, shows why and goes back to what's saved. */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -62,7 +68,6 @@ const Profile = ({ currentUser, setCurrentUser }) => {
     } catch (err) {
       console.error(err);
       setMessage({ type: 'danger', text: extractErrorMessages(err, 'Failed to update profile.') });
-      // Nothing was saved, so show what's really on file again
       setFormData(savedValues(currentUser));
     } finally {
       setLoading(false);

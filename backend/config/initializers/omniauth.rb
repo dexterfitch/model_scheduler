@@ -1,3 +1,5 @@
+# Google sign-in, limited to the mica.edu workspace and always showing the account chooser.
+
 Rails.application.config.middleware.use OmniAuth::Builder do
   provider :google_oauth2,
     ENV['GOOGLE_CLIENT_ID'],

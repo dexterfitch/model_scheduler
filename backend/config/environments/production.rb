@@ -1,3 +1,5 @@
+# Settings for the live site: HTTPS only, logs to standard output.
+
 Rails.application.configure do
   config.enable_reloading = false
   config.eager_load = true

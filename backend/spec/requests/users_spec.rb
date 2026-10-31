@@ -1,9 +1,12 @@
+# Profiles and roles: who can see and change what, SuperUser powers, sock accounts and nude consent.
+
 require "rails_helper"
 
 RSpec.describe "User profile permissions", type: :request do
   let(:user)  { create(:user) }
   let(:admin) { create(:user, :admin) }
 
+  # Changes the test user's profile, as the given user.
   def patch_user(as:, changes:)
     patch "/users/#{user.id}", params: { user: changes }, headers: auth_headers(as), as: :json
   end
@@ -28,6 +31,7 @@ RSpec.describe "User profile permissions", type: :request do
     let(:superuser)   { create(:user, :admin, superuser: true) }
     let(:other_admin) { create(:user, :admin) }
 
+    # Changes the given person's profile, as the given user.
     def patch_profile(target, as:, changes:)
       patch "/users/#{target.id}", params: { user: changes }, headers: auth_headers(as), as: :json
     end
@@ -117,9 +121,9 @@ RSpec.describe "User profile permissions", type: :request do
       expect(response).to have_http_status(:ok)
       user.reload
       expect(user).to be_role_model
-      expect(user.gender_identity).to eq("Non-binary") # same answer, today's spelling
+      expect(user.gender_identity).to eq("Non-binary")
       expect(user.skin_tone).to eq("Medium")
-      expect(user.body_type).to be_nil                 # no longer an option, and optional
+      expect(user.body_type).to be_nil
     end
 
     it "uses Prefer not to say for a gender value that no longer exists" do
@@ -249,6 +253,7 @@ RSpec.describe "User profile permissions", type: :request do
     let(:model) { create(:user, :model, :nude_ok) }
     let(:slot)  { create(:art_model_availability, user: model) }
 
+    # The model turns off "willing to pose nude" on their profile.
     def stop_posing_nude
       patch "/users/#{model.id}", params: { user: { willing_to_model_nude: false } },
         headers: auth_headers(model), as: :json

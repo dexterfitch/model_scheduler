@@ -1,3 +1,7 @@
+/**
+ * Tests for Find Model: ranking, booking and group and per-model classes.
+ */
+
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -7,21 +11,22 @@ import { daysFromNow } from '../test/dates';
 import { formatDateWithWeekday } from '../utils/time';
 import { renderWithDialogs } from '../test/render';
 
-// Replace the real backend connection with a fake one
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
 const alex  = { id: 10, first_name: 'Alex',  last_name: 'Booked', willing_to_model_nude: false, skin_tone: 'Light', gender_identity: 'Woman' };
 const blair = { id: 11, first_name: 'Blair', last_name: 'Free',   willing_to_model_nude: false, skin_tone: 'Dark',  gender_identity: 'Man' };
 
+/** A date needing some models. */
 const makeRequest = (modelsNeeded) => ({
   id: 1, class_name: 'Figure Drawing I', status: 'pending', model_mode: 'clothed', models_needed: modelsNeeded,
   starts_at: daysFromNow(12, 15), ends_at: daysFromNow(12, 17),
   pref_skin_tone: 'Any', pref_gender: 'Any', pref_body_type: 'Any', pref_genitalia: 'Any',
   user: { first_name: 'Priya', last_name: 'Nair' }
 });
+/** Free time covering the test date. */
 const slot = (id, user) => ({ id, user, status: 'active', starts_at: daysFromNow(12, 13), ends_at: daysFromNow(12, 21) });
 
-// The fake backend: one class, two available models, Alex already booked
+/** Sets the fake API for a date with one model booked. */
 function fakeBackend(modelsNeeded) {
   const request = makeRequest(modelsNeeded);
   const gigs = [{ id: 100, status: 'confirmed', faculty_request: request, art_model_availability: { id: 1, user: alex } }];
@@ -34,6 +39,7 @@ function fakeBackend(modelsNeeded) {
   api.post.mockResolvedValue({ data: {} });
 }
 
+/** Shows Find Model for the test date. */
 function renderMatchingScreen() {
   renderWithDialogs(
     <MemoryRouter initialEntries={['/gigs/new/1']}>
@@ -42,7 +48,7 @@ function renderMatchingScreen() {
   );
 }
 
-// Click Book Model, then confirm in the window that opens
+/** Books the first model and confirms. */
 async function bookAndConfirm() {
   await userEvent.click(await screen.findByRole('button', { name: 'Book Model' }));
   await userEvent.click(await screen.findByRole('button', { name: 'Confirm Booking' }));
@@ -98,19 +104,19 @@ describe('GigCreator (matching screen)', () => {
 
     await bookAndConfirm();
     expect(await screen.findByRole('status')).toHaveTextContent(/Gig confirmed.*fully staffed/);
-    // Stays on the page with a clear next step, instead of leaving on a timer
     expect(screen.getByRole('button', { name: 'Back to Requests' })).toBeInTheDocument();
   });
 
   it("lists a series' dates in calendar order", async () => {
     const later = daysFromNow(20, 15);
     const sooner = daysFromNow(6, 15);
+    /** A pending date. */
     const date = (id, starts_at) => ({ id, status: 'pending', models_needed: 1, starts_at, ends_at: starts_at });
     const series = {
       id: 1, class_name: 'Painting II', status: 'pending', model_mode: 'clothed', models_needed: 1,
       pref_skin_tone: 'Any', pref_gender: 'Any', pref_body_type: 'Any', pref_genitalia: 'Any',
       user: { first_name: 'Priya', last_name: 'Nair' },
-      faculty_requests: [date(21, later), date(22, sooner)]   // stored out of order
+      faculty_requests: [date(21, later), date(22, sooner)]
     };
     api.get.mockImplementation((url) => Promise.resolve({ data: url === '/request_series' ? [series] : [] }));
     renderWithDialogs(
@@ -119,10 +125,8 @@ describe('GigCreator (matching screen)', () => {
       </MemoryRouter>
     );
 
-    // \b so "Nov 1" doesn't also match "Nov 15"
     const soonerRow = await screen.findByText(new RegExp(`${formatDateWithWeekday(sooner)}\\b`));
     const laterRow = screen.getByText(new RegExp(`${formatDateWithWeekday(later)}\\b`));
-    // The sooner date comes first on the page
     expect(soonerRow.compareDocumentPosition(laterRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
@@ -131,6 +135,7 @@ describe('GigCreator (matching screen)', () => {
     const casey = { id: 12, first_name: 'Casey', last_name: 'Strong', willing_to_model_nude: false,
                     skin_tone: 'Medium', gender_identity: 'Man', body_type: 'Muscular' };
 
+    /** Sets the fake API for a class with per-model preferences. */
     function seriesBackend({ bookedSlot } = {}) {
       const date = { id: 31, status: 'pending', models_needed: 2, starts_at: daysFromNow(12, 15), ends_at: daysFromNow(12, 17) };
       const series = {
@@ -157,7 +162,7 @@ describe('GigCreator (matching screen)', () => {
 
     it("shows each model's preferences on the class", async () => {
       seriesBackend();
-      // Each slot is one line: "Model 1: Any Skintone, Any, Fat Build"
+      /** Finds a list item whose text matches. */
       const line = (pattern) => (_, el) => el.tagName === 'LI' && pattern.test(el.textContent);
       expect(await screen.findByText(line(/Model 1: .*Fat Build/))).toBeInTheDocument();
       expect(screen.getByText(line(/Model 2: .*Muscular Build/))).toBeInTheDocument();
@@ -199,7 +204,7 @@ describe('GigCreator (matching screen)', () => {
     });
 
     it('only ranks against slots that are still open, and shows who fills the rest', async () => {
-      seriesBackend({ bookedSlot: 2 });   // Alex already fills the Muscular slot
+      seriesBackend({ bookedSlot: 2 });
       expect(await screen.findByText(/Alex Booked \(Model 2\)/)).toBeInTheDocument();
       expect(screen.queryByText('Best fit: Model 2')).toBeNull();
     });

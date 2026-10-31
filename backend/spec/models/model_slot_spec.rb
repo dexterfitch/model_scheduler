@@ -1,3 +1,5 @@
+# Per-model preferences: defaults and how well a model matches.
+
 require "rails_helper"
 
 RSpec.describe ModelSlot, type: :model do

@@ -1,14 +1,16 @@
 # Lets a SuperUser clear the classes and availability they made while trying the
 # app as Faculty or Model under their own account. Only records owned by that
-# SuperUser are removed; nobody else's classes, availability or account changes.
+# SuperUser are removed; nobody else's records or accounts change.
 class TestDataController < ApplicationController
   before_action :require_superuser
 
-  # How much would be cleared, for the confirmation window
+  # How much would be cleared, for the confirmation window.
   def show
     render json: counts
   end
 
+  # Deletes the SuperUser's classes, dates, free time and their bookings and
+  # corrections, then reopens any real class they were booked into as a model.
   def destroy
     cleared = counts
     ActiveRecord::Base.transaction do
@@ -26,7 +28,6 @@ class TestDataController < ApplicationController
       RequestSeries.where(id: series_ids).delete_all
       ArtModelAvailability.where(id: slot_ids).delete_all
 
-      # Real classes the SuperUser was booked into go back to needing a model
       FacultyRequest.where(id: reopened_ids).find_each do |request|
         request.refresh_match_status!
         request.request_series&.update_status!
@@ -37,29 +38,34 @@ class TestDataController < ApplicationController
 
   private
 
+  # Only SuperUsers may use this.
   def require_superuser
     raise NotAuthorizedError unless current_user&.superuser?
   end
 
+  # Classes the SuperUser requested.
   def my_series
     RequestSeries.where(user_id: current_user.id)
   end
 
+  # Dates the SuperUser requested, alone or as part of their classes.
   def my_requests
     FacultyRequest.where(user_id: current_user.id).or(FacultyRequest.where(request_series_id: my_series.select(:id)))
   end
 
+  # Free time the SuperUser added.
   def my_availability
     ArtModelAvailability.where(user_id: current_user.id)
   end
 
-  # Confirmed bookings of the SuperUser (as a model) into classes someone else asked for
+  # Bookings of the SuperUser (as a model) into classes someone else requested.
   def real_classes_booked
     Gig.confirmed
        .where(art_model_availability_id: my_availability.select(:id))
        .where.not(faculty_request_id: my_requests.select(:id))
   end
 
+  # Numbers of classes, dates, blocks of free time and real classes booked.
   def counts
     {
       classes: my_series.count,

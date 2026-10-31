@@ -1,8 +1,13 @@
+/**
+ * Tests for the sign-in page and its messages.
+ */
+
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import LoginPage from './LoginPage';
 import { API_URL } from '../services/api';
 
+/** Shows the sign-in page at a path. */
 const renderAt = (path, props = {}) => render(<MemoryRouter initialEntries={[path]}><LoginPage {...props} /></MemoryRouter>);
 
 describe('LoginPage', () => {

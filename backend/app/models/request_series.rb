@@ -1,3 +1,6 @@
+# A class: one or more dates sharing the same details and model preferences, owned
+# by a faculty member. Its status sums up its dates: archived when all are
+# cancelled, matched when all are booked, pending otherwise.
 class RequestSeries < ApplicationRecord
   belongs_to :user
   has_many :faculty_requests, dependent: :destroy
@@ -5,7 +8,6 @@ class RequestSeries < ApplicationRecord
 
   enum :status, { pending: 0, matched: 1, archived: 2 }
 
-  # Attributes that live on the series and get copied onto each dated request
   SHARED_ATTRIBUTES = %w[
     class_name department building model_mode
     pref_skin_tone pref_gender pref_body_type pref_genitalia
@@ -37,16 +39,15 @@ class RequestSeries < ApplicationRecord
     )
   }
   
-  # Replace the per-model preferences, in order. An empty list means the same
-  # preferences for every model (the series' own).
+  # Replaces the per-model preferences, in order. An empty list means the same
+  # preferences for every model.
   def assign_model_slots!(list)
     model_slots.destroy_all
     list.each_with_index { |prefs, i| model_slots.create!(prefs.merge(position: i + 1)) }
     release_slot_positions_beyond!(list.length)
   end
 
-  # When the number of models changes, keep one slot per model: drop extras,
-  # and add new ones that accept anyone
+  # After the number of models changes, keeps one spot per model: drops extras and adds open ones.
   def resize_model_slots!
     return if model_slots.empty?
 
@@ -55,13 +56,14 @@ class RequestSeries < ApplicationRecord
     release_slot_positions_beyond!(models_needed)
   end
 
-  # Bookings in slots that no longer exist stay booked, just not tied to a slot
+  # Bookings in spots that no longer exist stay booked, without a spot.
   def release_slot_positions_beyond!(count)
     Gig.where(faculty_request_id: faculty_requests.select(:id))
        .where("model_slot_position > ?", count)
        .update_all(model_slot_position: nil)
   end
 
+  # Recomputes the class's status from its dates. Status only, without validation.
   def update_status!
     active_requests = faculty_requests.where.not(status: :archived)
 
@@ -75,11 +77,13 @@ class RequestSeries < ApplicationRecord
     update_columns(status: RequestSeries.statuses[new_status], updated_at: Time.current)
   end
 
-  # Most models already booked on any one remaining date; models_needed can't go below this.
+  # The most models booked on any one remaining date.
   def max_booked_on_active_request
     faculty_requests.where.not(status: :archived).map(&:booked_count).max || 0
   end
   
+  # Releases every booked model from the dates still to come (paid if same-day) and
+  # puts those dates back to needing a model.
   def release_remaining_for_rematch!
     future_requests = faculty_requests
       .where.not(status: :archived)
@@ -92,7 +96,6 @@ class RequestSeries < ApplicationRecord
 
         booked.each do |gig|
           availability = gig.art_model_availability
-          # Same rule as releasing a single date: same-day releases are paid
           gig.update_columns(status: Gig.statuses[:cancelled],
             billable: request.starts_at.to_date == Date.current, updated_at: Time.current)
           availability.update_columns(status: ArtModelAvailability.statuses[:active], updated_at: Time.current)
@@ -104,10 +107,10 @@ class RequestSeries < ApplicationRecord
     update_status!
   end
 
+  # Cancels every date that hasn't started; dates already worked stay on record.
   def cancel_entire_series!
     ActiveRecord::Base.transaction do
       faculty_requests.each do |request|
-        # Sessions that already started were worked and must stay billable
         next if request.status == 'archived' || request.starts_at <= Time.current
         request.cancel_with_billing!
       end
@@ -117,6 +120,7 @@ class RequestSeries < ApplicationRecord
 
   private
 
+  # Blank preferences mean Any; genitalia only applies to nude classes.
   def normalize_preferences
     self.pref_body_type = "Any" if pref_body_type.blank?
     self.pref_genitalia = "Any" if pref_genitalia.blank? || model_mode != "nude"

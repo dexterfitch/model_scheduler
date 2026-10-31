@@ -1,3 +1,9 @@
+/**
+ * The SuperUser Panel: try the app as faculty or a model, change people's roles,
+ * grant SuperUser status, create sock accounts and manage their free time, and
+ * clear the test data made under the SuperUser's own account.
+ */
+
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -9,12 +15,13 @@ import SkinTonePicker from "./SkinTonePicker";
 import { extractErrorMessages } from "../utils/formatters";
 import { useDialog } from "./DialogProvider";
 
+/** The panel, for SuperUsers only. */
 const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [users, setUsers] = useState([]);
-  // What "Clear My Test Data" last cleared
   const [clearedMessage, setClearedMessage] = useState('');
   const navigate = useNavigate();
   const { confirm, notify } = useDialog();
+  /** Shows why something didn't work. */
   const showError = (title, err) => notify({ title, message: extractErrorMessages(err, 'Please try again.') });
 
   const [sockForm, setSockForm] = useState({
@@ -32,6 +39,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
   const [availSuccess, setAvailSuccess] = useState(false);
   const [modelGigs, setModelGigs] = useState([]);
 
+  /** Loads everyone. */
   const fetchUsers = useCallback(() => api.get('/users')
     .then(res => setUsers(res.data))
     .catch(err => console.error("Failed to fetch users", err)), []);
@@ -41,6 +49,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     fetchUsers();
   }, [currentUser, navigate, fetchUsers]);
 
+  /** Loads the chosen sock account's free time and gigs. */
   const fetchModelAvailability = async (userId) => {
     try {
       const res = await api.get(`/art_model_availabilities?user_id=${userId}`);
@@ -62,8 +71,10 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
+  /** The booked gig in a block of free time, if any. */
   const getActiveGigForSlot = (slotId) => findActiveGigForAvailability(modelGigs, slotId);
 
+  /** Chooses which sock account's free time to manage. */
   const handleModelSelect = (e) => {
     const id = e.target.value;
     setSelectedModelId(id);
@@ -77,6 +88,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
+  /** Deletes a block of free time, after confirming. */
   const handleDeleteSlot = async (slotId) => {
     const confirmed = await confirm({
       title: 'Delete this availability?',
@@ -94,6 +106,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
+  /** Cancels the gig in a block of free time, after confirming. */
   const handleCancelSlotGig = async (slotId, gig) => {
     const confirmed = await confirm({
       title: `Release this model from ${gig?.faculty_request?.class_name || 'this gig'}?`,
@@ -104,7 +117,6 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     });
     if (!confirmed) return;
     try {
-      // Name the exact gig, in case one availability block holds two classes
       await api.post(`/art_model_availabilities/${slotId}/cancel`, { gig_id: gig?.id });
       fetchModelAvailability(selectedModelId);
     } catch (err) {
@@ -112,18 +124,22 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
+  /** Adds a row for new free time. */
   const addNewSlot = () => {
     setNewSlots(prev => [...prev, { date: "", start: "09:00", end: "17:00" }]);
   };
 
+  /** Changes a row of new free time. */
   const updateNewSlot = (index, field, value) => {
     setNewSlots(prev => prev.map((slot, i) => i === index ? { ...slot, [field]: value } : slot));
   };
 
+  /** Removes a row of new free time. */
   const removeNewSlot = (index) => {
     setNewSlots(prev => prev.filter((_, i) => i !== index));
   };
 
+  /** Saves every filled-in row of new free time. */
   const handleSaveSlots = async () => {
     if (!selectedModelId) return;
     setAvailErrors([]);
@@ -149,13 +165,14 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
-  // Models need a skin tone for matching. If someone doesn't have one yet,
-  // ask for it before switching them, instead of guessing.
-  const [skinToneAsk, setSkinToneAsk] = useState(null); // { userId, name } or { self: true }
+  const [skinToneAsk, setSkinToneAsk] = useState(null);
   const [chosenTone, setChosenTone] = useState('');
+  /** Whether a person has answered the skin tone question. */
   const hasSkinTone = (person) => SKIN_TONE_ANSWERS.includes(person?.skin_tone);
+  /** Opens the skin tone question before switching someone to model. */
   const askForSkinTone = (ask) => { setChosenTone(''); setSkinToneAsk(ask); };
 
+  /** Changes someone's role, asking for a skin tone first if they're becoming a model. */
   const handlePromote = async (userId, newRole, skinTone) => {
     const person = users.find(u => u.id === userId);
     if (newRole === 'model' && !skinTone && !hasSkinTone(person)) {
@@ -170,6 +187,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
+  /** Makes an admin a SuperUser, after confirming. */
   const handlePromoteToSuperUser = async (userId) => {
     const person = users.find(u => u.id === userId);
     const confirmed = await confirm({
@@ -187,6 +205,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
+  /** Switches the SuperUser's own role, to try the app as faculty or a model. */
   const handleSwitchRole = async (targetRole, skinTone) => {
     if (targetRole === 'model' && !skinTone && !hasSkinTone(currentUser)) {
       askForSkinTone({ self: true });
@@ -205,6 +224,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
+  /** Continues the role change with the chosen skin tone. */
   const finishSkinToneAsk = () => {
     const ask = skinToneAsk;
     setSkinToneAsk(null);
@@ -212,6 +232,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     else handlePromote(ask.userId, 'model', chosenTone);
   };
 
+  /** Saves a changed field in the sock account form. */
   const handleSockFormChange = (e) => {
     const { name, value, type, checked } = e.target;
     setSockForm(prev => ({
@@ -221,6 +242,7 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }));
   };
 
+  /** Creates the sock account. */
   const handleCreateSockAccount = async (e) => {
     e.preventDefault();
     setSockErrors([]);
@@ -261,9 +283,9 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
 
   if (!currentUser?.superuser) return null;
 
-  // Clearing the classes and availability you made while trying the app as
-  // Faculty or Model. The server only removes records owned by your own account.
+  /** A count with the right word form, like 1 class or 2 classes. */
   const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+  /** Clears the SuperUser's own test classes and free time, after saying exactly what will go. */
   const handleClearTestData = async () => {
     setClearedMessage('');
     let counts;

@@ -1,12 +1,16 @@
+/**
+ * The body type and genitalia questions on a model's profile. Genitalia is only asked
+ * of models who pose nude.
+ */
+
 import React, { useId } from "react";
 import { GENITALIA_OPTIONS } from "../utils/constants";
 import BodyTypePicker from "./BodyTypePicker";
 
-// Optional model-profile fields used for matching. Genitalia is only asked of
-// models who are willing to pose nude, and is only visible to admins.
+/** The body type picker and, for nude models, the genitalia question. */
 function ModelBodyFields({ values, onChange, labelClassName = "form-label" }) {
+  /** Passes a changed field to the form. */
   const handle = (e) => onChange(e.target.name, e.target.value);
-  // Unique ids, so labels still work if this appears twice on one page.
   const id = useId();
   const genitaliaId = `${id}-genitalia`;
   const genitaliaHelpId = `${id}-genitalia-help`;

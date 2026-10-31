@@ -1,3 +1,8 @@
+/**
+ * End-to-end test setup: Chromium against the dev server on port 5173, one test at a
+ * time, with the database reseeded first.
+ */
+
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({

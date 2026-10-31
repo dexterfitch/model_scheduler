@@ -1,3 +1,8 @@
+/**
+ * The calendar used on every calendar page. Phones open on a 30-day list; wider
+ * screens on the week. Can offer Add Availability for pages where time can be added.
+ */
+
 import React, { useEffect, useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import FullCalendar from '@fullcalendar/react';
@@ -10,20 +15,17 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../assets/styles/fullcalendar-overrides.css';
 import { calendarTextColor } from '../utils/formatters';
 
-// Phones and small tablets open on a list of the next 30 days, since a single
-// day is usually empty. Bigger screens open on the week grid.
 const SMALL_SCREEN = 992;
 
+/** A calendar of the given events. */
 const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }) => {
   const wrapperRef = useRef(null);
   const small = window.innerWidth < SMALL_SCREEN;
 
-  // FullCalendar marks its arrow icons as unlabeled images. Their buttons already
-  // have names ("Previous week"), so hide the icons from screen readers, including
-  // any FullCalendar redraws later.
   useEffect(() => {
     const root = wrapperRef.current;
     if (!root) return;
+    /** Hides the calendar's arrow icons from screen readers; their buttons already have names. */
     const hideIcons = () =>
       root.querySelectorAll('[role="img"]:not([aria-hidden])').forEach(el => el.setAttribute('aria-hidden', 'true'));
     hideIcons();
@@ -32,8 +34,7 @@ const SharedCalendar = ({ events, onDateSelect, onEventClick, editable = false }
     return () => observer.disconnect();
   }, []);
 
-  // A way to add time without tapping the grid (the list view has no grid).
-  // Starts on tomorrow; the window that opens has a Date field to change it.
+  /** Opens the add window on tomorrow's date, without tapping the grid. */
   const addNew = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);

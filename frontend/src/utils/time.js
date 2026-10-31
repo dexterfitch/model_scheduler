@@ -1,5 +1,11 @@
+/**
+ * Times and dates: formatting, rounding, business hours, class times, and splitting
+ * free time around bookings.
+ */
+
 import { CALENDAR_COLORS } from './constants';
 
+/** A time rounded to the nearest 5 minutes. */
 export const roundToNearest5 = (timeStr) => {
   if (!timeStr) return "";
   const [h, m] = timeStr.split(':').map(Number);
@@ -10,9 +16,7 @@ export const roundToNearest5 = (timeStr) => {
   return `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}`;
 };
 
-// The earliest date of a class, for putting classes in order. The server sends a
-// class's dates in no set order (an edited date often comes back last), so look at
-// all of them. Archived dates only count when the class has nothing else.
+/** The earliest live date of a class, for putting classes in order. */
 export const firstStartsAt = (series) => {
   const all = series?.faculty_requests || [];
   const live = all.filter(r => r.status !== 'archived');
@@ -20,21 +24,28 @@ export const firstStartsAt = (series) => {
   return times.length ? Math.min(...times) : Infinity;
 };
 
+/** A time like 09:00 AM. */
 export const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+/** A date like Nov 3, 2026. */
 export const formatDateShort = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
+/** A date like Tue, Nov 3. */
 export const formatDateWithWeekday = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 
+/** A date and time together. */
 export const formatDateTime = (d) => new Date(d).toLocaleString([], {
   weekday: 'short', month: 'short', day: 'numeric',
   hour: '2-digit', minute: '2-digit'
 });
 
+/** A time like 9:00 AM. */
 export const formatTimeShort = (d) => new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
+/** A date like 11/3/2026. */
 export const formatDateNumeric = (d) => new Date(d).toLocaleDateString();
 
+/** Why times fall outside 8:00 AM to 10:00 PM, or null if they don't. */
 export const validateBusinessHours = (startTime, endTime) => {
   const startHour = parseInt(startTime.split(':')[0]);
   const endHour = parseInt(endTime.split(':')[0]);
@@ -48,9 +59,7 @@ export const validateBusinessHours = (startTime, endTime) => {
   return null;
 };
 
-// What to say after availability is saved. The server joins new time to free
-// time the model already has that overlaps or meets it, and says so with "joined".
-// Admins see "the model" in place of "you".
+/** The message after saving free time, saying so when it was joined to time already set. */
 export const availabilitySavedMessage = (saved, fallback, { forAdmin = false } = {}) => {
   if (!saved?.joined) return fallback;
   const hours = `${formatTimeShort(saved.starts_at)} to ${formatTimeShort(saved.ends_at)}`;
@@ -59,18 +68,22 @@ export const availabilitySavedMessage = (saved, fallback, { forAdmin = false } =
     : `Availability saved, and joined to time you'd already set: you're free ${hours} that day.`;
 };
 
-// New class dates start at 9:00 AM for 2 hours, so time pickers never open on
-// the current time (Chrome's choice for an empty field)
 const CLASS_HOURS = 2;
 const LATEST_END = 22 * 60;
+/** Minutes since midnight for a time like 09:30. */
 const toMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+/** A time like 09:30 for minutes since midnight. */
 const toTime = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+/** Two hours later, no later than 10:00 PM. */
 const twoHoursAfter = (t) => toTime(Math.min(toMinutes(t) + CLASS_HOURS * 60, LATEST_END));
 
+/** The times a new class date starts with: 9 to 11 AM. */
 export const newClassTimes = () => ({ start: '09:00', end: twoHoursAfter('09:00') });
 
-// When the start time changes, the end moves with it (2 hours later, no later than
-// 10:00 PM), unless someone chose the end themselves and it's still after the start
+/**
+ * The end time after the start changes: two hours later, unless someone chose the end and it's
+ * still after the start.
+ */
 export const endAfterStart = (oldStart, oldEnd, newStart) => {
   if (!newStart) return oldEnd;
   const followedStart = !oldEnd || !oldStart || oldEnd === twoHoursAfter(oldStart);
@@ -78,13 +91,13 @@ export const endAfterStart = (oldStart, oldEnd, newStart) => {
   return oldEnd;
 };
 
-// A saved time as a time field shows it ("21:00"). Time fields step by 5 minutes,
-// so it's rounded to the nearest 5-minute mark, but never past 23:55.
+/** A saved time as a time field shows it, rounded to the nearest 5 minutes (never past 23:55). */
 export const formatTimeForInput = (date) => {
   const minutes = Math.min(Math.round((date.getHours() * 60 + date.getMinutes()) / 5) * 5, 23 * 60 + 55);
   return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 };
 
+/** Whether a block of free time covers the whole class. */
 export const availabilityCoversRequest = (avail, req) => {
   const availStart = new Date(avail.starts_at);
   const availEnd = new Date(avail.ends_at);
@@ -93,6 +106,7 @@ export const availabilityCoversRequest = (avail, req) => {
   return availStart <= reqStart && availEnd >= reqEnd;
 };
 
+/** Whether a model has a booking overlapping the given time, other than the ones excluded. */
 export const hasSchedulingConflict = (confirmedGigs, userId, reqStart, reqEnd, excludeGigId) => {
   return confirmedGigs.some(g => {
     if (g.art_model_availability.user.id !== userId) return false;
@@ -103,17 +117,19 @@ export const hasSchedulingConflict = (confirmedGigs, userId, reqStart, reqEnd, e
   });
 };
 
+/** The booked gig in a block of free time, if any. */
 export const findActiveGigForAvailability = (gigsList, availabilityId) => {
   return gigsList.find(g =>
     g.art_model_availability.id === availabilityId && g.status === 'confirmed'
   );
 };
 
-// Calendar events for one availability block: each confirmed gig at the class's
-// real start and end, and the time around it as free. Every piece keeps the
-// block's id and details, so clicking any part still opens that block.
+/**
+ * A block of free time as calendar pieces: free stretches around its booked gigs, or one cancelled
+ * piece.
+ */
 export const availabilityEvents = (availability, gigs, { freeLabel = 'Free' } = {}) => {
-  // kind is 'free', 'gig' or 'cancelled', for code that needs just one of them
+  /** One calendar piece of the block. */
   const piece = (kind, title, start, end, backgroundColor) => ({
     id: availability.id, kind, title, start, end, backgroundColor, display: 'block',
     extendedProps: { ...availability }

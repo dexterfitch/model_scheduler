@@ -1,3 +1,7 @@
+/**
+ * Option lists and colors shared across the app. The option lists match the API's.
+ */
+
 export const DEPARTMENTS = [
   "Painting", 
   "Drawing", 
@@ -28,13 +32,10 @@ export const GENDER_PREFERENCE_OPTIONS = [
   "Man"
 ];
 
-// Gender-neutral build options (used for both nude and clothed sessions)
 export const BODY_TYPES = ["Muscular", "Average", "Fat"];
 
-// Only used for nude sessions
 export const GENITALIA_OPTIONS = ["Male", "Female", "Intersex"];
 
-// Keep in sync with FacultyRequest::MAX_MODELS_PER_REQUEST
 export const MAX_MODELS_PER_REQUEST = 6;
 
 export const SKIN_TONES = ["Light", 
@@ -42,8 +43,6 @@ export const SKIN_TONES = ["Light",
   "Dark"
 ];
 
-// What a model can answer about themselves: a tone, or not to say. Requests only
-// ask for SKIN_TONES (or Any), since "Prefer not to say" isn't something to ask for.
 export const SKIN_TONE_ANSWERS = [...SKIN_TONES, "Prefer not to say"];
 
 export const SKIN_TONE_OPTIONS = [
@@ -65,7 +64,6 @@ export const SKIN_TONE_OPTIONS = [
   }
 ];
 
-// Mirrors the --brand-* custom properties in src/index.css
 export const CALENDAR_COLORS = {
   blue: '#0047bb',
   green: '#2dc84d',

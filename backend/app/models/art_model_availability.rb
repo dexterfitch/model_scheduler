@@ -1,3 +1,6 @@
+# A block of time a model is free to be booked. Gigs book classes into it.
+# New time must be in the future and between 8:00 AM and 10:00 PM Eastern. A block
+# with a booked gig can't be edited or deleted, only cancelled through the gig.
 class ArtModelAvailability < ApplicationRecord
   belongs_to :user
   has_many :gigs
@@ -7,7 +10,6 @@ class ArtModelAvailability < ApplicationRecord
 
   enum :status, { active: 0, cancelled: 1 }
 
-  # Set when an admin records time a model already worked (covering a no-show)
   attr_accessor :recording_past
 
   validates :starts_at, :ends_at, presence: true
@@ -16,10 +18,9 @@ class ArtModelAvailability < ApplicationRecord
   validate :must_be_future_time, on: :create, unless: :recording_past
   validate :prevent_edit_with_active_gig, on: :update
 
-  # Saves time a person added or changed, joined with any free time the same
-  # model already has that overlaps it or meets it end to end, so a model never
-  # has two free blocks covering the same hours (9-3 plus 2-6 becomes 9-6).
-  # Blocks with a booked gig are left as they are.
+  # Saves time a person added or changed, joined with any free time the same model
+  # already has that overlaps it or meets it end to end, so one model never has two
+  # free blocks covering the same hours. Blocks with a booked gig are left alone.
   # Returns the block that now holds the time, or false with errors set.
   def save_joining_free_time
     return save && self unless active?
@@ -27,7 +28,6 @@ class ArtModelAvailability < ApplicationRecord
 
     others = ArtModelAvailability.active.where(user_id: user_id).where.not(id: id)
 
-    # Already free for the whole of it: nothing to add
     if new_record?
       covering = others.where("starts_at <= ? AND ends_at >= ?", starts_at, ends_at).order(:starts_at).first
       return covering if covering
@@ -39,7 +39,6 @@ class ArtModelAvailability < ApplicationRecord
       .order(:starts_at).to_a
     return save && self if neighbours.empty?
 
-    # Keep an existing block where we can, so its history stays with it
     keeper = persisted? ? self : neighbours.shift
     from = [starts_at, keeper.starts_at, *neighbours.map(&:starts_at)].min
     to   = [ends_at, keeper.ends_at, *neighbours.map(&:ends_at)].max
@@ -49,7 +48,6 @@ class ArtModelAvailability < ApplicationRecord
       keeper.ends_at = to
       keeper.save!
       neighbours.each do |other|
-        # Cancelled gigs keep pointing at the time they were booked in
         Gig.where(art_model_availability_id: other.id).update_all(art_model_availability_id: keeper.id)
         other.delete
       end
@@ -60,10 +58,14 @@ class ArtModelAvailability < ApplicationRecord
     false
   end
 
+  # The confirmed gig in this block, if any.
   def active_gig
     gigs.find { |g| g.status == 'confirmed' }
   end
 
+  # Cancels a booked gig in this block (the one given, or the only one). With
+  # cancel_remaining_series, also takes the same model off the class's later dates;
+  # other models on those dates keep their bookings. Returns false if there's no gig.
   def cancel_with_gig!(cancel_remaining_series: false, flag_for_attention: false, gig_id: nil)
     gig = gig_id.present? ? gigs.find_by(id: gig_id, status: :confirmed) : active_gig
     return false unless gig
@@ -74,8 +76,6 @@ class ArtModelAvailability < ApplicationRecord
       cancel_single_gig!(self, gig, flag_for_attention: flag_for_attention)
 
       if cancel_remaining_series && series
-        # Only release THIS model from later dates; other models booked on
-        # those dates (multi-model sessions) keep their gigs.
         future_requests = series.faculty_requests
           .where.not(status: :archived)
           .where("starts_at > ?", Time.current)
@@ -98,16 +98,17 @@ class ArtModelAvailability < ApplicationRecord
 
   private
 
+  # Cancels one gig, unpaid (models cancelling aren't paid), puts its date back to
+  # needing a model, and cancels the block if nothing else is booked in it.
   def cancel_single_gig!(availability, gig, flag_for_attention: false)
     request = gig.faculty_request
-    # Keep the record so there's a history of who dropped out; model cancellations aren't paid
     gig.update_columns(status: Gig.statuses[:cancelled], billable: false, updated_at: Time.current)
-    # Losing any model means the session is short-staffed again
     request.update_columns(status: FacultyRequest.statuses[:pending], needs_attention: flag_for_attention, updated_at: Time.current) unless request.archived?
     availability.gigs.reload
     availability.update_columns(status: ArtModelAvailability.statuses[:cancelled], updated_at: Time.current) unless availability.active_gig
   end
 
+  # Blocks that already started can't be deleted.
   def prevent_past_deletion
     if starts_at < Time.current
       errors.add(:base, "Cannot delete a past availability slot")
@@ -115,6 +116,7 @@ class ArtModelAvailability < ApplicationRecord
     end
   end
 
+  # Blocks with a booked gig can't be deleted; the gig has to be cancelled.
   def prevent_destroy_with_active_gig
     if active_gig
       errors.add(:base, "Cannot delete this availability slot because a gig is scheduled. Use 'Cancel Gig' instead.")
@@ -122,12 +124,14 @@ class ArtModelAvailability < ApplicationRecord
     end
   end
 
+  # Blocks with a booked gig can't be edited.
   def prevent_edit_with_active_gig
     if active_gig
       errors.add(:base, "Cannot edit this availability slot because a gig is scheduled. Cancel the gig first if you need to change your availability.")
     end
   end
 
+  # New blocks must start in the future (skipped when recording time already worked).
   def must_be_future_time
     return unless starts_at
 
@@ -136,11 +140,13 @@ class ArtModelAvailability < ApplicationRecord
     end
   end
 
+  # The end must come after the start.
   def end_after_start
     return if ends_at.blank? || starts_at.blank?
     errors.add(:ends_at, "must be after start time") if ends_at <= starts_at
   end
 
+  # Blocks must start at 8:00 AM or later and end by 10:00 PM, Eastern time.
   def must_be_within_business_hours
     return unless starts_at && ends_at
 

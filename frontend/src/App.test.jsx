@@ -1,3 +1,8 @@
+/**
+ * Tests for the app shell: sign-in landing, routes for each role, and signing out when
+ * a token is rejected.
+ */
+
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
@@ -5,7 +10,6 @@ import api from './services/api';
 
 vi.mock('./services/api', () => ({ default: { get: vi.fn(), delete: vi.fn() } }));
 
-// Stand-ins for every page, so these tests focus on login, logout and routing
 vi.mock('./components/Layout', async () => {
   const { Outlet } = await import('react-router-dom');
   return { default: ({ onLogout }) => <div><button onClick={onLogout}>Log out</button><Outlet /></div> };
@@ -27,7 +31,7 @@ vi.mock('./components/Profile',          () => ({ default: () => null }));
 
 const faculty = { id: 5, role: 'faculty', first_name: 'Priya' };
 
-// Pretend the browser just arrived at this address
+/** Moves the browser to a path before the app renders. */
 const visit = (path) => window.history.pushState({}, '', path);
 
 beforeEach(() => {
@@ -48,7 +52,6 @@ describe('App: login and logout', () => {
     expect(await screen.findByText('Faculty dashboard')).toBeInTheDocument();
     expect(localStorage.getItem('token')).toBe('abc123');
     expect(window.location.pathname).toBe('/');
-    // Fix 8b: the token-bearing address was replaced, not left behind in history
     expect(window.history.length).toBe(historyBefore);
   });
 
@@ -69,7 +72,6 @@ describe('App: login and logout', () => {
     render(<App />);
     await screen.findByText('Faculty dashboard');
 
-    // The API client announces this when the server answers 401 to a signed-in request
     act(() => { window.dispatchEvent(new CustomEvent('pose-pool:signed-out')); });
 
     expect(await screen.findByText('Login page')).toBeInTheDocument();

@@ -1,3 +1,8 @@
+/**
+ * The admin Calendar: every booked gig and every class still needing a model, plus a
+ * list of each model's upcoming free time (with booked classes cut out).
+ */
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, ListGroup, Badge, Alert } from "react-bootstrap";
@@ -7,6 +12,7 @@ import { CALENDAR_COLORS } from "../utils/constants";
 import SharedCalendar from "./SharedCalendar";
 import { useDialog } from "./DialogProvider";
 
+/** The full schedule and the upcoming free time, by model. */
 function AdminCalendar() {
   const navigate = useNavigate();
   const { notify } = useDialog();
@@ -14,7 +20,10 @@ function AdminCalendar() {
   const [availabilities, setAvailabilities] = useState([]);
   const [error, setError] = useState(null);
 
-  // Loads all three lists together, then draws the calendar and the availability list
+  /**
+   * Loads gigs, class dates and free time; builds the calendar's events and groups the bookable
+   * free time by model, soonest first.
+   */
   const fetchData = useCallback(() => Promise.all([
     api.get("/gigs"),
     api.get("/faculty_requests"),
@@ -44,15 +53,12 @@ function AdminCalendar() {
         extendedProps: { type: 'request', requestId: req.id, seriesId: req.request_series_id, ...req }
       }));
 
-    // Only time a model can actually be booked into: active blocks, minus booked classes
     const now = new Date();
     const openTime = availRes.data
       .flatMap(a => availabilityEvents(a, gigsRes.data))
       .filter(piece => piece.kind === 'free' && new Date(piece.end) > now)
       .sort((a, b) => new Date(a.start) - new Date(b.start));
 
-    // One entry per model, in order of their first free time, each with their
-    // free times in date order
     const byModel = [];
     openTime.forEach(piece => {
       const user = piece.extendedProps.user;
@@ -75,6 +81,7 @@ function AdminCalendar() {
     fetchData();
   }, [fetchData]);
 
+  /** Opens matching for a class needing a model, or shows a booked gig's details. */
   const handleEventClick = (info) => {
     const props = info.event.extendedProps;
     

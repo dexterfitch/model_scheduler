@@ -1,3 +1,5 @@
+# Test bookings: a confirmed gig of a model into a class date.
+
 FactoryBot.define do
   factory :gig do
     association :faculty_request

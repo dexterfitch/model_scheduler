@@ -1,19 +1,25 @@
+/**
+ * Tests for the shared confirmation and message windows.
+ */
+
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DialogProvider, useDialog } from './DialogProvider';
 
-// A button that opens a dialog and records how it was answered
+/** A button that opens a window and reports the answer. */
 function Asker({ open, onAnswer }) {
   const dialogs = useDialog();
   return <button onClick={async () => onAnswer(await open(dialogs))}>Ask</button>;
 }
 
+/** Shows an Asker inside the provider. */
 function renderAsker(open) {
   const onAnswer = vi.fn();
   render(<DialogProvider><Asker open={open} onAnswer={onAnswer} /></DialogProvider>);
   return onAnswer;
 }
 
+/** Asks to cancel a class, as the pages do. */
 const askToCancel = ({ confirm }) =>
   confirm({ title: 'Cancel this class?', message: 'All 3 dates will be cancelled.', confirmLabel: 'Cancel Class', danger: true });
 

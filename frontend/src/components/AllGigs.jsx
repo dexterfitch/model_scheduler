@@ -1,3 +1,9 @@
+/**
+ * The Gig Registry: every booking, filterable by status and dates and searchable by
+ * model, faculty or class. A table on wider screens and one card per class on
+ * phones. Past gigs can be corrected.
+ */
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Table, Container, Badge, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import api from "../services/api";
@@ -5,17 +11,21 @@ import { formatTime, formatDateWithWeekday, formatDateShort } from "../utils/tim
 import { isPaid, payStatusLabel, workedTimes } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
 
+/** A person's full name. */
 const personName = (person) => [person?.first_name, person?.last_name].filter(Boolean).join(' ');
 
-// Words first, colour second, so the status reads the same for everyone
+/** A gig's status in words. */
 const statusLabel = (gig) => payStatusLabel(gig);
+/** A gig's status badge color. */
 const statusColor = (gig) => {
   if (gig.no_show) return 'danger';
   if (gig.status === 'cancelled') return isPaid(gig) ? 'warning' : 'secondary';
   return isPaid(gig) ? 'primary' : 'dark';
 };
+/** A gig's status as a badge. */
 const StatusBadge = ({ gig }) => <Badge bg={statusColor(gig)}>{statusLabel(gig)}</Badge>;
 
+/** Nude and department badges for a class. */
 const ClassBadges = ({ request, className = '' }) => (
   <span className={`d-inline-flex flex-wrap gap-1 ${className}`}>
     {request?.model_mode === 'nude' && <Badge bg="danger">NUDE</Badge>}
@@ -23,6 +33,7 @@ const ClassBadges = ({ request, className = '' }) => (
   </span>
 );
 
+/** The registry page. */
 function AllGigs() {
   const [gigs, setGigs] = useState([]);
   const [search, setSearch] = useState("");
@@ -33,12 +44,11 @@ function AllGigs() {
   const [filterEnd, setFilterEnd] = useState(
     new Date(today.getFullYear(), today.getMonth() + 1, 0).toLocaleDateString('en-CA')
   );
-  // Which dates to show: 'all' (the default), 'upcoming', 'past', or a date 'range'
   const [when, setWhen] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  // The past gig whose record is being corrected
   const [correcting, setCorrecting] = useState(null);
 
+  /** Loads every gig, in date order. */
   const fetchGigs = useCallback(() => {
     api.get("/gigs")
       .then(res => {
@@ -65,7 +75,6 @@ function AllGigs() {
     if (statusFilter !== 'all' && gig.status !== statusFilter) return false;
     if (when === 'all') return true;
 
-    // Upcoming: hasn't finished yet. Past: has finished.
     const now = new Date();
     if (when === 'upcoming') return new Date(gig.faculty_request.ends_at) >= now;
     if (when === 'past') return new Date(gig.faculty_request.ends_at) < now;
@@ -73,7 +82,6 @@ function AllGigs() {
     return gigDate >= new Date(filterStart + "T00:00:00") && gigDate <= new Date(filterEnd + "T23:59:59");
   });
 
-  // Phones show one card per class, with that class's gigs listed inside
   const groupedGigs = (() => {
     const groups = [];
     const seriesMap = {};
@@ -95,8 +103,9 @@ function AllGigs() {
     return groups;
   })();
 
-  // Once a class has started, the only change left is correcting its record
+  /** Whether the gig's class has started. */
   const hasStarted = (gig) => new Date(gig.faculty_request?.starts_at) <= new Date();
+  /** The Make Correction link for a gig whose class has started. */
   const renderCorrect = (gig) => hasStarted(gig) && (
     <button
       type="button"
@@ -108,7 +117,7 @@ function AllGigs() {
     </button>
   );
 
-  // The hours really worked; when a correction changed them, the booked hours are noted too
+  /** The hours worked, with the booked hours underneath when a correction changed them. */
   const gigTime = (gig) => {
     const worked = workedTimes(gig);
     const range = `${formatTime(worked.starts_at)} – ${formatTime(worked.ends_at)}`;
@@ -137,8 +146,6 @@ function AllGigs() {
         </InputGroup>
       </div>
 
-      {/* Two kinds of filter, laid out like Requests: what state a gig is in
-          (left), and which dates to show (right, or under a line on phones) */}
       <div className="py-3 border-bottom border-info mb-4 date-filter-box">
         <div className="d-flex flex-column flex-md-row flex-md-wrap justify-content-md-between align-items-md-start gap-3">
           <div role="group" aria-labelledby="gigs-status-label">
@@ -189,7 +196,6 @@ function AllGigs() {
         </div>
       </div>
 
-      {/* Wider screens: one row per gig */}
       <div className="d-none d-md-block bg-white shadow-sm rounded overflow-hidden">
         <Table hover responsive className="mb-0 align-middle">
           <thead className="bg-light">
@@ -228,7 +234,6 @@ function AllGigs() {
         </Table>
       </div>
 
-      {/* Phones: one card per class */}
       <div className="d-md-none">
         {groupedGigs.length === 0 ? (
           <p className="text-center text-muted py-3">No gigs found matching your search.</p>

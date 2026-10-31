@@ -1,5 +1,6 @@
-// Model preferences on a class request: the shared set, and one set per model
-// ("model slots"). Used by the request forms and by the per-model fields.
+/**
+ * Form state for model preferences: the same for every model, or one set per model.
+ */
 
 export const DEFAULT_MODEL_PREFERENCES = {
   model_mode: "clothed",
@@ -10,32 +11,31 @@ export const DEFAULT_MODEL_PREFERENCES = {
   models_needed: 1
 };
 
-// Per-model preferences live alongside the shared ones above. A new request
-// asks for each model separately unless faculty choose "Same for every model".
 export const DEFAULT_SLOT_STATE = { same_for_all: false, model_slots: [] };
 
 const SLOT_KEYS = ["pref_skin_tone", "pref_gender", "pref_body_type", "pref_genitalia"];
+/** One model's preferences, with Any for anything missing. */
 const slotFrom = (obj) => Object.fromEntries(SLOT_KEYS.map(k => [k, obj?.[k] || "Any"]));
 
-// True when the form is showing one block per model
+/** Whether the form has a separate set of preferences per model. */
 export const usesModelSlots = (values) => (values.models_needed || 1) > 1 && !values.same_for_all;
 
-// What to send to the server: one set per model, or [] for "same for every model"
+/** The per-model preferences to send, or none when they're the same for every model. */
 export const modelSlotsPayload = (values) =>
   usesModelSlots(values)
     ? (values.model_slots || []).slice(0, values.models_needed).map(slotFrom)
     : [];
 
-// Form state for an existing class: classes saved without per-model
-// preferences open with "Same for every model" switched on
+/** The form's per-model state for a saved class. */
 export const slotFormState = (series) => ({
   same_for_all: !(series.model_slots?.length),
   model_slots: (series.model_slots || []).map(slotFrom)
 });
 
-// Use inside a setState updater so dependent fields stay consistent:
-// switching to clothed clears every genitalia preference, and changing the
-// number of models keeps exactly one set of preferences per model.
+/**
+ * The form after one change: switching to clothed clears genitalia, and the per-model list follows
+ * the number of models.
+ */
 export const applyPreferenceChange = (prev, name, value) => {
   const next = { ...prev, [name]: name === "models_needed" ? Number(value) : value };
   if (name === "model_mode" && value !== "nude") {
@@ -45,7 +45,6 @@ export const applyPreferenceChange = (prev, name, value) => {
   const count = next.models_needed || 1;
   const slots = next.model_slots || [];
   if (count > 1 && slots.length !== count) {
-    // New models start from the shared preferences
     next.model_slots = Array.from({ length: count }, (_, i) => slots[i] || slotFrom(next));
   }
   return next;

@@ -1,3 +1,9 @@
+/**
+ * My Classes, for faculty: their classes on Upcoming and Past tabs, New Request,
+ * and editing or cancelling dates and classes that aren't booked. Past classes are
+ * read-only. Faculty never see which model is booked.
+ */
+
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert, Tabs, Tab } from "react-bootstrap";
 import styles from "./FacultyDashboard.module.css";
@@ -13,17 +19,20 @@ import {
 import StatusToast from "./StatusToast";
 
 const PREFERENCE_KEYS = Object.keys(DEFAULT_MODEL_PREFERENCES);
+/** Just the preference fields of a class. */
 const pickPreferences = (obj) =>
   Object.fromEntries(PREFERENCE_KEYS.map(k => [k, obj[k] ?? DEFAULT_MODEL_PREFERENCES[k]]));
 
-// Classes where faculty set preferences for each model separately
+/** Whether a class has different preferences for each model. */
 const hasModelSlots = (s) => (s.model_slots || []).length > 0;
 
+/** A new date row, starting 9 to 11 AM. */
 const emptyDate = () => {
   const { start, end } = newClassTimes();
   return { date: "", start_time: start, end_time: end };
 };
 
+/** The My Classes page. */
 function FacultyDashboard({ user }) {
   const { confirm, notify } = useDialog();
   const [series, setSeries] = useState([]);
@@ -33,10 +42,8 @@ function FacultyDashboard({ user }) {
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingRequest, setEditingRequest] = useState(null);
-  // Edit Date: one date's day and times only
   const [editFormData, setEditFormData] = useState({ starts_at: "", starts_time: "", ends_time: "" });
   const [editError, setEditError] = useState('');
-  // Edit Class: class details and preferences, shared by every date in the series
   const [editingSeries, setEditingSeries] = useState(null);
   const [classFormData, setClassFormData] = useState({
     class_name: "", department: "", building: "", room_number: "",
@@ -58,9 +65,9 @@ function FacultyDashboard({ user }) {
   });
 
   const [dates, setDates] = useState([emptyDate()]);
-  // Which tab of My Classes is showing: 'upcoming' or 'past'
   const [view, setView] = useState('upcoming');
 
+  /** Loads the faculty member's classes, in date order. */
   const fetchSeries = useCallback(() => {
     api.get(`/request_series`)
       .then((res) => {
@@ -74,33 +81,37 @@ function FacultyDashboard({ user }) {
       });
   }, []);
 
-  // Load again if a different person signs in
   useEffect(() => {
     fetchSeries();
   }, [fetchSeries, user.id]);
 
+  /** Saves a typed change in New Request. */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  /** Saves a preference change in New Request. */
   const handlePreferenceChange = (name, value) => {
     setFormData(prev => applyPreferenceChange(prev, name, value));
   };
 
+  /** Saves a preference change in Edit Class. */
   const handleClassPreferenceChange = (name, value) => {
     setClassFormData(prev => applyPreferenceChange(prev, name, value));
   };
 
-  // A date's times, with the end following the start (see endAfterStart)
+  /** A date row with one field changed; changing the start moves the end with it. */
   const withTime = (d, field, value) => field === 'start_time'
     ? { ...d, start_time: value, end_time: endAfterStart(d.start_time, d.end_time, value) }
     : { ...d, [field]: value };
 
+  /** Changes one date row in New Request. */
   const handleDateChange = (index, field, value) => {
     setDates(prev => prev.map((d, i) => i === index ? withTime(d, field, value) : d));
   };
 
+  /** Rounds a date row's time to 5 minutes when the field is left. */
   const handleDateBlur = (index, field, value) => {
     if (field === 'start_time' || field === 'end_time') {
       const cleaned = roundToNearest5(value);
@@ -108,8 +119,6 @@ function FacultyDashboard({ user }) {
     }
   };
 
-  // Keyboard users land on the Date field of the new date, or of the date
-  // before the one they removed, instead of being sent back to the top
   const focusDateIndex = useRef(null);
   useEffect(() => {
     if (focusDateIndex.current === null) return;
@@ -117,17 +126,20 @@ function FacultyDashboard({ user }) {
     focusDateIndex.current = null;
   }, [dates]);
 
+  /** Adds a date row and moves focus to its Date field. */
   const addDate = () => {
     focusDateIndex.current = dates.length;
     setDates(prev => [...prev, emptyDate()]);
   };
 
+  /** Removes a date row and moves focus to the date before it. */
   const removeDate = (index) => {
-    if (dates.length === 1) return; // always keep at least one
+    if (dates.length === 1) return;
     focusDateIndex.current = Math.max(index - 1, 0);
     setDates(prev => prev.filter((_, i) => i !== index));
   };
 
+  /** Sends New Request: the class, its dates and its preferences. */
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -196,6 +208,7 @@ function FacultyDashboard({ user }) {
       });
   };
 
+  /** Cancels one date, after confirming. */
   const handleCancelDate = async (req) => {
     const booked = (req.confirmed_gigs || []).length > 0;
     const confirmed = await confirm({
@@ -217,6 +230,7 @@ function FacultyDashboard({ user }) {
       .catch((err) => notify({ title: "Couldn't cancel this date", message: extractErrorMessages(err, 'Please try again.') }));
   };
 
+  /** Cancels the whole class, after confirming. */
   const handleCancelSeries = async (seriesId) => {
     const confirmed = await confirm({
       title: 'Cancel this class?',
@@ -235,9 +249,11 @@ function FacultyDashboard({ user }) {
       .catch((err) => notify({ title: "Couldn't cancel this class", message: extractErrorMessages(err, 'Please try again.') }));
   };
 
+  /** Opens Edit Date with the date's day and times. */
   const openEditModal = (req) => {
     const start = new Date(req.starts_at);
     const end = new Date(req.ends_at);
+    /** Two-digit number for dates. */
     const pad = (n) => n.toString().padStart(2, '0');
 
     setEditingRequest(req);
@@ -250,11 +266,13 @@ function FacultyDashboard({ user }) {
     setShowEditModal(true);
   };
 
+  /** Saves a change in Edit Date. */
   const handleEditInputChange = (e) => {
     const { name, value } = e.target;
     setEditFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  /** Saves Edit Date, after checking the hours. */
   const handleEditSubmit = (e) => {
     e.preventDefault();
 
@@ -286,6 +304,7 @@ function FacultyDashboard({ user }) {
       });
   };
 
+  /** Opens Edit Class with the class's details and preferences. */
   const openClassModal = (s) => {
     setEditingSeries(s);
     setClassFormData({
@@ -300,11 +319,13 @@ function FacultyDashboard({ user }) {
     setClassError('');
   };
 
+  /** Saves a typed change in Edit Class. */
   const handleClassInputChange = (e) => {
     const { name, value } = e.target;
     setClassFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  /** Saves Edit Class for every remaining date. */
   const handleClassSubmit = (e) => {
     e.preventDefault();
     api.patch(`/request_series/${editingSeries.id}`, {
@@ -329,22 +350,26 @@ function FacultyDashboard({ user }) {
       });
   };
 
+  /** Opens the Add Date form on a class card. */
   const openAddDateForm = (seriesId) => {
     setAddingDateSeriesId(seriesId);
     setNewDateForm(emptyDate());
     setAddDateError('');
   };
 
+  /** Changes the Add Date form; the end time follows the start. */
   const handleAddDateChange = (field, value) => {
     setNewDateForm(prev => withTime(prev, field, value));
   };
 
+  /** Rounds the Add Date times to 5 minutes when a field is left. */
   const handleAddDateBlur = (field, value) => {
     if (field === 'start_time' || field === 'end_time') {
       setNewDateForm(prev => withTime(prev, field, roundToNearest5(value)));
     }
   };
 
+  /** Adds the date to the class, after checking it. */
   const handleAddDateSubmit = async (series) => {
     setAddDateError('');
     const { date, start_time, end_time } = newDateForm;
@@ -378,16 +403,18 @@ function FacultyDashboard({ user }) {
     }
   };
 
-  // A date is over once it has finished. A class is past once all its dates are.
+  /** Whether a date has finished. */
   const hasEnded = (req) => new Date(req.ends_at) < new Date();
+  /** A class's dates that weren't cancelled. */
   const liveDates = (s) => (s.faculty_requests || []).filter(r => r.status !== 'archived');
+  /** When a class's last date ends. */
   const lastEndsAt = (s) => Math.max(...liveDates(s).map(r => new Date(r.ends_at).getTime()));
   const pastSeries = series
     .filter(s => liveDates(s).length > 0 && liveDates(s).every(hasEnded))
     .sort((a, b) => lastEndsAt(b) - lastEndsAt(a));
   const upcomingSeries = series.filter(s => liveDates(s).some(r => !hasEnded(r)));
 
-  // One class card. Past classes are read-only: no edit, add or cancel.
+  /** One class card. Past classes are read-only; dates that already happened lose their buttons. */
   const renderClassCard = (s, past) => {
     const requests = (s.faculty_requests || [])
       .filter(r => r.status !== 'archived')
@@ -707,7 +734,6 @@ function FacultyDashboard({ user }) {
               </div>
             ))}
 
-            {/* After the dates, so Tab reaches it once the last date is filled in */}
             <Button variant="outline-primary" size="sm" type="button" onClick={addDate} className="mb-2">
               <i className="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Another Date
             </Button>
@@ -736,7 +762,6 @@ function FacultyDashboard({ user }) {
         </Modal.Body>
       </Modal>
 
-      {/* Edit Date: just this one date's day and times */}
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Edit Date</Modal.Title>
@@ -774,7 +799,6 @@ function FacultyDashboard({ user }) {
         </Modal.Body>
       </Modal>
 
-      {/* Edit Class: details and preferences shared by every date */}
       <Modal show={!!editingSeries} onHide={() => setEditingSeries(null)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Edit Class</Modal.Title>

@@ -1,3 +1,7 @@
+/*
+ * Styles for the sign-in page: the background and the sign-in card.
+ */
+
 .loginBg {
   background-image: url('../assets/images/stripe_bg.png');
   background-size: cover;

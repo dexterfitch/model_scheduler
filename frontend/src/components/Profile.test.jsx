@@ -1,3 +1,7 @@
+/**
+ * Tests for My Profile.
+ */
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -12,6 +16,7 @@ const model = {
   willing_to_model_nude: true, body_type: 'Average', genitalia: 'Intersex'
 };
 
+/** Shows the profile for a person. */
 function renderProfile(user, setCurrentUser = vi.fn()) {
   const utils = render(
     <MemoryRouter>
@@ -21,6 +26,7 @@ function renderProfile(user, setCurrentUser = vi.fn()) {
   return { ...utils, setCurrentUser };
 }
 
+/** A dropdown by its name. */
 const select = (container, name) => container.querySelector(`select[name="${name}"]`);
 
 beforeEach(() => vi.clearAllMocks());
@@ -56,7 +62,6 @@ describe('Profile', () => {
 
     expect(api.patch).toHaveBeenCalledWith('/users/10', { user: expect.objectContaining({ body_type: 'Fat' }) });
     expect(await screen.findByRole('status')).toHaveTextContent('Profile saved.');
-    // Stays on the page with a way back, instead of leaving on a timer
     expect(screen.getByRole('button', { name: 'Back to home' })).toBeInTheDocument();
     expect(setCurrentUser).toHaveBeenCalledWith(expect.objectContaining({ body_type: 'Fat' }));
   });

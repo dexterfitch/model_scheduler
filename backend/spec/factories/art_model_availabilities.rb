@@ -1,3 +1,5 @@
+# Test free time: a model's 9 AM to 5 PM block a week from now.
+
 FactoryBot.define do
   factory :art_model_availability do
     association :user, factory: [:user, :model]

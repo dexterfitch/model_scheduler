@@ -1,3 +1,9 @@
+/**
+ * Find Model: ranks the models who are free for a class (or one date) and lets an
+ * admin book them. Classes with per-model preferences rank each model against the
+ * spot they'd fill best.
+ */
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Container, Card, Button, ListGroup, Badge, Spinner, Alert } from "react-bootstrap";
@@ -7,11 +13,12 @@ import { formatSkinTone, formatModelCount, calculateMatchScore, formatPreference
 import { formatTime, formatDateWithWeekday, formatDateTime, availabilityCoversRequest, hasSchedulingConflict } from "../utils/time";
 import StatusToast from "./StatusToast";
 
+/** A model's full name. */
 const modelName = (user) => `${user?.first_name} ${user?.last_name}`;
-// Earliest date first
+/** Sorts dates by start time. */
 const byStart = (a, b) => new Date(a.starts_at) - new Date(b.starts_at);
 
-// { [faculty_request_id]: [confirmed gig, ...] } for the given dates
+/** The confirmed gigs on each of the given dates. */
 const groupConfirmedGigs = (confirmedGigs, requestIds) => {
   const grouped = {};
   requestIds.forEach(id => { grouped[id] = []; });
@@ -21,8 +28,10 @@ const groupConfirmedGigs = (confirmedGigs, requestIds) => {
   return grouped;
 };
 
-// For classes with preferences for each model: score a model against the slots
-// still open, and say which slot fits best. Null when the class has no per-model preferences.
+/**
+ * The open spot a model fits best, with their score, or null when the class has no per-model
+ * preferences.
+ */
 const bestOpenSlot = (user, slots, modelMode, isOpen) => {
   if (!slots?.length) return null;
   let bestSlot = null;
@@ -34,6 +43,7 @@ const bestOpenSlot = (user, slots, modelMode, isOpen) => {
   return { score, bestSlot };
 };
 
+/** The Find Model page, for a whole class or one date. */
 function GigCreator() {
   const { requestId } = useParams();
   const [searchParams] = useSearchParams();
@@ -44,7 +54,6 @@ function GigCreator() {
   const [series, setSeries] = useState(null);
   const [request, setRequest] = useState(null);
   const [matches, setMatches] = useState([]);
-  // { [faculty_request_id]: [confirmed gig, ...] }
   const [bookedByRequest, setBookedByRequest] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -52,6 +61,7 @@ function GigCreator() {
   const [staffed, setStaffed] = useState(false);
   const [booking, setBooking] = useState(false);
 
+  /** Finds the models free for every open date of the class, scored and ranked. */
   const loadSeriesData = useCallback(() => {
     return Promise.all([
       api.get("/request_series"),
@@ -70,6 +80,7 @@ function GigCreator() {
         const booked = groupConfirmedGigs(confirmedGigs, [...pendingRequestIds]);
         setBookedByRequest(booked);
 
+        /** Whether the model has another booking at that time, besides this class's dates. */
         const hasConflict = (userId, reqStart, reqEnd) =>
           hasSchedulingConflict(confirmedGigs, userId, reqStart, reqEnd, g => 
             pendingRequestIds.has(g.faculty_request.id)
@@ -85,7 +96,6 @@ function GigCreator() {
 
         const candidates = Object.values(availsByUser).map(({ user, avails }) => {
           if (isNudeReq && !user.willing_to_model_nude) return null;
-          // Skip dates this model already sits for in this series
           const requestsToBook = pendingRequests.filter(req =>
             !booked[req.id].some(g => g.art_model_availability.user.id === user.id)
           );
@@ -99,7 +109,6 @@ function GigCreator() {
           });
           if (!fitsAll) return null;
 
-          // Classes with per-model preferences: score against the best still-open slot
           const fit = bestOpenSlot(user, targetSeries.model_slots, targetSeries.model_mode, slot =>
             requestsToBook.some(req => !booked[req.id].some(g => g.model_slot_position === slot.position))
           );
@@ -119,6 +128,7 @@ function GigCreator() {
     });
   }, [requestId]);
 
+  /** Finds the models free for one date, scored and ranked. */
   const loadSingleRequestData = useCallback(() => {
     return Promise.all([
       api.get("/faculty_requests"),
@@ -127,7 +137,6 @@ function GigCreator() {
       api.get("/request_series")
     ]).then(([reqRes, availRes, gigsRes, seriesRes]) => {
       const found = reqRes.data.find(r => r.id === parseInt(requestId));
-      // The class's per-model preferences, if it has them, so this date ranks the same way
       const slots = found && (seriesRes?.data || []).find(s => s.id === found.request_series_id)?.model_slots || [];
       const targetReq = found && { ...found, model_slots: slots };
       setRequest(targetReq);
@@ -142,6 +151,7 @@ function GigCreator() {
         setBookedByRequest(booked);
         const bookedUserIds = new Set(booked[targetReq.id].map(g => g.art_model_availability.user.id));
 
+        /** Whether the model has another booking during this date. */
         const hasConflict = (userId) =>
           hasSchedulingConflict(confirmedGigs, userId, reqStart, reqEnd, g => 
             g.faculty_request.id === targetReq.id
@@ -174,6 +184,7 @@ function GigCreator() {
     });
   }, [requestId]);
 
+  /** Loads the class or the date, whichever this page is for. */
   const loadData = useCallback(
     () => (isSeries ? loadSeriesData() : loadSingleRequestData()),
     [isSeries, loadSeriesData, loadSingleRequestData]
@@ -183,8 +194,10 @@ function GigCreator() {
     loadData();
   }, [loadData]);
 
+  /** How many models a date still needs. */
   const openSlotsFor = (req) => Math.max((req.models_needed || 1) - (bookedByRequest[req.id]?.length || 0), 0);
 
+  /** Books the model into every open date they're free for, after confirming. */
   const handleBook = async (model) => {
     const requestsToBook = isSeries ? model.requestsToBook : [request];
     const confirmed = await confirm({
@@ -209,7 +222,6 @@ function GigCreator() {
         });
       })
     ).then(() => {
-      // Are there still empty spots on any date after this booking?
       const openRequests = isSeries
         ? series.faculty_requests?.filter(r => r.status === 'pending') || []
         : [request];
@@ -223,7 +235,6 @@ function GigCreator() {
         setLoading(true);
         loadData();
       } else {
-        // Fully staffed: say so and offer the next step, instead of leaving the page on a timer
         setSuccessMsg(isSeries && requestsToBook.length > 1
           ? `${requestsToBook.length} gigs confirmed! This class is fully staffed.`
           : 'Gig confirmed! This class is fully staffed.');

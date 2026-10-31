@@ -1,4 +1,8 @@
-# The seed data replaces almost everything in the database, so never run it on the live site
+# Test data for development and the end-to-end tests: admins, faculty, models and a
+# range of classes, from brand new to fully booked, cancelled, needing attention,
+# group sessions and classes that already happened. It wipes nearly everything
+# first, so it refuses to run in production.
+
 raise "Refusing to run db/seeds.rb in production: it deletes nearly every record." if Rails.env.production?
 
 puts "🌱 Seeding Database..."
@@ -15,7 +19,6 @@ puts "🧹 Old data wiped."
 
 puts "Creating users..."
 
-# --- Admins ---
 superadmin = User.find_or_create_by(email: "dfitch@mica.edu") do |u|
   u.first_name = "Dexter"
   u.last_name = "Fitch"
@@ -29,7 +32,6 @@ admin2 = User.create!(
   role: :admin
 )
 
-# --- Faculty ---
 faculty1 = User.create!(
   first_name: "Alice", last_name: "Chen", email: "achen@mica.edu", role: :faculty
 )
@@ -40,12 +42,10 @@ faculty3 = User.create!(
   first_name: "Priya", last_name: "Nair", email: "pnair@mica.edu", role: :faculty
 )
 
-# --- Brand-new user who hasn't picked a role yet (for the Select Role page) ---
 User.create!(
   first_name: "Nia", last_name: "Newcomer", email: "nnewcomer@mica.edu", role: nil
 )
 
-# --- Models ---
 model1 = User.create!(
   first_name: "Jordan", last_name: "Ellis", email: "jellis@mica.edu", role: :model,
   skin_tone: "Medium", gender_identity: "Non-binary", willing_to_model_nude: true,
@@ -76,7 +76,6 @@ sock_model = User.create!(
   stage_name: "Offline Test Account"
 )
 
-# Body details used for matching (genitalia only for models willing to pose nude)
 model1.update!(body_type: "Average", genitalia: "Intersex")
 model2.update!(body_type: "Average")
 model3.update!(body_type: "Muscular", genitalia: "Male")
@@ -84,7 +83,7 @@ model5.update!(body_type: "Fat", genitalia: "Male")
 
 puts "Building scenarios..."
 
-# Helper to create a matched gig cleanly (mirrors gigs_controller#create side effects)
+# Books a model into a date the way the app does, then updates the date's and class's status.
 def book!(faculty_request, availability, confirmed_by:)
   gig = Gig.create!(faculty_request: faculty_request, art_model_availability: availability, confirmed_by: confirmed_by,
                     model_slot_position: faculty_request.best_open_slot_for(availability.user))
@@ -94,9 +93,6 @@ def book!(faculty_request, availability, confirmed_by:)
   gig
 end
 
-# ============================================================
-# SCENARIO A: Fresh pending single-date request (a one-date series)
-# ============================================================
 series_a = RequestSeries.create!(
   user: faculty1, class_name: "Figure Drawing 101", department: "Drawing",
   building: "Fox", room_number: "201", model_mode: :clothed,
@@ -111,9 +107,6 @@ FacultyRequest.create!(
   status: :pending
 )
 
-# ============================================================
-# SCENARIO B: Fresh pending multi-date series (3 dates, all pending)
-# ============================================================
 series_b = RequestSeries.create!(
   user: faculty2, class_name: "Painting II", department: "Painting",
   building: "Main", room_number: "412", model_mode: :nude,
@@ -130,9 +123,6 @@ series_b = RequestSeries.create!(
   )
 end
 
-# ============================================================
-# SCENARIO C: Fully matched single-date request (isSingle labels test)
-# ============================================================
 series_c = RequestSeries.create!(
   user: faculty3, class_name: "Sculpture Studio", department: "Sculpture",
   building: "Station", room_number: "5", model_mode: :clothed,
@@ -151,9 +141,6 @@ avail_c = ArtModelAvailability.create!(
 )
 book!(fr_c, avail_c, confirmed_by: superadmin)
 
-# ============================================================
-# SCENARIO D: Fully matched multi-date series (Edit/Cancel Series plural labels)
-# ============================================================
 series_d = RequestSeries.create!(
   user: faculty1, class_name: "Illustration Portfolio", department: "Illustration",
   building: "Lazarus", room_number: "300", model_mode: :clothed,
@@ -172,9 +159,6 @@ series_d = RequestSeries.create!(
   book!(fr, avail, confirmed_by: admin2)
 end
 
-# ============================================================
-# SCENARIO E: Mixed series (some matched, some pending) — badges + "Release Model and Rematch"
-# ============================================================
 series_e = RequestSeries.create!(
   user: faculty2, class_name: "Open Studies Life Drawing", department: "Open Studies",
   building: "Main", room_number: "110", model_mode: :nude,
@@ -199,9 +183,6 @@ FacultyRequest.create!(
 )
 series_e.update_status!
 
-# ============================================================
-# SCENARIO F: needs_attention flagged pending date (simulates a model cancellation)
-# ============================================================
 series_f = RequestSeries.create!(
   user: faculty3, class_name: "Anatomy for Artists", department: "Drawing",
   building: "Fox", room_number: "150", model_mode: :clothed,
@@ -215,9 +196,6 @@ FacultyRequest.create!(
   status: :pending, needs_attention: true
 )
 
-# ============================================================
-# SCENARIO G: Cancelled/archived series, non-billable (cancelled well ahead of time)
-# ============================================================
 series_g = RequestSeries.create!(
   user: faculty1, class_name: "Ceramics Fundamentals", department: "Sculpture",
   building: "Station", room_number: "12", model_mode: :clothed,
@@ -237,9 +215,6 @@ gig_g.update!(status: :cancelled, billable: false)
 avail_g.update!(status: :active)
 series_g.update_status!
 
-# ============================================================
-# SCENARIO H: Cancelled gig, billable (same-day late cancellation) — for Reports testing
-# ============================================================
 series_h = RequestSeries.create!(
   user: faculty2, class_name: "Portrait Painting", department: "Painting",
   building: "Main", room_number: "220", model_mode: :clothed,
@@ -255,7 +230,6 @@ fr_h = FacultyRequest.create!(
 )
 avail_h = ArtModelAvailability.create!(user: model5, starts_at: fr_h.starts_at, ends_at: fr_h.ends_at, status: :active)
 gig_h = book!(fr_h, avail_h, confirmed_by: superadmin)
-# Backdate to "today" to simulate a same-day cancellation, bypassing create-time future-date validation
 today_start = Time.current.change(hour: 14, min: 0)
 today_end = today_start + 2.hours
 fr_h.update_columns(starts_at: today_start, ends_at: today_end)
@@ -265,10 +239,6 @@ fr_h.update_columns(status: FacultyRequest.statuses[:archived])
 avail_h.update_columns(status: ArtModelAvailability.statuses[:active])
 series_h.update_status!
 
-# ============================================================
-# SCENARIO I: Pending request (in a series) with lingering cancelled-gig history
-# (tests the cancel_entire_series! foreign-key-safe fix — reachable via "Cancel Series" in AllRequests.jsx)
-# ============================================================
 series_i = RequestSeries.create!(
   user: faculty3, class_name: "Intro to Figure Modeling", department: "FYE",
   building: "Lazarus", room_number: "101", model_mode: :clothed,
@@ -284,16 +254,11 @@ fr_i = FacultyRequest.create!(
 )
 avail_i = ArtModelAvailability.create!(user: model1, starts_at: fr_i.starts_at, ends_at: fr_i.ends_at, status: :active)
 gig_i = book!(fr_i, avail_i, confirmed_by: admin2)
-# Release it the same way gigs_controller#destroy does — preserves the gig, request returns to pending
 gig_i.update!(status: :cancelled, billable: false)
 fr_i.update!(status: :pending)
 avail_i.update!(status: :active)
 series_i.update_status!
-# fr_i is now pending again, but Gig id=gig_i.id still references it
 
-# ============================================================
-# SCENARIO J: Free/unbooked availability slots on a model's calendar
-# ============================================================
 [2, 4, 6, 12].each do |days_out|
   ArtModelAvailability.create!(
     user: model2, starts_at: days_out.days.from_now.change(hour: 9, min: 0),
@@ -305,18 +270,11 @@ ArtModelAvailability.create!(
   ends_at: 3.days.from_now.change(hour: 15, min: 0), status: :active
 )
 
-# ============================================================
-# SCENARIO K: Sock (offline) model with admin-managed availability
-# ============================================================
 ArtModelAvailability.create!(
   user: sock_model, starts_at: 5.days.from_now.change(hour: 9, min: 0),
   ends_at: 5.days.from_now.change(hour: 17, min: 0), status: :active
 )
 
-# ============================================================
-# SCENARIO L: Second confirmed gig for Jordan Ellis, clothed
-# (tests a model with both Nude and Clothed hours in the same Reports run)
-# ============================================================
 series_l = RequestSeries.create!(
   user: faculty1, class_name: "Drawing I", department: "Open Studies",
   building: "Fox", room_number: "210", model_mode: :clothed,
@@ -333,10 +291,7 @@ fr_l = FacultyRequest.create!(
 avail_l = ArtModelAvailability.create!(user: model1, starts_at: fr_l.starts_at, ends_at: fr_l.ends_at, status: :active)
 book!(fr_l, avail_l, confirmed_by: admin2)
 
-# ============================================================
-# SCENARIO M: Stress-test data for Jordan Ellis — multiple departments,
-# mixed modes, spread across dates (for Reports print-table sort testing)
-# ============================================================
+# A one-date class with a model already booked.
 def quick_confirmed_gig!(faculty:, model:, class_name:, department:, building:, room:, mode:, days_out:, start_hour:, end_hour:, confirmed_by:)
   series = RequestSeries.create!(
     user: faculty, class_name: class_name, department: department,
@@ -364,22 +319,17 @@ quick_confirmed_gig!(faculty: faculty1, model: model1, class_name: "Illustration
 quick_confirmed_gig!(faculty: faculty1, model: model1, class_name: "Illustration Advanced", department: "Illustration",
   building: "Lazarus", room: "150", mode: :nude, days_out: 20, start_hour: 9, end_hour: 11, confirmed_by: superadmin)
 
-# Same-day, different times, different modes — tests the date-tie mode-alphabetical sort
 quick_confirmed_gig!(faculty: faculty3, model: model1, class_name: "Sculpture Morning", department: "Sculpture",
   building: "Station", room: "8", mode: :nude, days_out: 16, start_hour: 9, end_hour: 11, confirmed_by: admin2)
 
 quick_confirmed_gig!(faculty: faculty3, model: model1, class_name: "Sculpture Afternoon", department: "Sculpture",
   building: "Station", room: "8", mode: :clothed, days_out: 16, start_hour: 13, end_hour: 15, confirmed_by: admin2)
 
-# ============================================================
-# SCENARIO N: Group session needing 2 models, only 1 booked so far
-# ============================================================
 series_n = RequestSeries.create!(
   user: faculty3, class_name: "Group Pose Lab", department: "Drawing",
   building: "Main", room_number: "305", model_mode: :clothed,
   pref_skin_tone: "Any", pref_gender: "Any", models_needed: 2, status: :pending
 )
-# Faculty asked for one muscular and one fat model
 series_n.model_slots.create!(position: 1, pref_body_type: "Muscular")
 series_n.model_slots.create!(position: 2, pref_body_type: "Fat")
 fr_n = FacultyRequest.create!(
@@ -392,12 +342,8 @@ fr_n = FacultyRequest.create!(
 )
 avail_n = ArtModelAvailability.create!(user: model3, starts_at: fr_n.starts_at, ends_at: fr_n.ends_at, status: :active)
 book!(fr_n, avail_n, confirmed_by: superadmin)
-# A second model with open time covering the class, so an admin can fill the last spot
 ArtModelAvailability.create!(user: model5, starts_at: fr_n.starts_at - 1.hour, ends_at: fr_n.ends_at + 1.hour, status: :active)
 
-# ============================================================
-# SCENARIO O: Nude request preferring a trans woman (Woman + male genitalia)
-# ============================================================
 series_o = RequestSeries.create!(
   user: faculty1, class_name: "Advanced Figure Painting", department: "Painting",
   building: "Main", room_number: "415", model_mode: :nude,
@@ -414,11 +360,8 @@ FacultyRequest.create!(
   status: :pending
 )
 
-# ============================================================
-# SCENARIO P: Classes that already happened — for the Past filters on Requests
-# and Gigs, Completed gigs on My Gigs, how My Classes shows past classes, and Reports.
-# Booked as future dates first (the app won't book the past), then moved back.
-# ============================================================
+# Moves a booked date (and its model's free time) to the given time, for classes that already
+# happened.
 def backdate!(faculty_request, to:)
   length = faculty_request.ends_at - faculty_request.starts_at
   faculty_request.update_columns(starts_at: to, ends_at: to + length)
@@ -427,6 +370,8 @@ def backdate!(faculty_request, to:)
   end
 end
 
+# A class whose dates already happened, booked as future dates first (the app won't book the past)
+# and then moved back.
 def past_class!(faculty:, model:, class_name:, department:, building:, room:, days_ago:, start_hour:, end_hour:, confirmed_by:)
   series = RequestSeries.create!(
     user: faculty, class_name: class_name, department: department,
@@ -434,7 +379,6 @@ def past_class!(faculty:, model:, class_name:, department:, building:, room:, da
     pref_skin_tone: "Any", pref_gender: "Any", status: :pending
   )
   days_ago.each_with_index do |ago, i|
-    # Somewhere far enough ahead that it can't clash with the other seeded gigs
     ahead = (100 + i).days.from_now
     fr = FacultyRequest.create!(
       request_series: series, user: faculty, class_name: series.class_name,
@@ -451,10 +395,8 @@ def past_class!(faculty:, model:, class_name:, department:, building:, room:, da
   series
 end
 
-# Alice's two-date class from the last two weeks, modelled by Jordan
 past_class!(faculty: faculty1, model: model1, class_name: "Gesture Drawing", department: "Drawing",
   building: "Fox", room: "120", days_ago: [14, 7], start_hour: 10, end_hour: 12, confirmed_by: admin2)
-# Marcus's one-off class last week, modelled by Sofia
 past_class!(faculty: faculty2, model: model2, class_name: "Portrait Sketching", department: "Painting",
   building: "Main", room: "220", days_ago: [5], start_hour: 13, end_hour: 15, confirmed_by: superadmin)
 

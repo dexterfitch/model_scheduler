@@ -1,3 +1,8 @@
+/**
+ * The model preference questions in New Request and Edit Class: nudity, number of
+ * models, and preferences, either the same for every model or one set per model.
+ */
+
 import React, { useId } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import {
@@ -7,8 +12,9 @@ import { genderOptionLabel } from "../utils/formatters";
 import { usesModelSlots } from "../utils/modelPreferences";
 import BodyTypePicker from "./BodyTypePicker";
 
-// Skin tone, gender presentation, body type and (nude sessions) genitalia
+/** One set of preferences: skin tone, gender, body type, and genitalia for nude classes. */
 function PreferenceSet({ prefs, isNude, idPrefix, onChange }) {
+  /** Passes a changed preference to the form. */
   const handle = (e) => onChange(e.target.name, e.target.value);
   const genitalia = isNude ? prefs.pref_genitalia : null;
 
@@ -50,13 +56,15 @@ function PreferenceSet({ prefs, isNude, idPrefix, onChange }) {
   );
 }
 
+/** Nudity, number of models, and the preferences for each model. */
 function ModelPreferenceFields({ values, onChange }) {
-  // Unique ids: this appears in both the New Request and Edit Class windows
   const id = useId();
   const isNude = values.model_mode === "nude";
   const count = values.models_needed || 1;
   const perModel = usesModelSlots(values);
+  /** Passes a changed field to the form. */
   const handle = (e) => onChange(e.target.name, e.target.value);
+  /** Changes one preference for one model. */
   const setSlot = (index, key, value) =>
     onChange("model_slots", (values.model_slots || []).map((slot, i) => (i === index ? { ...slot, [key]: value } : slot)));
 

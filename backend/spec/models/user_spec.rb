@@ -1,3 +1,5 @@
+# People: Google sign-in matching, model answers, and bringing old profile values up to date.
+
 require "rails_helper"
 
 RSpec.describe User, type: :model do
@@ -35,6 +37,7 @@ RSpec.describe User, type: :model do
   end
   
   describe ".from_omniauth" do
+    # What Google's sign-in hands the app for this email and name.
     def google_login(email:, first: "GoogleFirst", last: "GoogleLast")
       OmniAuth::AuthHash.new(info: { email: email, first_name: first, last_name: last })
     end

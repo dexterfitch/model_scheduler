@@ -1,7 +1,8 @@
+# Free time shared by two classes: cancelling and moving one class leaves the other alone.
+
 require "rails_helper"
 
 RSpec.describe ArtModelAvailability, type: :model do
-  # One all-day slot holding two non-overlapping classes
   let(:day)       { 7.days.from_now.to_date }
   let(:slot)      { create(:art_model_availability, starts_at: day.in_time_zone.change(hour: 8), ends_at: day.in_time_zone.change(hour: 22)) }
   let(:morning)   { create(:faculty_request, starts_at: day.in_time_zone.change(hour: 10), ends_at: day.in_time_zone.change(hour: 12)) }

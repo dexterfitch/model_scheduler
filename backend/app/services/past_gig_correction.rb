@@ -1,17 +1,21 @@
-# Fixes the record of a gig whose class has already started: who showed up,
-# whether they're paid, and the hours they worked. Nothing here emails anyone
-# or rebooks anyone; it only changes the record that billing reads.
+# Fixes the record of a gig whose class has already started: a no-show (or undoing
+# one), paying or not paying a cancellation, the hours really worked, or another
+# model who covered. Nothing here emails or rebooks anyone; it only changes the
+# record that billing reads, and logs each change as a GigCorrection.
 class PastGigCorrection
+  # A correction that can't be made, with a message for the admin.
   class Error < StandardError; end
 
   ZONE = "Eastern Time (US & Canada)".freeze
 
+  # A correction to the given gig, made by the given admin, as described by params.
   def initialize(gig:, admin:, params:)
     @gig = gig
     @admin = admin
     @params = params
   end
 
+  # Makes the correction and logs it. Raises Error if it can't be made.
   def apply!
     if klass.starts_at > Time.current
       raise Error, "This date hasn't happened yet. Use Release Model to change who's booked."
@@ -36,37 +40,45 @@ class PastGigCorrection
 
   private
 
+  # The class date of the gig.
   def klass
     @gig.faculty_request
   end
 
+  # The admin's note, if they wrote one.
   def note
     @params[:note].to_s.strip.presence
   end
 
+  # Logs a correction against a gig.
   def record!(gig, kind, summary)
     gig.gig_corrections.create!(user: @admin, kind: kind, summary: summary, note: note)
   end
 
+  # The model's full name.
   def name_of(gig)
     user = gig.art_model_availability.user
     "#{user.first_name} #{user.last_name}"
   end
 
+  # A time as Eastern clock time, like 1:30 PM.
   def time(t)
     t.in_time_zone(ZONE).strftime("%-l:%M %p")
   end
 
+  # Marks the model as a no-show, unpaid.
   def mark_no_show!
     raise Error, "#{name_of(@gig)} is already recorded as a no-show." if @gig.no_show
     no_show!(@gig)
     "Marked #{name_of(@gig)} as a no-show (not paid)"
   end
 
+  # Cancels the gig as a no-show, unpaid.
   def no_show!(gig)
     gig.update_columns(status: Gig.statuses[:cancelled], billable: false, no_show: true, updated_at: Time.current)
   end
 
+  # Puts a no-show back to worked and paid, if their spot hasn't been given to someone else.
   def undo_no_show!
     raise Error, "#{name_of(@gig)} isn't recorded as a no-show." unless @gig.no_show
     if klass.confirmed_gigs.count >= klass.models_needed
@@ -77,8 +89,8 @@ class PastGigCorrection
     "Undid the no-show: #{name_of(@gig)} is paid again"
   end
 
-  # Only a cancellation can be paid or not: a model who worked is always paid,
-  # and one who didn't come is a no-show
+  # Pays or stops paying a cancellation. A model who worked is always paid, so only
+  # cancellations (not no-shows) can change.
   def set_paid!(paid)
     unless @gig.cancelled? && !@gig.no_show
       raise Error, "A model who worked is always paid. Use No-show if they didn't come, or Fix the hours if they worked less."
@@ -87,6 +99,7 @@ class PastGigCorrection
     paid ? "Paid the cancellation" : "Stopped paying the cancellation"
   end
 
+  # Records the hours really worked (at most 12), or goes back to the booked hours.
   def fix_hours!
     if ActiveModel::Type::Boolean.new.cast(@params[:reset_hours])
       @gig.update_columns(worked_starts_at: nil, worked_ends_at: nil, updated_at: Time.current)
@@ -103,6 +116,9 @@ class PastGigCorrection
     "Hours changed to #{time(from)} – #{time(to)} (booked #{time(klass.starts_at)} – #{time(klass.ends_at)})"
   end
 
+  # Records another model covering: the booked model becomes a no-show, and the
+  # stand-in gets a paid gig on the date, in free time made for the hours they
+  # worked. The stand-in must be able to pose for the class and not already be on it.
   def record_cover!
     stand_in = User.find_by(id: @params[:stand_in_user_id], role: :model)
     raise Error, "Choose the model who covered." unless stand_in
@@ -120,7 +136,6 @@ class PastGigCorrection
 
     no_show!(@gig) unless @gig.no_show
 
-    # The stand-in wasn't booked, so give them the time they actually worked
     slot = ArtModelAvailability.new(user: stand_in, starts_at: klass.starts_at, ends_at: klass.ends_at, status: :active)
     slot.recording_past = true
     slot.save!
@@ -142,6 +157,7 @@ class PastGigCorrection
     "#{stand_in_name} covered: #{original} marked as a no-show (not paid), #{stand_in_name} paid"
   end
 
+  # A time from the request, or nil if it isn't one.
   def parse(value)
     return nil if value.blank?
     Time.zone.parse(value.to_s)

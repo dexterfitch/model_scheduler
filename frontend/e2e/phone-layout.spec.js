@@ -1,7 +1,11 @@
+/**
+ * End-to-end layout checks at phone size (and one at desktop size): spacing between
+ * fields, the calendar's opening view, the Requests cards and the pinned messages.
+ */
+
 import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers';
 
-// Layout checks that only matter once columns stack on a phone screen
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
 const forms = [
@@ -20,6 +24,7 @@ test.describe('stacked form fields have space between them (phone)', () => {
       if (f.open) await f.open(page);
 
       const crowded = await page.evaluate(() => {
+        /** Whether a field takes up space on the page. */
         const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
         const fields = [...document.querySelectorAll(
           'input:not([type=checkbox]):not([type=radio]):not([type=hidden]), select, textarea'
@@ -28,7 +33,6 @@ test.describe('stacked form fields have space between them (phone)', () => {
         const problems = [];
         for (const label of document.querySelectorAll('label.form-label')) {
           if (!visible(label)) continue;
-          // The last field that comes before this label on the page
           const above = fields.filter(f => f.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).pop();
           if (!above) continue;
           const gap = label.getBoundingClientRect().top - above.getBoundingClientRect().bottom;
@@ -59,7 +63,7 @@ test('model detail badges line up on the left (phone)', async ({ page }) => {
   expect(Math.abs(badgeLeft - nameLeft), 'badges should start under the name, not on the right').toBeLessThan(2);
 });
 
-// Returns how far down the page an element starts
+/** How far down the page an element starts. */
 const topOf = async (locator) => (await locator.boundingBox()).y;
 
 test('admin calendar shows the schedule before the availability list (phone)', async ({ page }) => {
@@ -97,7 +101,6 @@ test('a model can add availability without tapping the calendar grid (phone)', a
   const window = page.getByRole('dialog', { name: 'Set Availability' });
   await expect(window).toBeVisible();
 
-  // Any day can be chosen in the window itself, so no calendar tapping is needed
   const nextWeek = new Date(Date.now() + 7 * 86400000).toLocaleDateString('en-CA');
   await window.getByLabel('Date', { exact: true }).fill(nextWeek);
   await window.getByLabel('Start Time').fill('19:00');
@@ -113,7 +116,6 @@ test('the longest New Request form scrolls all the way to Submit (phone)', async
   const form = page.getByRole('dialog');
   await expect(form).toBeVisible();
 
-  // Make the form as long as it gets: three dates, nude, and three models with their own preferences
   await form.getByRole('button', { name: /Add Another Date/ }).click();
   await form.getByRole('button', { name: /Add Another Date/ }).click();
   await form.getByLabel('Nudity').selectOption('nude');
@@ -123,7 +125,7 @@ test('the longest New Request form scrolls all the way to Submit (phone)', async
   const submit = form.getByRole('button', { name: 'Submit Request' });
   await submit.scrollIntoViewIfNeeded();
   await expect(submit).toBeInViewport();
-  await submit.click({ trial: true }); // fails if anything covers the button
+  await submit.click({ trial: true });
 });
 
 test('Requests cards keep one main button and tuck the rest into More (phone)', async ({ page }) => {
@@ -202,7 +204,6 @@ test("the model's two tabs sit side by side and share the width (phone)", async 
   expect(Math.abs(a.y - b.y), 'both tabs should be on the same row').toBeLessThan(2);
   expect(Math.abs(a.width - b.width), 'the tabs should be the same width').toBeLessThan(2);
 
-  // Whichever tab is open, both reach down to the line under the tabs
   for (const tab of [availability, gigs]) {
     await tab.click();
     const [x, y] = [await gigs.boundingBox(), await availability.boundingBox()];
@@ -217,7 +218,7 @@ test("the chosen skin tone's ring has room around it (phone)", async ({ page }) 
   await group.getByRole('radio').first().check({ force: true });
 
   const gaps = await group.evaluate(el => {
-    const ring = 6; // the blue ring reaches 6px past the circle
+    const ring = 6;
     const circles = [...el.querySelectorAll('label > span[aria-hidden="true"]')].map(c => c.getBoundingClientRect());
     const selected = el.parentElement.querySelector('.form-text').getBoundingClientRect();
     return {

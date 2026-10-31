@@ -1,3 +1,7 @@
+/**
+ * Tests for the first-sign-in role choice.
+ */
+
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -6,6 +10,7 @@ import api from '../services/api';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }));
 
+/** Shows the role choice. */
 function renderPage(onLogin = vi.fn()) {
   const utils = render(
     <MemoryRouter>

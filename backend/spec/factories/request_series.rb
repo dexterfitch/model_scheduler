@@ -1,3 +1,5 @@
+# Test classes: Figure Drawing I in Main, clothed.
+
 FactoryBot.define do
   factory :request_series do
     association :user

@@ -1,3 +1,6 @@
+# Anyone who signs in: an admin, faculty member or model (role is chosen on first
+# sign-in). Models answer personal questions used for matching; every one can be
+# Prefer not to say or left blank, except skin tone and gender, which must be answered.
 class User < ApplicationRecord
   has_many :art_model_availabilities, dependent: :destroy
   has_many :faculty_requests, dependent: :destroy
@@ -5,7 +8,6 @@ class User < ApplicationRecord
 
   GENDER_IDENTITIES = ["Woman", "Man", "Non-binary", "Prefer not to say"].freeze
   SKIN_TONES = ["Light", "Medium", "Dark"].freeze
-  # What a model can answer about themselves. Requests can only ask for SKIN_TONES.
   SKIN_TONE_ANSWERS = (SKIN_TONES + ["Prefer not to say"]).freeze
   BODY_TYPES = ["Muscular", "Average", "Fat"].freeze
   GENITALIA = ["Male", "Female", "Intersex"].freeze
@@ -24,14 +26,13 @@ class User < ApplicationRecord
   with_options if: :role_model? do
     validates :gender_identity, presence: true
     validates :gender_identity, inclusion: { in: GENDER_IDENTITIES }
-    # One clear message whether the skin tone is missing or not an option
     validates :skin_tone, inclusion: { in: SKIN_TONE_ANSWERS, message: "must be chosen (Light, Medium, Dark or Prefer not to say)" }
     validates :willing_to_model_nude, inclusion: { in: [true, false] }
-    # Both optional so existing model profiles stay valid
     validates :body_type, inclusion: { in: BODY_TYPES }, allow_nil: true
     validates :genitalia, inclusion: { in: GENITALIA }, allow_nil: true
   end
 
+  # The user for a Google sign-in, matched by email, created if new, with name and photo filled in.
   def self.from_omniauth(auth)
     email = auth.info.email.to_s.downcase
     user = where("LOWER(email) = ?", email).first_or_initialize(email: email)
@@ -41,18 +42,20 @@ class User < ApplicationRecord
     user
   end
 
+  # Profile JSON without timestamps.
   def as_json(options = {})
     super({ except: [:created_at, :updated_at] }.merge(options))
   end
 
-  # The matching option from today's list, ignoring capitals and spaces, or nil
+  # The matching option from today's list, ignoring capitals and spaces, or nil.
   def self.current_option(value, options)
     options.find { |option| option.casecmp?(value.to_s.strip) }
   end
 
-  # One-time cleanup for profiles saved under older option lists. Old spellings
-  # (like "Non-Binary") become today's spelling; values that no longer exist are
-  # cleared, except a model's gender, which becomes "Prefer not to say".
+  # One-time cleanup for profiles saved under older option lists: old spellings
+  # become today's; values that no longer exist are cleared, except a model's
+  # gender, which becomes Prefer not to say. Saved without validation, so a model
+  # whose skin tone was cleared is asked for it on their profile.
   def self.bring_all_profile_values_up_to_date!
     find_each do |user|
       user.gender_identity = current_option(user.gender_identity, GENDER_IDENTITIES)
@@ -61,14 +64,13 @@ class User < ApplicationRecord
       user.body_type = current_option(user.body_type, BODY_TYPES)
       user.genitalia = current_option(user.genitalia, GENITALIA)
 
-      # Skip validation: a model whose skin tone was cleared should still be
-      # saved, and will be asked to choose one on their profile
       user.save!(validate: false) if user.changed?
     end
   end
 
   private
 
+  # A model can't stop posing nude while booked into an upcoming nude class.
   def no_upcoming_nude_bookings
     count = Gig.where(status: :confirmed)
       .joins(:art_model_availability, :faculty_request)
@@ -81,10 +83,10 @@ class User < ApplicationRecord
     errors.add(:base, "You're booked for #{count} nude session#{'s' if count > 1}; cancel #{count > 1 ? 'those' : 'it'} first.")
   end
 
+  # Blank answers are saved as blank; genitalia is only kept for models willing to pose nude.
   def normalize_model_attributes
     self.body_type = nil if body_type.blank?
     self.genitalia = nil if genitalia.blank?
-    # Only nude sessions use this, so don't keep it for clothed-only models
     self.genitalia = nil unless willing_to_model_nude
   end
 end

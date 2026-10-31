@@ -1,3 +1,7 @@
+/**
+ * Tests for Reports: totals, paid cancellations, corrections and the print table.
+ */
+
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Reports from './Reports';
@@ -9,6 +13,7 @@ const jordan = { id: 1, first_name: 'Jordan', last_name: 'Ellis' };
 const riley  = { id: 2, first_name: 'Riley',  last_name: 'Park' };
 const faculty = { first_name: 'Priya', last_name: 'Nair' };
 
+/** A gig for a model at these times. */
 const gig = (model, start, end, extra = {}) => ({
   status: 'confirmed', billable: null,
   art_model_availability: { user: model },
@@ -18,17 +23,19 @@ const gig = (model, start, end, extra = {}) => ({
   },
   ...extra
 });
+/** The same gig, nude. */
 const nude = (g) => ({ ...g, faculty_request: { ...g.faculty_request, model_mode: 'nude' } });
 
 const gigs = [
-  gig(jordan, '2026-11-02T15:00:00Z', '2026-11-02T17:00:00Z'),                                   // 2 hrs clothed
-  nude(gig(jordan, '2026-11-03T15:00:00Z', '2026-11-03T18:00:00Z')),                             // 3 hrs nude
-  gig(jordan, '2026-11-04T15:00:00Z', '2026-11-04T17:00:00Z', { status: 'cancelled', billable: true }),  // late cancel: paid
-  gig(jordan, '2026-11-05T15:00:00Z', '2026-11-05T17:00:00Z', { status: 'cancelled', billable: false }), // early cancel: not paid
-  gig(jordan, '2026-12-07T15:00:00Z', '2026-12-07T17:00:00Z'),                                   // outside the range
-  gig(riley,  '2026-11-10T15:00:00Z', '2026-11-10T16:20:00Z'),                                   // 1h20m
+  gig(jordan, '2026-11-02T15:00:00Z', '2026-11-02T17:00:00Z'),
+  nude(gig(jordan, '2026-11-03T15:00:00Z', '2026-11-03T18:00:00Z')),
+  gig(jordan, '2026-11-04T15:00:00Z', '2026-11-04T17:00:00Z', { status: 'cancelled', billable: true }),
+  gig(jordan, '2026-11-05T15:00:00Z', '2026-11-05T17:00:00Z', { status: 'cancelled', billable: false }),
+  gig(jordan, '2026-12-07T15:00:00Z', '2026-12-07T17:00:00Z'),
+  gig(riley,  '2026-11-10T15:00:00Z', '2026-11-10T16:20:00Z'),
 ];
 
+/** Shows Reports and runs it for a date range. */
 async function runReport(start, end) {
   render(<Reports />);
   await waitForGigsToLoad();
@@ -39,6 +46,7 @@ async function runReport(start, end) {
   await userEvent.click(screen.getByRole('button', { name: 'Generate Report' }));
 }
 
+/** Waits for the gigs to be requested. */
 const waitForGigsToLoad = () => vi.waitFor(() => expect(api.get).toHaveBeenCalled());
 
 beforeEach(() => {
@@ -49,7 +57,6 @@ beforeEach(() => {
 describe('Reports (model hours)', () => {
   it('pays for confirmed gigs and late cancellations, but not early cancellations or other months', async () => {
     await runReport('2026-11-01', '2026-11-30');
-    // 2 clothed + 3 nude + 2 late-cancelled = 7. The early cancel and December gig don't count.
     expect(await screen.findByText('Payable Total: 7 hrs')).toBeInTheDocument();
   });
 
@@ -60,7 +67,6 @@ describe('Reports (model hours)', () => {
 
   it('rounds hours to the nearest quarter hour', async () => {
     await runReport('2026-11-01', '2026-11-30');
-    // 1 hour 20 minutes rounds to 1.25
     expect(await screen.findByText('Payable Total: 1.25 hrs')).toBeInTheDocument();
   });
 
@@ -74,12 +80,10 @@ describe('Reports (model hours)', () => {
     const rows = within(table).getAllByRole('row').slice(1)
       .map(r => within(r).getAllByRole('cell').map(c => c.textContent));
 
-    // The late cancellation is labeled, and its Mode column really shows the mode
     const lateCancel = rows.find(r => r[5] === 'Late cancel (billable)');
     expect(lateCancel[4]).toBe('Clothed');
     expect(lateCancel[6]).toBe('2');
 
-    // A total under each model, and one for the whole report (7 + 1.25)
     expect(rows).toContainEqual(['Total for Jordan Ellis', '7']);
     expect(rows).toContainEqual(['Total for Riley Park', '1.25']);
     expect(rows).toContainEqual(['Grand total', '8.25']);
@@ -108,10 +112,12 @@ describe('Reports (model hours)', () => {
 
   describe('after a past gig was corrected', () => {
     const corrected = { corrections: [{ id: 1, kind: 'hours', summary: 'Hours changed', user: { first_name: 'Pat', last_name: 'Reyes' } }] };
+    /** Runs the report for one gig. */
     const run = async (extra) => {
       api.get.mockResolvedValue({ data: [gig(riley, '2026-11-10T15:00:00Z', '2026-11-10T17:00:00Z', extra)] });
       await runReport('2026-11-01', '2026-11-30');
     };
+    /** The print table's rows as lists of cell text. */
     const printRows = async () => within(await screen.findByRole('table')).getAllByRole('row').slice(1)
       .map(r => within(r).getAllByRole('cell').map(c => c.textContent));
 

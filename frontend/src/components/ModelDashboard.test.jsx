@@ -1,3 +1,7 @@
+/**
+ * Tests for the model's page: gigs, cancelling, free time and Open Calls.
+ */
+
 import { screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelDashboard from './ModelDashboard';
@@ -7,7 +11,6 @@ import { renderWithDialogs } from '../test/render';
 import { formatTimeShort } from '../utils/time';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
-// The calendar library needs a real browser, so a placeholder stands in for it here
 vi.mock('./SharedCalendar', () => ({
   default: ({ onDateSelect }) => (
     <button onClick={() => onDateSelect({ startStr: '2099-01-05' })}>Pick a date</button>
@@ -16,8 +19,8 @@ vi.mock('./SharedCalendar', () => ({
 
 const model = { id: 10, first_name: 'Jordan', willing_to_model_nude: false };
 
-// One all-day slot holding two classes: the exact situation behind fix #7
 const slot = { id: 5, status: 'active', starts_at: daysFromNow(12, 13), ends_at: daysFromNow(12, 21) };
+/** A gig in the model's free time. */
 const gig = (id, className, start, end, extra = {}) => ({
   id, status: 'confirmed', art_model_availability: slot,
   faculty_request: { id, class_name: className, model_mode: 'clothed', starts_at: start, ends_at: end },
@@ -130,10 +133,8 @@ describe('ModelDashboard', () => {
     });
     renderWithDialogs(<ModelDashboard user={model} />);
 
-    // Not listed with upcoming confirmed gigs
     expect(await screen.findByText('No confirmed gigs.')).toBeInTheDocument();
 
-    // Listed under Completed, with no way to cancel it
     await userEvent.click(screen.getByRole('button', { name: 'Completed' }));
     const card = (await screen.findAllByText('Gesture Drawing'))[0].closest('.card');
     expect(within(card).getByText('Completed')).toBeInTheDocument();

@@ -1,3 +1,5 @@
+# Correcting past gigs: no-shows, pay, hours worked, cover, and who sees what.
+
 require "rails_helper"
 
 RSpec.describe "Correcting the record of a past gig", type: :request do
@@ -7,13 +9,14 @@ RSpec.describe "Correcting the record of a past gig", type: :request do
   let(:model)   { gig.art_model_availability.user }
   let(:two_days_ago) { 2.days.ago.change(hour: 10) }
 
-  # Book it as a future date, then move it into the past, like a class that already happened
+  # Moves a booked gig's date (and free time) into the past, like a class that already happened.
   def move_into_past(g, start = two_days_ago)
     g.faculty_request.update_columns(starts_at: start, ends_at: start + 2.hours)
     g.art_model_availability.update_columns(starts_at: start, ends_at: start + 2.hours)
     g
   end
 
+  # Sends a correction for the gig, as the given user.
   def correct(params, as: admin, target: gig)
     post "/gigs/#{target.id}/corrections", params: { correction: params }, headers: auth_headers(as), as: :json
   end
@@ -108,7 +111,6 @@ RSpec.describe "Correcting the record of a past gig", type: :request do
       gig.reload
       expect(gig.worked_starts_at).to eq(two_days_ago)
       expect(gig.worked_ends_at).to eq(two_days_ago + 90.minutes)
-      # The class itself keeps its booked times
       expect(booked_class.reload.ends_at).to eq(two_days_ago + 2.hours)
     end
 

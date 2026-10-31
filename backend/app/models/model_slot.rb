@@ -1,5 +1,5 @@
-# Preferences for one of the models a class asked for ("Model 1", "Model 2", ...).
-# Only classes that want a specific mix have these; the rest use the series' own preferences.
+# One model's preferences in a class that asks for several models with different
+# preferences. Position 1 is Model 1, and so on.
 class ModelSlot < ApplicationRecord
   belongs_to :request_series
 
@@ -12,7 +12,7 @@ class ModelSlot < ApplicationRecord
   validates :pref_body_type, inclusion: { in: User::BODY_TYPES + ["Any"] }
   validates :pref_genitalia, inclusion: { in: User::GENITALIA + ["Any"] }
 
-  # How many of this slot's preferences a model matches (same rules as the matching screen)
+  # How many of this spot's preferences the model matches (genitalia only counts for nude classes).
   def match_score(user, nude:)
     score = 0
     score += 1 if user.skin_tone == pref_skin_tone
@@ -24,6 +24,7 @@ class ModelSlot < ApplicationRecord
 
   private
 
+  # Blank preferences mean Any; genitalia only applies to nude classes.
   def normalize_preferences
     %w[pref_skin_tone pref_gender pref_body_type pref_genitalia].each { |pref| self[pref] = "Any" if self[pref].blank? }
     self.pref_genitalia = "Any" unless request_series&.model_mode == "nude"

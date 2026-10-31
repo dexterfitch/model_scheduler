@@ -1,6 +1,9 @@
+# Single dates of a class. Faculty create, move and cancel their own dates;
+# admins can do so for anyone. Class-wide details live on RequestSeries.
 class FacultyRequestsController < ApplicationController
   before_action -> { require_role(:admin, :faculty) }
 
+  # Lists dates: a faculty member's own, or for admins everyone's (or one person's).
   def index
     @requests = if current_user.role_admin?
       params[:user_id] ? FacultyRequest.where(user_id: params[:user_id]) : FacultyRequest.all
@@ -11,6 +14,7 @@ class FacultyRequestsController < ApplicationController
     render json: @requests, include: :user
   end
 
+  # Adds a date, to one of the faculty member's own classes if a series is given.
   def create
     @request = FacultyRequest.new(request_params)
     @request.user_id = current_user.id unless current_user.role_admin?
@@ -27,6 +31,8 @@ class FacultyRequestsController < ApplicationController
     end
   end
 
+  # Moves a date to a new day or time. Faculty can only move dates that are still
+  # pending and unbooked; the new date must be from tomorrow to four months out.
   def update
     @request = FacultyRequest.find(params[:id])
 
@@ -54,6 +60,8 @@ class FacultyRequestsController < ApplicationController
     end
   end
 
+  # Cancels a date. Booked models are released (paid if it's the same day). A date
+  # that has started with a model booked can't be cancelled.
   def destroy
     @request = FacultyRequest.find(params[:id])
 
@@ -77,12 +85,13 @@ class FacultyRequestsController < ApplicationController
 
   private
   
-  # Editing one date changes only its day and times. Class details and
-  # preferences live on the series, so every date stays consistent.
+  # Moving a date only changes its start and end; class details stay on the series.
   def update_params
     params.require(:faculty_request).permit(:starts_at, :ends_at)
   end
 
+  # Allowed fields for a new date. Admins may also set the owner and series;
+  # faculty may attach a new date to a series, which #create checks is theirs.
   def request_params
     permitted = [
       :starts_at, :ends_at, :class_name, :department, :building,
@@ -90,7 +99,6 @@ class FacultyRequestsController < ApplicationController
       :models_needed, :model_mode, :notes, :room_number
     ]
     permitted += [:user_id, :request_series_id] if current_user.role_admin?
-    # Faculty can attach a new date to a series (checked in #create), but can't move it later
     permitted << :request_series_id if action_name == "create"
     params.require(:faculty_request).permit(permitted.uniq)
   end

@@ -1,6 +1,10 @@
+/**
+ * Tests for the API connection: the token header and signing out on a rejected token.
+ */
+
 import api, { API_URL } from './api';
 
-// Instead of a real network call, echo back the request that would have been sent
+/** A fake network that answers with the request it was sent. */
 const echo = async (config) => ({ data: config, status: 200, statusText: 'OK', headers: {}, config });
 
 beforeEach(() => localStorage.clear());
@@ -27,6 +31,7 @@ describe('api (backend connection)', () => {
     localStorage.setItem('token', 'old-token');
     const heard = vi.fn();
     window.addEventListener('pose-pool:signed-out', heard);
+    /** A fake network that rejects the token. */
     const expired = async (config) => Promise.reject({ response: { status: 401 }, config });
 
     await expect(api.get('/gigs', { adapter: expired })).rejects.toBeTruthy();
@@ -37,6 +42,7 @@ describe('api (backend connection)', () => {
   it("doesn't, when nobody was signed in to begin with", async () => {
     const heard = vi.fn();
     window.addEventListener('pose-pool:signed-out', heard);
+    /** A fake network that rejects the token. */
     const expired = async (config) => Promise.reject({ response: { status: 401 }, config });
 
     await expect(api.get('/me', { adapter: expired })).rejects.toBeTruthy();

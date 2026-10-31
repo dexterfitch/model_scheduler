@@ -1,3 +1,8 @@
+/**
+ * The Correct the record window, for a gig whose class already happened. Only the
+ * record and the billing report change; nobody is told or rebooked.
+ */
+
 import React, { useEffect, useState } from "react";
 import { Modal, Alert, Form, Button, Row, Col } from "react-bootstrap";
 import api from "../services/api";
@@ -5,11 +10,12 @@ import { extractErrorMessages } from "../utils/formatters";
 import { formatDateWithWeekday, formatTimeShort, formatTimeForInput } from "../utils/time";
 import { isPaid, payStatusLabel, paidHours, workedTimes } from "../utils/pay";
 
+/** A person's full name. */
 const fullName = (person) => [person?.first_name, person?.last_name].filter(Boolean).join(' ');
 
-// Fixes the record of one model's gig on a date that already happened:
-// a no-show, paid or not paid, the hours really worked, or who covered.
-// Only the record and the billing report change; nobody is told or rebooked.
+/**
+ * Shows the gig's record and past corrections, and saves a new correction with an optional note.
+ */
 function CorrectRecordModal({ gig, date, series, onSaved, onClose }) {
   const model = gig.art_model_availability?.user;
   const first = model?.first_name || 'The model';
@@ -24,7 +30,6 @@ function CorrectRecordModal({ gig, date, series, onSaved, onClose }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // The list of models is only needed for "someone else covered"
   useEffect(() => {
     if (kind !== 'covered_by' || models) return;
     api.get('/users')
@@ -38,8 +43,6 @@ function CorrectRecordModal({ gig, date, series, onSaved, onClose }) {
   const choices = [
     !gig.no_show && gig.status !== 'cancelled' && ['no_show', `${first} didn't show up (not paid)`],
     gig.no_show && ['undo_no_show', `Undo the no-show (${first} did come)`],
-    // A model who worked is always paid (fewer hours is Fix the hours), so
-    // paying or not only applies to a cancellation
     gig.status === 'cancelled' && !gig.no_show && (isPaid(gig)
       ? ['unpaid', 'Stop paying this cancellation']
       : ['paid', 'Pay this gig']),
@@ -48,12 +51,13 @@ function CorrectRecordModal({ gig, date, series, onSaved, onClose }) {
     !gig.no_show && gig.status !== 'cancelled' && ['covered_by', `Someone else covered for ${first}`],
   ].filter(Boolean);
 
-  // A time on the class's own day, as the server expects it
+  /** A time of day on the class's own date, as the API expects it. */
   const onClassDay = (time) => {
     const day = new Date(date.starts_at).toLocaleDateString('en-CA');
     return new Date(`${day}T${time}`).toISOString();
   };
 
+  /** The correction to send, from the choice and fields filled in. */
   const payload = () => {
     const correction = kind === 'reset_hours' ? { kind: 'hours', reset_hours: true } : { kind };
     if (kind === 'hours') {
@@ -67,6 +71,7 @@ function CorrectRecordModal({ gig, date, series, onSaved, onClose }) {
 
   const ready = kind && (kind !== 'covered_by' || standInId) && (kind !== 'hours' || (started && finished));
 
+  /** Sends the correction; stays open with the reason if the server refuses it. */
   const handleSave = async (e) => {
     e.preventDefault();
     if (!ready) return;

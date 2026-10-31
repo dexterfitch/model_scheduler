@@ -1,3 +1,7 @@
+/**
+ * Tests for the navigation, page titles and the SuperUser banner.
+ */
+
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -7,6 +11,7 @@ import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({ default: { post: vi.fn() } }));
 
+/** Shows the frame for a person. */
 function renderLayout(user, { onLogout = vi.fn(), refreshUser = vi.fn() } = {}) {
   renderWithDialogs(
     <MemoryRouter>

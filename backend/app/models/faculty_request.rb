@@ -1,9 +1,9 @@
+# One dated session of a class: when, where, and the model preferences copied from
+# its series. It can need several models; only confirmed gigs count toward that,
+# while cancelled gigs stay for history and billing.
 class FacultyRequest < ApplicationRecord
   belongs_to :user
-  # Every dated request belongs to a series; that's how the app lists and groups classes
   belongs_to :request_series
-  # A request can now be staffed by several models. Cancelled/completed gigs stay
-  # in `gigs` for history and billing; only confirmed ones count toward staffing.
   has_many :gigs
   has_many :confirmed_gigs, -> { where(status: :confirmed) }, class_name: "Gig"
 
@@ -45,21 +45,23 @@ class FacultyRequest < ApplicationRecord
   after_save :sync_booked_gig_availabilities, if: -> { saved_change_to_starts_at? || saved_change_to_ends_at? }
   after_save :sync_status_with_staffing, if: :saved_change_to_models_needed?
 
+  # How many models are booked.
   def booked_count
     confirmed_gigs.count
   end
 
+  # How many more models are needed.
   def open_slots
     [models_needed - booked_count, 0].max
   end
 
+  # Whether every requested model is booked.
   def fully_staffed?
     booked_count >= models_needed
   end
   
-  # For classes with per-model preferences: the open slot (by position) this model
-  # fits best, or nil if the class has no per-model preferences or no open slot.
-  # Ties go to the lowest-numbered slot.
+  # For classes with per-model preferences: the open spot (by position) this model
+  # fits best, or nil. Ties go to the lowest-numbered spot.
   def best_open_slot_for(user)
     slots = request_series&.model_slots.to_a
     return nil if slots.empty?
@@ -69,8 +71,7 @@ class FacultyRequest < ApplicationRecord
     open.max_by { |slot| [slot.match_score(user, nude: nude?), -slot.position] }&.position
   end
 
-  # Who dropped out, for the admin's "Needs Attention" note: the model whose
-  # booking on this date was cancelled most recently
+  # For a date needing attention: the name of the model whose booking was cancelled most recently.
   def dropped_out_model_name
     return unless needs_attention?
 
@@ -78,22 +79,20 @@ class FacultyRequest < ApplicationRecord
     user && "#{user.first_name} #{user.last_name}"
   end
 
-  # matched = every requested model is booked; pending = at least one slot still open
+  # Marks the date matched when every model is booked, or pending otherwise. Status only, without
+  # validation.
   def refresh_match_status!
     return if archived?
-    # Status-only change; skip validations so older records with legacy values
-    # don't block a booking/cancellation
     update_columns(status: FacultyRequest.statuses[fully_staffed? ? :matched : :pending], updated_at: Time.current)
   end
 
-  # One-time cleanup: requests made before series existed get a series of their
-  # own, copying their class details, so they show up on My Classes, Requests and
-  # the dashboard. Saved without validation so old values can't block the move.
+  # One-time cleanup: dates made before classes existed get a class of their own,
+  # copying their details, so they show up on every page. Saved without validation
+  # so old values can't block the move.
   def self.wrap_standalone_requests_in_series!
     where(request_series_id: nil).find_each do |request|
       series = RequestSeries.new(request.attributes.slice(*RequestSeries::SHARED_ATTRIBUTES))
       series.user_id = request.user_id
-      # Older requests may have no preference saved; the series records that as "Any"
       %w[pref_skin_tone pref_gender pref_body_type pref_genitalia].each { |pref| series[pref] ||= "Any" }
       series.status = request.archived? ? :archived : (request.matched? ? :matched : :pending)
       series.save!(validate: false)
@@ -101,8 +100,10 @@ class FacultyRequest < ApplicationRecord
     end
   end
 
-  # Cancels every booked model on this date (billable if same-day), then archives
-  # or deletes the request. Returns whether the cancellation was late (billable).
+  # Cancels the date: booked models are released (paid if it's the same day) and
+  # the date is archived, or deleted if it never had a booking. Status changes only,
+  # so dates saved under older rules can still be cancelled. Returns whether the
+  # cancellation was same-day.
   def cancel_with_billing!
     is_late_cancel = starts_at.to_date == Date.current
 
@@ -127,6 +128,7 @@ class FacultyRequest < ApplicationRecord
   
   private
   
+  # A date can't switch to nude while a clothed-only model is booked.
   def booked_models_allow_nudity
     clothed_only = confirmed_gigs.includes(art_model_availability: :user)
       .map { |g| g.art_model_availability.user }
@@ -137,11 +139,13 @@ class FacultyRequest < ApplicationRecord
     errors.add(:base, "Can't switch to nude: #{names} only model clothed. Release them first.")
   end
 
+  # Blank preferences mean Any; genitalia only applies to nude sessions.
   def normalize_preferences
     self.pref_body_type = "Any" if pref_body_type.blank?
     self.pref_genitalia = "Any" if pref_genitalia.blank? || !nude?
   end
 
+  # The number of models can't drop below how many are already booked.
   def models_needed_covers_booked_models
     booked = booked_count
     if models_needed.to_i < booked
@@ -149,6 +153,7 @@ class FacultyRequest < ApplicationRecord
     end
   end
 
+  # A booked date can't move onto a time when its model has another booked class.
   def validate_booked_reschedule
     confirmed_gigs.includes(art_model_availability: :user).each do |booked_gig|
       model_user = booked_gig.art_model_availability.user
@@ -165,13 +170,14 @@ class FacultyRequest < ApplicationRecord
     end
   end
 
+  # After a booked date moves, moves its models' free time with it. A block shared
+  # with other classes stays put, and the moved date gets a block of its own.
   def sync_booked_gig_availabilities
     confirmed_gigs.includes(:art_model_availability).each do |booked_gig|
       slot = booked_gig.art_model_availability
       shared = slot.gigs.where(status: :confirmed).where.not(id: booked_gig.id).exists?
 
       if shared
-        # Other classes still use this slot, so give the moved class its own
         new_slot = ArtModelAvailability.create!(user_id: slot.user_id, starts_at: starts_at, ends_at: ends_at)
         booked_gig.update_column(:art_model_availability_id, new_slot.id)
       else
@@ -180,10 +186,12 @@ class FacultyRequest < ApplicationRecord
     end
   end
 
+  # After the number of models changes, updates whether the date is fully booked.
   def sync_status_with_staffing
     refresh_match_status!
   end
 
+  # New dates must be tomorrow or later.
   def must_be_future_date
     return unless starts_at
 
@@ -192,6 +200,7 @@ class FacultyRequest < ApplicationRecord
     end
   end
 
+  # New dates can't be more than four months away.
   def must_be_within_four_months
     return unless starts_at
 
@@ -200,15 +209,18 @@ class FacultyRequest < ApplicationRecord
     end
   end
 
+  # Dates made outside a class must belong to a faculty member.
   def must_be_faculty_role
     errors.add(:user, "must be a faculty member") unless user&.role_faculty?
   end
 
+  # The end must come after the start.
   def end_after_start
     return if ends_at.blank? || starts_at.blank?
     errors.add(:ends_at, "must be after start time") if ends_at <= starts_at
   end
 
+  # Dates must start at 8:00 AM or later and end by 10:00 PM, Eastern time.
   def must_be_within_business_hours
     return unless starts_at && ends_at
 

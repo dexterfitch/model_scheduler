@@ -1,3 +1,6 @@
+# Creating a class with its dates: valid dates, impossible dates, one bad date among many, and the
+# 50-date limit.
+
 require "rails_helper"
 
 RSpec.describe "Creating a request series", type: :request do
@@ -5,6 +8,7 @@ RSpec.describe "Creating a request series", type: :request do
   let(:base)      { { class_name: "Figure Drawing I", department: "Drawing", building: "Main", model_mode: "clothed" } }
   let(:next_week) { 7.days.from_now.to_date.iso8601 }
 
+  # Creates a class with the given dates, as the faculty member.
   def create_series(dates)
     post "/request_series", params: { request_series: base, dates: dates }, headers: auth_headers(faculty), as: :json
   end

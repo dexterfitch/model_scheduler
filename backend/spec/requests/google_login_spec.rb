@@ -1,3 +1,5 @@
+# Google sign-in: only verified mica.edu accounts get in, and the token stays out of server logs.
+
 require "rails_helper"
 
 RSpec.describe "Signing in with Google", type: :request do
@@ -7,7 +9,7 @@ RSpec.describe "Signing in with Google", type: :request do
     OmniAuth.config.test_mode = false
   end
 
-  # Pretend Google sent back this account, then hit the login callback
+  # Makes Google's sign-in answer with this account, verified or not, in the given workspace.
   def google_says(email:, verified: true, hd: "mica.edu")
     OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
       provider: "google_oauth2",

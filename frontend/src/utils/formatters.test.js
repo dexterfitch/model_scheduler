@@ -1,3 +1,7 @@
+/**
+ * Tests for the words shown for preferences, statuses and errors.
+ */
+
 import {
   genderOptionLabel, formatGenderPreference, calculateMatchScore, extractErrorMessages,
   calendarTextColor, formatPreferenceSummary, formatSkinTone

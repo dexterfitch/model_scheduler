@@ -1,6 +1,10 @@
+# Models' free time. Models manage their own; admins see and manage everyone's.
+# New or changed time is joined with any free time it overlaps or touches, and a
+# booked gig can be cancelled from here.
 class ArtModelAvailabilitiesController < ApplicationController
   before_action -> { require_role(:admin, :model) }
 
+  # Lists free time: a model's own, or for admins everyone's (or one model's with user_id).
   def index
     query = if current_user.role_admin?
       params[:user_id] ? ArtModelAvailability.where(user_id: params[:user_id]) : ArtModelAvailability.all
@@ -10,6 +14,7 @@ class ArtModelAvailabilitiesController < ApplicationController
     render json: query.includes(:user), include: :user
   end
 
+  # Adds free time, joining it with the model's overlapping free time.
   def create
     availability = ArtModelAvailability.new(availability_params)
     availability.user_id = current_user.id unless current_user.role_admin?
@@ -22,6 +27,7 @@ class ArtModelAvailabilitiesController < ApplicationController
     end
   end
 
+  # Changes a block of free time, joining it with any free time it now overlaps.
   def update
     availability = ArtModelAvailability.find(params[:id])
 
@@ -37,13 +43,13 @@ class ArtModelAvailabilitiesController < ApplicationController
     end
   end
 
+  # Deletes a block of free time. A future block with past bookings in its history
+  # is marked cancelled instead, so the history stays.
   def destroy
     availability = ArtModelAvailability.find(params[:id])
 
     require_admin_or_owner(availability)
 
-    # A slot with past bookings can't be deleted outright (the history must stay),
-    # so take it out of the model's availability instead
     if availability.gigs.exists? && !availability.active_gig && availability.starts_at >= Time.current
       availability.update_columns(status: ArtModelAvailability.statuses[:cancelled], updated_at: Time.current)
       return head :no_content
@@ -56,6 +62,10 @@ class ArtModelAvailabilitiesController < ApplicationController
     end
   end
 
+  # Cancels a booked gig in this block (the one given by gig_id, or the only one).
+  # With cancel_remaining_series, the model is also taken off the class's later
+  # dates. Classes that have started can't be cancelled. A model cancelling flags
+  # the class for the coordinator's attention.
   def cancel
     availability = ArtModelAvailability.find(params[:id])
 
@@ -83,13 +93,14 @@ class ArtModelAvailabilitiesController < ApplicationController
 
   private
 
-  # "joined" tells the page the time was merged with time the model already had,
-  # so it can say what the block runs from and to now
+  # The saved block as JSON, plus "joined": whether it was merged with other free
+  # time, so the page can say what the block now covers.
   def with_joined(saved, asked)
     joined = [saved.starts_at, saved.ends_at] != asked
     saved.as_json.merge("joined" => joined)
   end
 
+  # Allowed fields: times for everyone, plus user and status for admins.
   def availability_params
     permitted = [:starts_at, :ends_at]
     permitted += [:user_id, :status] if current_user.role_admin?

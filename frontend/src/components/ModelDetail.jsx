@@ -1,3 +1,8 @@
+/**
+ * An admin's view of one model: their profile and their calendar, where admins can
+ * manage the model's free time.
+ */
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Badge, Button, Alert, Spinner, Modal, Form } from "react-bootstrap";
@@ -9,6 +14,7 @@ import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents, a
 import GigDates from "./GigDates";
 import StatusToast from "./StatusToast";
 
+/** The model's page for admins. */
 function ModelDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -25,12 +31,13 @@ function ModelDetail() {
   const [gigs, setGigs] = useState([]);
   const [activeGig, setActiveGig] = useState(null);
 
-  // The calendar is worked out from the availability and gigs, so it's never out of step
+  /** The model's free time and booked gigs as calendar events. */
   const calendarEvents = useMemo(
     () => availabilities.flatMap(a => availabilityEvents(a, gigs, { freeLabel: 'Available' })),
     [availabilities, gigs]
   );
 
+  /** Loads the model, their free time and their gigs. */
   const fetchData = useCallback(() => {
     api.get(`/users/${id}`)
       .then(res => setUser(res.data))
@@ -52,6 +59,7 @@ function ModelDetail() {
     fetchData();
   }, [fetchData]);
 
+  /** Opens Add Availability on the clicked day. */
   const handleDateSelect = (selectInfo) => {
     setEditingId(null);
     setSelectedDate(selectInfo.startStr.split('T')[0]);
@@ -61,6 +69,7 @@ function ModelDetail() {
     setShowModal(true);
   };
 
+  /** Opens a block of free time to edit, or a booked gig's details. */
   const handleEventClick = (info) => {
     const props = info.event.extendedProps;
     setEditingId(info.event.id);
@@ -73,11 +82,13 @@ function ModelDetail() {
     setShowModal(true);
   };
 
+  /** Saves a changed time. */
   const handleTimeChange = (e) => {
     const { name, value } = e.target;
     setTimes(prev => ({ ...prev, [name]: value }));
   };
 
+  /** Adds or saves the model's free time, after checking it. */
   const handleSubmit = (e) => {
     e.preventDefault();
     const startsAt = new Date(`${selectedDate}T${times.start}`);
@@ -103,6 +114,7 @@ function ModelDetail() {
       .catch((err) => setModalError(extractErrorMessages(err, "Error saving availability. Please try again.")));
   };
 
+  /** Deletes a block of free time, after confirming. */
   const handleDelete = async () => {
     if (!editingId) return;
     const confirmed = await confirm({
@@ -122,6 +134,7 @@ function ModelDetail() {
       .catch((err) => setModalError(extractErrorMessages(err, "Error deleting. Please try again.")));
   };
 
+  /** Releases the model from the gig open in the window, after confirming. */
   const handleCancelGig = async () => {
     if (!editingId) return;
     const confirmed = await confirm({
@@ -141,6 +154,7 @@ function ModelDetail() {
       .catch((err) => setModalError(extractErrorMessages(err, "Error cancelling. Please try again.")));
   };
 
+  /** The booked gig in a block of free time, if any. */
   const getActiveGigForAvailability = (availabilityId) => findActiveGigForAvailability(gigs, availabilityId);
 
   if (!user && !error) return (

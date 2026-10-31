@@ -1,3 +1,7 @@
+/**
+ * Starts the app, with the shared confirmation and message windows available everywhere.
+ */
+
 import './assets/styles/bootstrap-custom.scss';
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

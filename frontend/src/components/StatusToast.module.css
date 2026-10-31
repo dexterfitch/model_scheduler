@@ -1,8 +1,12 @@
+/*
+ * The pinned success message, kept above the menu and any open window.
+ */
+
 .toast {
   position: fixed;
   left: 50%;
   bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   width: min(540px, calc(100% - 2rem));
-  z-index: 1090; /* above the menu and any window */
+  z-index: 1090;
 }

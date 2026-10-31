@@ -1,3 +1,5 @@
+# The API's addresses and which controller action answers each.
+
 Rails.application.routes.draw do
   resources :users, only: [:index, :show, :update, :create] do
     member do
@@ -14,10 +16,8 @@ Rails.application.routes.draw do
 
   resources :faculty_requests, only: [:index, :create, :update, :destroy]
   resources :gigs, only: [:index, :create, :destroy]
-  # Fixing the record of a gig after its class happened
   post "gigs/:id/corrections", to: "gigs#correct"
 
-  # A SuperUser clearing the classes and availability they made while testing
   get "test_data", to: "test_data#show"
   delete "test_data", to: "test_data#destroy"
 

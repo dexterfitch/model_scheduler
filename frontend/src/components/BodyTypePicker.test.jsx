@@ -1,3 +1,7 @@
+/**
+ * Tests for the body type picture buttons.
+ */
+
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import BodyTypePicker from './BodyTypePicker';
@@ -12,7 +16,6 @@ describe('BodyTypePicker', () => {
       expect(within(group).getByRole('radio', { name })).toBeInTheDocument();
       expect(within(group).getByText(name)).toBeVisible();
     }
-    // The pictures are decoration: the visible word already says what they mean
     for (const icon of group.querySelectorAll('svg')) {
       expect(icon).toHaveAttribute('aria-hidden', 'true');
     }

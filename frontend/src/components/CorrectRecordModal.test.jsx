@@ -1,3 +1,7 @@
+/**
+ * Tests for the Correct the record window: each kind of correction and what it sends.
+ */
+
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CorrectRecordModal from './CorrectRecordModal';
@@ -14,6 +18,7 @@ const alice  = { id: 9, first_name: 'Alice', last_name: 'Chen', role: 'faculty' 
 
 const date = { id: 11, starts_at: daysFromNow(-7, 10), ends_at: daysFromNow(-7, 12) };
 const series = { id: 5, class_name: 'Gesture Drawing', model_mode: 'clothed' };
+/** A gig with a model booked. */
 const booked = (extra = {}) => ({
   id: 100, status: 'confirmed', billable: null, no_show: false,
   art_model_availability: { user: jordan }, corrections: [], ...extra
@@ -21,8 +26,10 @@ const booked = (extra = {}) => ({
 
 const onSaved = vi.fn();
 const onClose = vi.fn();
+/** Shows the window for a gig. */
 const open = (gig = booked(), s = series) =>
   render(<CorrectRecordModal gig={gig} date={date} series={s} onSaved={onSaved} onClose={onClose} />);
+/** Clicks Save Correction. */
 const save = () => userEvent.click(screen.getByRole('button', { name: 'Save Correction' }));
 
 beforeEach(() => {
@@ -88,7 +95,7 @@ describe('CorrectRecordModal', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'Fix the hours Jordan worked' }));
     const start = screen.getByLabelText('Started');
     const end = screen.getByLabelText('Finished');
-    // The booked times, in the computer's own time zone
+    /** A time as the time fields show it. */
     const local = (iso) => formatTimeForInput(new Date(iso));
     expect(start).toHaveValue(local(date.starts_at));
     expect(end).toHaveValue(local(date.ends_at));
@@ -113,7 +120,6 @@ describe('CorrectRecordModal', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'Someone else covered for Jordan' }));
     const picker = await screen.findByLabelText('Model who covered');
     const choices = within(picker).getAllByRole('option').map(o => o.textContent);
-    // Not Jordan, not faculty, and not Riley, who only models clothed
     expect(choices).toEqual(['Choose a model', 'Devon Price']);
 
     await userEvent.selectOptions(picker, 'Devon Price');

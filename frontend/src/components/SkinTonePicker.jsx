@@ -1,9 +1,12 @@
+/**
+ * The skin tone question as color circles (radio buttons underneath), with Prefer not to say.
+ */
+
 import React, { useId } from 'react';
 import { SKIN_TONE_OPTIONS } from '../utils/constants';
 import styles from './SkinTonePicker.module.css';
 
-// Skin tone circles that work with a mouse, touch, keyboard and screen readers.
-// Each circle is a real radio button: Tab reaches the group, arrow keys move between tones.
+/** A radio group of skin tones, with the choice written underneath. */
 function SkinTonePicker({ value, onChange, label = 'Skin Tone', required = false, labelClassName = 'form-label' }) {
   const id = useId();
   const labelId = `${id}-label`;

@@ -1,9 +1,15 @@
+/**
+ * The list of dates in a gig's window, so the whole booking shows and not just the date clicked.
+ */
+
 import React from 'react';
 import { Badge } from 'react-bootstrap';
 import { formatDateWithWeekday, formatTimeShort } from '../utils/time';
 
-// Every upcoming date the model is booked for in the same class, soonest first,
-// so a gig's window shows the whole booking and not just the date clicked.
+/**
+ * Every upcoming date the model is booked for in the same class, soonest first, with the clicked
+ * one marked.
+ */
 function GigDates({ gig, gigs = [], forAdmin = false }) {
   const seriesId = gig?.faculty_request?.request_series_id;
   const now = new Date();

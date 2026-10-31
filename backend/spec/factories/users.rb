@@ -1,3 +1,5 @@
+# Test people: faculty by default, with admin, model and willing-to-pose-nude variants.
+
 FactoryBot.define do
   factory :user do
     first_name { "Test" }

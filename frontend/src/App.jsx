@@ -1,3 +1,9 @@
+/**
+ * The app's shell: signs people in, sends new users to choose a role, and shows each
+ * role its own pages (admin, faculty or model). Signs people out when their token
+ * stops working, with a message on the sign-in page.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Spinner } from "react-bootstrap";
@@ -19,13 +25,16 @@ import FacultyDashboard from './components/FacultyDashboard';
 import ModelDashboard from './components/ModelDashboard';
 import Reports from './components/Reports';
 
+/**
+ * Where Google sign-in lands. Saves the token (sent after a #, so it never reaches server logs),
+ * then opens the app, or the role choice for someone new.
+ */
 function LoginSuccess({ onLogin }) {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // The token arrives after a # so it never reaches a server log; ?token= is the older form
     const token = new URLSearchParams(window.location.hash.slice(1)).get('token') || searchParams.get('token');
     if (token) {
       localStorage.setItem('token', token);
@@ -47,15 +56,15 @@ function LoginSuccess({ onLogin }) {
   return <div>Logging in...</div>;
 }
 
+/** The signed-in user and the routes they can reach. */
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [needsRoleSelection, setNeedsRoleSelection] = useState(false);
   const [loading, setLoading] = useState(true);
-  // A message for the sign-in page, such as an expired sign-in
   const [notice, setNotice] = useState('');
 
-  // The API client announces when a signed-in person's token stops working
   useEffect(() => {
+    /** Signs the person out when the server rejects their token, and says why. */
     const signedOut = () => {
       localStorage.removeItem('token');
       setNeedsRoleSelection(false);
@@ -66,6 +75,7 @@ function App() {
     return () => window.removeEventListener('pose-pool:signed-out', signedOut);
   }, []);
 
+  /** Signs out on the server (ending every token) and in the browser. */
   const handleLogout = async () => {
     try {
       await api.delete("/logout");
@@ -78,6 +88,7 @@ function App() {
     }
   };
 
+  /** Replaces the signed-in user after their profile or role changes. */
   const refreshUser = (userData) => {
     if (userData) setCurrentUser(userData);
   };

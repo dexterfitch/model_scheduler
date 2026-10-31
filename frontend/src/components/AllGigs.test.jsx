@@ -1,3 +1,7 @@
+/**
+ * Tests for the Gig Registry: filters, search, corrections and the phone cards.
+ */
+
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AllGigs from './AllGigs';
@@ -8,6 +12,7 @@ import { formatTime } from '../utils/time';
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
 const priya = { first_name: 'Priya', last_name: 'Nair' };
+/** A gig for a model. */
 const gig = (id, model, extra = {}) => ({
   id, status: 'confirmed', billable: null,
   art_model_availability: { user: model },
@@ -22,6 +27,7 @@ const gigs = [
   gig(2, { first_name: 'Sam', last_name: 'Marsh' }, { status: 'cancelled', billable: true }),
 ];
 
+/** The table's rows as lists of cell text. */
 const tableRows = (table) => within(table).getAllByRole('row').slice(1)
   .map(r => within(r).getAllByRole('cell').map(c => c.textContent));
 

@@ -1,11 +1,13 @@
+# A model booked into a class date, through one of their blocks of free time.
+# Status: confirmed, or cancelled (billable says whether it's still paid). After
+# the class, an admin's corrections can mark a no-show, change pay or record the
+# hours really worked; each correction is kept in gig_corrections.
 class Gig < ApplicationRecord
   belongs_to :faculty_request
   belongs_to :art_model_availability
   belongs_to :confirmed_by, class_name: 'User', optional: true
   has_many :gig_corrections, -> { order(:created_at) }, dependent: :destroy
 
-  # Set when an admin records a class that already happened (someone covered),
-  # so the "already started" booking check doesn't apply
   attr_accessor :recording_past
 
   enum :status, { confirmed: 0, completed: 1, cancelled: 2 }
@@ -17,6 +19,7 @@ class Gig < ApplicationRecord
   validate :model_not_already_on_request, on: :create
   validate :must_be_bookable, on: :create
 
+  # A gig with its class (and faculty member) and its model's free time (and the model).
   def as_json(options = {})
     super(options.merge(include: {
       faculty_request: { include: :user },
@@ -24,13 +27,15 @@ class Gig < ApplicationRecord
     }))
   end
 
-  # The corrections an admin made after the class happened, oldest first (admins only)
+  # The corrections made after the class, oldest first. Admins only.
   def corrections
     gig_corrections.map(&:as_json)
   end
 
   private
   
+  # New bookings need active free time and a class date that isn't cancelled and
+  # hasn't started (unless an admin is recording someone who covered).
   def must_be_bookable
     return unless faculty_request && art_model_availability
 
@@ -45,6 +50,7 @@ class Gig < ApplicationRecord
     end
   end
 
+  # The class must fall entirely inside the model's free time.
   def request_must_fit_availability
     return unless faculty_request && art_model_availability
 
@@ -58,10 +64,9 @@ class Gig < ApplicationRecord
     end
   end
 
+  # A model can't be booked into two classes at the same time.
   def no_overlap_for_model
     return unless faculty_request && art_model_availability
-    # Only a confirmed gig can clash; this lets cancellations save even if
-    # older data already has an overlap
     return unless confirmed?
 
     overlapping_gigs = Gig.where(status: :confirmed)
@@ -76,6 +81,7 @@ class Gig < ApplicationRecord
     end
   end
 
+  # Clothed-only models can't be booked into nude classes.
   def model_must_be_nudity_compatible
     return unless faculty_request && art_model_availability&.user
 
@@ -84,6 +90,7 @@ class Gig < ApplicationRecord
     end
   end
 
+  # A class can't get more models than it asked for.
   def request_must_have_open_slot
     return unless faculty_request
 
@@ -92,6 +99,7 @@ class Gig < ApplicationRecord
     end
   end
 
+  # A model can't be booked twice on the same date.
   def model_not_already_on_request
     return unless faculty_request && art_model_availability
 

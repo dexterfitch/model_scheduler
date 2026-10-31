@@ -1,3 +1,8 @@
+/**
+ * Reports: paid hours per model for a date range, by department and nude or clothed,
+ * with paid late cancellations and corrected gigs labelled. Prints as a table.
+ */
+
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Form, Button, Card, Badge, Alert } from "react-bootstrap";
 import api from "../services/api";
@@ -5,13 +10,12 @@ import { formatTimeShort, formatDateNumeric } from "../utils/time";
 import styles from "./Reports.module.css";
 import { isPaid, workedTimes, paidHours, wasCorrected } from "../utils/pay";
 
-// The first and last day of the current month, as date fields expect them (YYYY-MM-DD)
+/** The first and last day of the current month, as date fields expect them. */
 const monthBounds = (today = new Date()) => ({
   start: new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en-CA'),
   end: new Date(today.getFullYear(), today.getMonth() + 1, 0).toLocaleDateString('en-CA')
 });
 
-// How a cancelled gig that is still paid is labelled
 const CANCELLED_STATUS = {
   late: "Late cancel (billable)",
   'no-show': "No-show (paid, corrected)",
@@ -23,6 +27,7 @@ const CANCELLED_BADGE = {
   corrected: "Cancelled — Paid (corrected)",
 };
 
+/** The Reports page. */
 function Reports() {
   const [gigs, setGigs] = useState([]);
   const [fetchError, setFetchError] = useState('');
@@ -37,6 +42,7 @@ function Reports() {
       .catch(() => setFetchError("Failed to load gig data. Please try again."));
   }, []);
 
+  /** Totals the paid hours of every gig in the range, by model and department. */
   const generateReport = () => {
     if (!startDate || !endDate) {
       setFormError("Please select both a start and end date.");
@@ -61,7 +67,6 @@ function Reports() {
       const facultyName = `${gig.faculty_request.user.first_name} ${gig.faculty_request.user.last_name}`;
       const department = gig.faculty_request.department || "Unknown";
       const mode = gig.faculty_request.model_mode;
-      // Corrections can change the hours, and whether a gig is paid at all
       if (!isPaid(gig)) return;
       const worked = workedTimes(gig);
       const hours = paidHours(gig);
@@ -97,7 +102,6 @@ function Reports() {
         deptData.confirmed[mode].total += hours;
         deptData.confirmed[mode].shifts.push(shiftInfo);
       } else {
-        // Cancelled but still paid: a late cancellation, or one a correction paid
         const kind = gig.no_show ? 'no-show' : corrected ? 'corrected' : 'late';
         deptData.cancelled.push({ ...shiftInfo, mode, kind });
       }
@@ -114,18 +118,22 @@ function Reports() {
     setReport(byModel);
   };
 
+  /** Whether a department has anything to pay. */
   const deptHasContent = (dept) =>
     dept.confirmed.clothed.total > 0 || dept.confirmed.nude.total > 0 || dept.cancelled.length > 0;
 
+  /** Whether a model has anything to pay. */
   const modelHasContent = (modelData) =>
     Object.values(modelData.departments).some(deptHasContent);
 
+  /** A model's total paid hours. */
   const modelTotalHours = (modelData) =>
     Object.values(modelData.departments).reduce((sum, dept) => {
       const cancelledHours = dept.cancelled.reduce((s, c) => s + c.hours, 0);
       return sum + dept.confirmed.clothed.total + dept.confirmed.nude.total + cancelledHours;
     }, 0);
 
+  /** The report as rows for the print table, by model and department in date order. */
   const flattenReportRows = () => {
     const rows = [];
     Object.values(report)
@@ -161,6 +169,7 @@ function Reports() {
     return rows;
   };
 
+  /** One gig's line: faculty, date, time and hours. */
   const renderShiftLine = (shift) => (
     <div className={`py-1 border-bottom border-light ${styles.shiftLine}`}>
       <div className={`d-flex justify-content-between ${styles.shiftLineDesktop}`}>
@@ -177,6 +186,7 @@ function Reports() {
     </div>
   );
 
+  /** A model's worked gigs in one mode, with their total. */
   const renderConfirmedSection = (modeData, label, badgeVariant) => {
     if (modeData.total <= 0) return null;
     return (
@@ -192,6 +202,7 @@ function Reports() {
     );
   };
 
+  /** A cancelled gig that's still paid, labelled with why. */
   const renderCancelledEntry = (can, idx) => (
     <div key={idx} className="mb-3">
       <div className="d-flex justify-content-between align-items-center py-1">
@@ -209,10 +220,10 @@ function Reports() {
     </div>
   );
 
-  // The printable table. Columns match their headings, late cancellations are
-  // labeled, and each model gets a total row, plus a grand total at the end.
+  /** The printable table, with a total under each model and a grand total. */
   const renderPrintTable = () => {
     const rows = flattenReportRows();
+    /** A model's total hours in the table. */
     const totalFor = (name) => rows.filter(r => r.modelName === name).reduce((sum, r) => sum + r.hours, 0);
     const grandTotal = rows.reduce((sum, r) => sum + r.hours, 0);
 

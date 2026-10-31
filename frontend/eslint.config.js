@@ -1,3 +1,8 @@
+/**
+ * Lint rules: JavaScript and React hooks rules, with browser, test and Node globals
+ * where each applies.
+ */
+
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -24,19 +29,16 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
-      // DialogProvider.jsx shares its useDialog hook alongside the component
       'react-refresh/only-export-components': ['error', { allowExportNames: ['useDialog'] }],
     },
   },
   {
-    // Unit tests use Vitest's describe/it/expect/vi without importing them
     files: ['src/**/*.test.{js,jsx}', 'src/test/**/*.{js,jsx}'],
     languageOptions: {
       globals: { ...globals.browser, ...globals.vitest },
     },
   },
   {
-    // End-to-end tests and tool settings run in Node, not the browser
     files: ['e2e/**/*.js', '*.config.js'],
     languageOptions: {
       globals: globals.node,

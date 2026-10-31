@@ -1,5 +1,8 @@
-// Every time field offers 5-minute steps, so browser time pickers list
-// 00, 05 … 55 instead of every minute (the app rounds to 5 minutes anyway)
+/**
+ * Checks every time field in the app steps by 5 minutes and starts at midnight, so only
+ * whole 5-minute times are offered.
+ */
+
 const sources = import.meta.glob('../components/*.jsx', { query: '?raw', import: 'default', eager: true });
 
 const timeFields = Object.entries(sources).flatMap(([file, code]) => {
@@ -23,8 +26,6 @@ describe('time fields', () => {
   });
 
   it('count their steps from the hour, not from whatever time is already filled in', () => {
-    // Without a min, the browser counts steps from the field's current value, so
-    // an existing 8:59 would offer :54, :59, :04 … instead of :00, :05, :10 …
     const missing = timeFields.filter(f => !/min="\d\d:00"/.test(f.tag)).map(f => f.file);
     expect(missing, `time fields without a min on the hour: ${missing.join(', ')}`).toEqual([]);
   });

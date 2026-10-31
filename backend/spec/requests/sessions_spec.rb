@@ -1,8 +1,11 @@
+# Sign-in tokens: real ones work; forged ones and ones from before a logout don't.
+
 require "rails_helper"
 
 RSpec.describe "Login tokens", type: :request do
   let(:user) { create(:user) }
 
+  # Base64 the way JWT encodes token parts, for building forged tokens.
   def b64(str)
     Base64.urlsafe_encode64(str, padding: false)
   end

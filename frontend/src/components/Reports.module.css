@@ -1,3 +1,8 @@
+/*
+ * Styles for Reports: the print table appears only when printing, and each gig's
+ * line has a desktop and a phone layout.
+ */
+
 .printTable {
   display: none;
 }

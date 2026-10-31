@@ -1,14 +1,18 @@
+# Open calls: which classes a model sees, and in what order.
+
 require "rails_helper"
 
 RSpec.describe "Open calls for models", type: :request do
   let(:clothed_only) { create(:user, :model) }
   let(:nude_ok)      { create(:user, :model, :nude_ok) }
 
+  # The classes the given model sees as open calls.
   def open_series_ids(as)
     get "/request_series/available_for_model", headers: auth_headers(as)
     response.parsed_body.map { |s| s["id"] }
   end
 
+  # A class in the given mode (clothed or nude) with one date.
   def series_with_date(mode)
     series = create(:request_series, model_mode: mode)
     create(:faculty_request, request_series: series, model_mode: mode)
@@ -61,7 +65,6 @@ RSpec.describe "Open calls for models", type: :request do
     later = create(:request_series)
     create(:faculty_request, request_series: later, starts_at: 9.days.from_now.change(hour: 10), ends_at: 9.days.from_now.change(hour: 12))
     sooner = create(:request_series)
-    # Added out of order on purpose
     create(:faculty_request, request_series: sooner, starts_at: 12.days.from_now.change(hour: 10), ends_at: 12.days.from_now.change(hour: 12))
     create(:faculty_request, request_series: sooner, starts_at: 3.days.from_now.change(hour: 10), ends_at: 3.days.from_now.change(hour: 12))
 

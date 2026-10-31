@@ -1,3 +1,9 @@
+/**
+ * The connection to the API. Sends the sign-in token with every request, and tells
+ * the app (with a pose-pool:signed-out event) when the server rejects a token that
+ * was sent, so the person can be signed out with a message.
+ */
+
 import axios from 'axios';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -15,8 +21,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// When the server turns down a signed-in person's token (it expires after 24 hours),
-// tell the app, so it can send them back to the sign-in page with a message
 api.interceptors.response.use(
   (response) => response,
   (error) => {

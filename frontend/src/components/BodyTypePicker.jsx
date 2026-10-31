@@ -1,11 +1,13 @@
+/**
+ * The body type question as picture buttons (radio buttons underneath), with a skip choice first.
+ */
+
 import React, { useId } from 'react';
 import { BODY_TYPES } from '../utils/constants';
 import BodyTypeIcon from './BodyTypeIcon';
 import styles from './BodyTypePicker.module.css';
 
-// Body type as picture buttons, each with its word on screen. The first choice is
-// for not answering ("Prefer not to say" on a profile, "Any" on a request).
-// Each choice is a real radio button: Tab reaches the group, arrow keys move between them.
+/** A radio group of body types, with the skip choice (Prefer not to say, or Any) first. */
 function BodyTypePicker({ value, onChange, noneLabel, noneValue = '', label = 'Body Type', labelClassName = 'form-label' }) {
   const id = useId();
   const labelId = `${id}-label`;

@@ -1,9 +1,14 @@
+/**
+ * The Directory: models and faculty, with links to each model's page.
+ */
+
 import React, { useState, useEffect } from "react";
 import { Container, Table, Badge, Tab, Tabs } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
 
+/** The Directory page, on Models and Faculty tabs. */
 function UserDirectory() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);

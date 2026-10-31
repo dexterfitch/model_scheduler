@@ -1,3 +1,7 @@
+/**
+ * Tests for an admin's view of one model.
+ */
+
 import { screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -7,7 +11,6 @@ import { daysFromNow } from '../test/dates';
 import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }));
-// A stand-in calendar with one button that picks a date, like clicking an empty day
 vi.mock('./SharedCalendar', () => ({
   default: ({ events, onDateSelect, onEventClick }) => (
     <>
@@ -80,7 +83,6 @@ describe("ModelDetail (admin's view of a model)", () => {
     const dialog = await screen.findByRole('dialog', { name: 'Release Jordan from this gig?' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Release Model' }));
 
-    // The exact gig, in case one block holds two classes
     expect(api.post).toHaveBeenCalledWith('/art_model_availabilities/9/cancel', { gig_id: 90 });
   });
 });

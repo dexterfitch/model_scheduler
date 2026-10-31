@@ -1,7 +1,11 @@
+/**
+ * Screenshots of every page for each role at desktop and phone sizes, for reviewing
+ * the design. Only runs with SCREENSHOTS=1.
+ */
+
 import { test } from '@playwright/test';
 import { loginAs } from './helpers';
 
-// Only runs when asked for, so it doesn't slow down normal test runs
 test.skip(!process.env.SCREENSHOTS, 'Run with SCREENSHOTS=1 to capture the review gallery');
 
 const sizes = {
@@ -13,11 +17,13 @@ for (const [size, options] of Object.entries(sizes)) {
   test.describe(size, () => {
     test.use(options);
 
+    /** Waits for the page to settle and saves a full-page screenshot. */
     async function shot(page, name) {
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500); // let calendars and modals finish drawing
+      await page.waitForTimeout(500);
       await page.screenshot({ path: `screenshots/${size}/${name}.png`, fullPage: true });
     }
+    /** The first visible button containing this text. */
     const visibleButton = (page, text) => page.locator('button:visible', { hasText: text }).first();
 
     test('logged out', async ({ page }) => {

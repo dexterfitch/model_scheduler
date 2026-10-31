@@ -1,3 +1,7 @@
+/**
+ * The first-sign-in page: choose faculty or model, and for models answer a few questions first.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Container, Card, Button, Form, Row, Col, Alert, Spinner } from 'react-bootstrap';
@@ -9,6 +13,7 @@ import PersonalQuestionsNote from "./PersonalQuestionsNote";
 import { extractErrorMessages } from "../utils/formatters";
 import { setPageTitle } from '../utils/pageTitle';
 
+/** The role choice, and the new-model form. */
 const SelectRole = ({ onLogin, userId: propUserId }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,14 +42,17 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
     setPageTitle('Welcome · MICA Pose Pool');
   }, []);
 
+  /** Makes the person faculty. */
   const handleFacultySelect = () => {
     submitRoleUpdate({ role: 'faculty' });
   };
 
+  /** Opens the new-model form. */
   const handleModelSelect = () => {
     setStep('model-form');
   };
 
+  /** Saves a changed field in the new-model form. */
   const handleModelFormChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -54,10 +62,12 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
     }));
   };
 
+  /** Saves the chosen skin tone. */
   const handleSkinToneSelect = (value) => {
     setFormData(prev => ({ ...prev, skin_tone: value }));
   };
 
+  /** Checks gender and skin tone are answered, then makes the person a model. */
   const handleModelSubmit = (e) => {
     e.preventDefault();
     if (!formData.gender_identity || !formData.skin_tone) {
@@ -67,14 +77,12 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
     submitRoleUpdate({ role: 'model', ...formData });
   };
 
+  /** Saves the profile answers, then the role, then opens the app. */
   const submitRoleUpdate = async (payload) => {
     setLoading(true);
     setError('');
 
     try {
-      // Save the details first: if they're refused, no role is set yet, so the
-      // person can fix them and try again. The skin tone goes with the role too,
-      // so the new model profile is complete from the start.
       const profileData = { ...payload };
       delete profileData.role;
 

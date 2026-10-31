@@ -1,7 +1,11 @@
+/**
+ * End-to-end: faculty make a nude request, and the seeded requests show their full preferences.
+ */
+
 import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers';
 
-// A date 10 days out, in the YYYY-MM-DD format date boxes use
+/** The date ten days from today, as a date field expects it. */
 const tenDaysOut = () => {
   const d = new Date();
   d.setDate(d.getDate() + 10);
@@ -17,7 +21,6 @@ test('faculty create a nude request and the gender label updates as they choose'
   await form.locator('select[name="department"]').selectOption('Drawing');
   await form.locator('select[name="building"]').selectOption('Main');
 
-  // Choosing nude reveals the genitalia field; choosing Male relabels "Woman"
   await form.locator('select[name="model_mode"]').selectOption('nude');
   await form.locator('select[name="pref_genitalia"]').selectOption('Male');
   await form.locator('select[name="pref_gender"]').selectOption({ label: 'Woman (Trans)' });

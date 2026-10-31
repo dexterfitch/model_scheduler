@@ -1,3 +1,7 @@
+/**
+ * The admin Dashboard: today's booked gigs and the classes still needing models.
+ */
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -5,11 +9,13 @@ import styles from "./AdminDashboard.module.css";
 import { Row, Col, Card, Badge, Button } from "react-bootstrap";
 import { formatDateWithWeekday, formatTime } from "../utils/time";
 
+/** Today's schedule and the pending classes, soonest first. */
 function AdminDashboard() {
   const navigate = useNavigate();
   const [pendingSeries, setPendingSeries] = useState([]);
   const [todaysGigs, setTodaysGigs] = useState([]);
 
+  /** Loads classes and gigs, and picks out the pending classes and today's gigs. */
   const fetchDashboardData = useCallback(() => Promise.all([
     api.get("/request_series"),
     api.get("/gigs"),
@@ -23,7 +29,6 @@ function AdminDashboard() {
       });
     setPendingSeries(pending);
 
-    // Compare calendar days in local (Baltimore) time, not UTC, so evening classes count as today
     const todayStr = new Date().toDateString();
     const today = gigsRes.data.filter(g =>
       g.status === 'confirmed' &&
@@ -65,7 +70,6 @@ function AdminDashboard() {
                   if (!firstReq) return null;
 
                   const needsAttention = pendingRequests.some(r => r.needs_attention);
-                  // Group sessions: how many of the next date's models are booked
                   const needed = firstReq.models_needed || series.models_needed || 1;
                   const booked = (firstReq.confirmed_gigs || []).length;
 

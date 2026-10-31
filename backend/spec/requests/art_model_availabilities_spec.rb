@@ -1,3 +1,5 @@
+# Free time: who can see and change it, cancelling gigs, and joining overlapping time.
+
 require "rails_helper"
 
 RSpec.describe "Availability permissions", type: :request do
@@ -6,6 +8,7 @@ RSpec.describe "Availability permissions", type: :request do
   let(:admin)       { create(:user, :admin) }
   let(:slot)        { create(:art_model_availability, user: model) }
 
+  # Changes the model's block of free time, as the given user.
   def patch_slot(as:, changes:)
     patch "/art_model_availabilities/#{slot.id}",
       params: { art_model_availability: changes }, headers: auth_headers(as), as: :json
@@ -59,6 +62,7 @@ RSpec.describe "Availability permissions", type: :request do
     let(:booked_class) { create(:faculty_request) }
     let!(:gig) { create(:gig, faculty_request: booked_class, art_model_availability: slot) }
 
+    # Cancels the booked gig in the block, as the given user.
     def cancel(as:, **extra)
       post "/art_model_availabilities/#{slot.id}/cancel",
         params: { gig_id: gig.id, **extra }, headers: auth_headers(as), as: :json
@@ -138,15 +142,17 @@ RSpec.describe "Availability permissions", type: :request do
   end
 
   describe "joining time that overlaps" do
-    # A day with nothing on it yet
     let(:day) { 8.days.from_now }
 
+    # Adds free time on the test day between the given hours, as the given user (for another model,
+    # if given).
     def add_slot(as:, start_hour:, end_hour:, for_user: nil)
       fields = { starts_at: day.change(hour: start_hour), ends_at: day.change(hour: end_hour) }
       fields[:user_id] = for_user.id if for_user
       post "/art_model_availabilities", params: { art_model_availability: fields }, headers: auth_headers(as), as: :json
     end
 
+    # A model's active blocks of free time, as [start hour, end hour] pairs in order.
     def blocks_for(user)
       ArtModelAvailability.active.where(user: user).order(:starts_at).map do |b|
         [b.starts_at.hour, b.ends_at.hour]

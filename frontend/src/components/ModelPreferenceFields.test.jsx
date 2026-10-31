@@ -1,10 +1,14 @@
+/**
+ * Tests for the model preference questions.
+ */
+
 import { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelPreferenceFields from './ModelPreferenceFields';
 import { DEFAULT_MODEL_PREFERENCES, applyPreferenceChange, modelSlotsPayload } from '../utils/modelPreferences';
 
-// Holds the form values the way the real request form does
+/** The questions with real form state, as a page would hold it. */
 function Harness({ initial = {} }) {
   const [values, setValues] = useState({ ...DEFAULT_MODEL_PREFERENCES, ...initial });
   return (
@@ -15,6 +19,7 @@ function Harness({ initial = {} }) {
   );
 }
 
+/** A dropdown by its name. */
 const select = (container, name) => container.querySelector(`select[name="${name}"]`);
 
 describe('ModelPreferenceFields', () => {

@@ -1,9 +1,10 @@
+/**
+ * Why are we asking?: explains what the personal questions are for and who sees the answers.
+ */
+
 import React, { useId, useState } from 'react';
 
-// "Why are we asking?" A small note beside the personal questions on a model's
-// profile and first-login setup. Every claim here is backed by the code and tests:
-// faculty can't read model profiles or see who is booked (privacy.spec.js,
-// users_spec.rb), and genitalia is only shown to admins.
+/** A toggle that opens and closes the explanation. */
 function PersonalQuestionsNote() {
   const [open, setOpen] = useState(false);
   const panelId = useId();

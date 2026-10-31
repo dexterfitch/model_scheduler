@@ -1,3 +1,6 @@
+# Booking rules: no double-booking a model, no overfilling a class, no clothed-only models in nude
+# classes.
+
 require "rails_helper"
 
 RSpec.describe Gig, type: :model do

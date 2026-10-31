@@ -1,12 +1,14 @@
+# Cancelling one of two classes in the same free time, and changing classes saved under older rules.
+
 require "rails_helper"
 
 RSpec.describe "Cancelling one of two classes booked into the same free time", type: :request do
   let(:admin) { create(:user, :admin) }
   let(:model) { create(:user, :model) }
   let(:day)   { 7.days.from_now }
-  # One block of free time holding a morning and an afternoon class
   let(:slot)  { create(:art_model_availability, user: model, starts_at: day.change(hour: 8), ends_at: day.change(hour: 20)) }
 
+  # A class on the test day at the given hour, booked into the shared block of free time.
   def booked_class(start_hour)
     request = create(:faculty_request, starts_at: day.change(hour: start_hour), ends_at: day.change(hour: start_hour + 2))
     gig = create(:gig, faculty_request: request, art_model_availability: slot)

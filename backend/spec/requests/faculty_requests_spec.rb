@@ -1,3 +1,5 @@
+# Class dates: who can add, move and cancel them, and when.
+
 require "rails_helper"
 
 RSpec.describe "Faculty request permissions", type: :request do
@@ -6,6 +8,7 @@ RSpec.describe "Faculty request permissions", type: :request do
   let(:their_series)  { create(:request_series, user: other_faculty) }
   let(:my_series)     { create(:request_series, user: faculty) }
 
+  # The request for adding a date to the given class.
   def new_date_params(series)
     {
       faculty_request: {
@@ -109,6 +112,7 @@ RSpec.describe "Faculty request permissions", type: :request do
     let(:admin)      { create(:user, :admin) }
     let(:my_request) { create(:faculty_request, user: faculty) }
 
+    # Moves a date to the given hours, the given number of days out, as the given user.
     def move(req, as:, start_hour:, end_hour:, days_out: 7)
       day = days_out.days.from_now
       patch "/faculty_requests/#{req.id}",

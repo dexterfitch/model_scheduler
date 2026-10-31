@@ -1,3 +1,9 @@
+/**
+ * The model's page: My Gigs (upcoming, completed and cancelled, with cancelling)
+ * and Manage Availability (their free time on a calendar, plus Open Calls they can
+ * sign up for).
+ */
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Container, Row, Col, Card, Badge, Tab, Tabs, Button, Modal, Form, Alert, ListGroup } from "react-bootstrap";
 import api from "../services/api";
@@ -8,6 +14,7 @@ import { extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
 import StatusToast from "./StatusToast";
 
+/** The model's page. */
 function ModelDashboard({ user }) {
   const { confirm, notify } = useDialog();
   const [myGigs, setMyGigs] = useState([]);
@@ -29,11 +36,12 @@ function ModelDashboard({ user }) {
     }
   }, [activeTab]);
 
-  // The calendar is worked out from the availability and gigs, so it's never out of step
+  /** The model's free time and booked gigs as calendar events. */
   const calendarEvents = useMemo(() => myAvailabilities
     .filter(a => a.status === 'active')
     .flatMap(a => availabilityEvents(a, myGigs)), [myAvailabilities, myGigs]);
 
+  /** Loads the model's free time, gigs and open calls. */
   const fetchData = useCallback(() => {
     api.get("/gigs").then((res) => {
       const my_gigs = res.data.sort((a, b) =>
@@ -55,6 +63,7 @@ function ModelDashboard({ user }) {
     fetchData();
   }, [fetchData]);
 
+  /** Whether the model's free time already covers every open date of a call. */
   const isAvailableForSeries = (series) => {
     const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
     return pendingRequests.every(req =>
@@ -62,6 +71,10 @@ function ModelDashboard({ user }) {
     );
   };
 
+  /**
+   * Adds free time for each open date of a call that isn't covered yet, one at a time so same-day
+   * dates join.
+   */
   const handleMarkAvailable = async (series) => {
     const pendingRequests = series.faculty_requests?.filter(r => r.status === 'pending') || [];
 
@@ -71,8 +84,6 @@ function ModelDashboard({ user }) {
 
     if (missingRequests.length === 0) return;
 
-    // One date at a time, so two dates on the same day join into one block
-    // instead of racing each other. A date that can't be added doesn't stop the rest.
     const failed = [];
     for (const req of missingRequests) {
       try {
@@ -105,6 +116,7 @@ function ModelDashboard({ user }) {
     return gigDate >= now && gigDate <= twoWeeks;
   });
 
+  /** Opens Set Availability on the clicked day. */
   const handleDateSelect = (selectInfo) => {
     setEditingId(null);
     setSelectedDate(selectInfo.startStr.split('T')[0]);
@@ -114,6 +126,7 @@ function ModelDashboard({ user }) {
     setShowModal(true);
   };
 
+  /** Opens a block of free time to edit, or a booked gig's details. */
   const handleEventClick = (info) => {
     const props = info.event.extendedProps;
     setEditingId(info.event.id);
@@ -126,17 +139,20 @@ function ModelDashboard({ user }) {
     setShowModal(true);
   };
 
+  /** Saves a changed time. */
   const handleTimeChange = (e) => {
     const { name, value } = e.target;
     setTimes(prev => ({ ...prev, [name]: value }));
   };
 
+  /** Rounds a time to 5 minutes when the field is left. */
   const handleBlur = (e) => {
     const { name, value } = e.target;
     const cleanedTime = roundToNearest5(value);
     setTimes(prev => ({ ...prev, [name]: cleanedTime }));
   };
 
+  /** Adds or saves free time, after checking it's in the future and within hours. */
   const handleSubmitAvailability = (e) => {
     e.preventDefault();
     const startsAt = new Date(`${selectedDate}T${times.start}`);
@@ -158,6 +174,7 @@ function ModelDashboard({ user }) {
     }
   };
 
+  /** Deletes a block of free time, after confirming. */
   const handleDelete = async () => {
     if (!editingId) return;
     const confirmed = await confirm({
@@ -173,6 +190,10 @@ function ModelDashboard({ user }) {
       .catch((err) => setModalError(extractErrorMessages(err, "Error deleting. Please try again.")));
   };
 
+  /**
+   * Cancels a gig (or every remaining date of its class), after a confirmation that says it won't
+   * be paid.
+   */
   const cancelGig = async (availabilityId, gig, cancelRemainingSeries = false) => {
     const seriesCount = otherFutureSeriesGigsCount(gig);
     const className = gig?.faculty_request?.class_name || 'this class';
@@ -213,16 +234,18 @@ function ModelDashboard({ user }) {
       });
   };
 
+  /** Cancels the gig open in the window. */
   const handleCancelGig = (cancelRemainingSeries = false) => {
     if (!editingId || !activeGig) return;
     cancelGig(editingId, activeGig, cancelRemainingSeries);
   };
 
+  /** The booked gig in a block of free time, if any. */
   const getActiveGigForAvailability = (availabilityId) => findActiveGigForAvailability(myGigs, availabilityId);
-  // Gigs are never marked completed in the database, so treat any that already started as completed
+  /** Whether a gig's class has started. */
   const hasStarted = (gig) => new Date(gig.faculty_request.starts_at) <= new Date();
+  /** A gig's status badge: confirmed, completed, cancelled (paid or not) or no-show. */
   const renderGigStatusBadge = (gig) => {
-    // Set by an admin after the class, when the model didn't come
     if (gig.no_show) {
       return <Badge bg="danger" className="mb-2">{gig.billable ? 'No-show (Paid)' : 'No-show (Not paid)'}</Badge>;
     }
@@ -250,9 +273,9 @@ function ModelDashboard({ user }) {
     return gig.status === gigFilter;
   });
 
-  // The tab's count stays the same whichever filter is chosen
   const upcomingCount = myGigs.filter(gig => gig.status === 'confirmed' && !hasStarted(gig)).length;
 
+  /** How many other upcoming dates of the same class the model is booked for. */
   const otherFutureSeriesGigsCount = (gig) => {
     const seriesId = gig.faculty_request.request_series_id;
     if (!seriesId) return 0;
@@ -285,7 +308,6 @@ function ModelDashboard({ user }) {
       </Card>
 
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3 tabs-equal-height" justify>
-        {/* Phones show "My Gigs" over "(2 upcoming)"; wider screens keep it on one line */}
         <Tab eventKey="schedule" title={<span className="d-block">My Gigs <span className="d-block d-md-inline">({upcomingCount} upcoming)</span></span>}>
           <div className="d-flex flex-wrap gap-2 mb-3">
             <Button

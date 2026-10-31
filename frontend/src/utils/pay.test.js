@@ -1,3 +1,7 @@
+/**
+ * Tests for the pay rule.
+ */
+
 import { isPaid, workedTimes, paidHours, payStatusLabel } from './pay';
 
 const base = {

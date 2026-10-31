@@ -1,8 +1,13 @@
+/**
+ * Tests for the list of dates in a gig's window.
+ */
+
 import { render, screen, within } from '@testing-library/react';
 import GigDates from './GigDates';
 import { daysFromNow } from '../test/dates';
 import { formatDateWithWeekday, formatTimeShort } from '../utils/time';
 
+/** A booking in the test class some days from now. */
 const booking = (id, days, extra = {}) => ({
   id, status: 'confirmed',
   faculty_request: { id: id + 100, request_series_id: 5, class_name: 'Illustration Portfolio',

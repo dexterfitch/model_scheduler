@@ -1,3 +1,5 @@
+# Checks the seed file refuses to run on the live site.
+
 require "rails_helper"
 
 RSpec.describe "db/seeds.rb" do

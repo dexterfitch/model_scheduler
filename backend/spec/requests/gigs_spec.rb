@@ -1,3 +1,5 @@
+# Bookings: what models see, booking rules, releasing models and same-day pay.
+
 require "rails_helper"
 
 RSpec.describe "Gigs API", type: :request do
@@ -46,6 +48,7 @@ RSpec.describe "Gigs API", type: :request do
   describe "booking a model" do
     let(:group_class) { create(:faculty_request, models_needed: 2) }
 
+    # Books the model's free time into the group class, as the given user.
     def book(slot, as: admin)
       post "/gigs",
         params: { gig: { faculty_request_id: group_class.id, art_model_availability_id: slot.id } },
@@ -83,7 +86,7 @@ RSpec.describe "Gigs API", type: :request do
       slot = create(:art_model_availability)
       book(slot)
       first = Gig.last
-      first.update_columns(status: "cancelled", billable: true) # released on the day of class
+      first.update_columns(status: "cancelled", billable: true)
 
       book(slot)
 
@@ -97,7 +100,7 @@ RSpec.describe "Gigs API", type: :request do
       slot = create(:art_model_availability)
       book(slot)
       Gig.last.update_columns(status: "cancelled")
-      2.times { book(create(:art_model_availability)) } # class is full again
+      2.times { book(create(:art_model_availability)) }
 
       book(slot)
 
@@ -139,10 +142,7 @@ RSpec.describe "Gigs API", type: :request do
     end
 
     it "is billable when released on the day of the class" do
-      # Pretend it's noon, so "later today" is always inside the 8 AM to 10 PM
-      # booking hours, whatever time the tests are run
       travel_to Time.current.change(hour: 12) do
-        # A class later today that hasn't started yet
         soon = Time.current + 5.minutes
         gig.faculty_request.update_columns(starts_at: soon, ends_at: soon + 1.hour)
         gig.art_model_availability.update_columns(starts_at: soon - 1.hour, ends_at: soon + 2.hours)

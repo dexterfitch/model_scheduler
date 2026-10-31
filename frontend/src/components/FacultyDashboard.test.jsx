@@ -1,3 +1,8 @@
+/**
+ * Tests for My Classes: New Request, editing and cancelling, the Upcoming and Past
+ * tabs, time fields and keyboard focus.
+ */
+
 import { screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import FacultyDashboard from './FacultyDashboard';
@@ -7,7 +12,6 @@ import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }));
 
-// One 2-model series: the first date has a model booked, the second doesn't yet
 const series = {
   id: 1, class_name: 'Figure Drawing I', department: 'Drawing', status: 'pending',
   model_mode: 'clothed', models_needed: 2,
@@ -26,9 +30,11 @@ const nextWeek = (() => {
   return d.toISOString().slice(0, 10);
 })();
 
+/** Fills in and sends a New Request. */
 async function submitNewRequest() {
   await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
   const modal = await screen.findByRole('dialog');
+  /** A field in the open window, by its label. */
   const field = (label) => within(modal).getByLabelText(label);
   await userEvent.type(field('Class Name'), 'Anatomy Lab');
   await userEvent.selectOptions(field('Department'), 'Drawing');
@@ -136,6 +142,7 @@ describe('FacultyDashboard', () => {
     renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
     const modal = await screen.findByRole('dialog');
+    /** A field in the open window, by its label. */
     const field = (label) => within(modal).getByLabelText(label);
 
     await userEvent.type(field('Class Name'), 'Group Pose Lab');
@@ -174,6 +181,7 @@ describe('FacultyDashboard', () => {
     }] });
     renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
 
+    /** Finds a list item whose text matches. */
     const line = (pattern) => (_, el) => el.tagName === 'LI' && pattern.test(el.textContent);
     expect(await screen.findByText(line(/Model 1: .*Fat Build/))).toBeInTheDocument();
     expect(screen.getByText(line(/Model 2: .*Muscular Build/))).toBeInTheDocument();
@@ -188,7 +196,6 @@ describe('FacultyDashboard', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel Class' }));
 
     expect(api.delete).toHaveBeenCalledWith('/request_series/1');
-    // Announced to screen readers, and stays until dismissed
     expect(await screen.findByRole('status')).toHaveTextContent('Class cancelled.');
   });
 
@@ -211,7 +218,6 @@ describe('FacultyDashboard', () => {
   });
 
   it('orders classes by their earliest date, even when the server lists a later date first', async () => {
-    // The server sends a class's dates in no set order; an edited date often comes back last
     const later = { ...series, id: 1, class_name: 'Later Class',
       faculty_requests: [{ ...series.faculty_requests[1], id: 31, starts_at: daysFromNow(5, 15), ends_at: daysFromNow(5, 17) }] };
     const earlier = { ...series, id: 2, class_name: 'Earlier Class',
@@ -228,13 +234,13 @@ describe('FacultyDashboard', () => {
   });
 
   describe('past classes', () => {
+    /** A booked date some days ago. */
     const pastDate = (id, days) => ({ id, status: 'matched', models_needed: 1, starts_at: daysFromNow(days, 15), ends_at: daysFromNow(days, 17),
       confirmed_gigs: [{ id: id + 500, status: 'confirmed', confirmed_by: { first_name: 'Dex', email: 'dfitch@mica.edu' } }] });
     const gesture = { ...series, id: 5, class_name: 'Gesture Drawing', status: 'matched', models_needed: 1,
       faculty_requests: [pastDate(51, -14), pastDate(52, -7)] };
     const sketching = { ...series, id: 6, class_name: 'Portrait Sketching', status: 'matched', models_needed: 1,
       faculty_requests: [pastDate(61, -30)] };
-    // One date already happened, one still to come
     const halfway = { ...series, id: 7, class_name: 'Halfway Class', status: 'pending', models_needed: 1,
       faculty_requests: [
         { ...pastDate(71, -2) },
@@ -281,6 +287,7 @@ describe('FacultyDashboard', () => {
 
   it('opens Edit Date on the nearest 5-minute mark when a saved time is between them', async () => {
     const day = new Date(); day.setDate(day.getDate() + 10);
+    /** A time on the test day. */
     const at = (h, m) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m).toISOString();
     const oddTime = { ...series, faculty_requests: [{ id: 21, status: 'pending', models_needed: 1,
       starts_at: at(20, 59), ends_at: at(22, 0), confirmed_gigs: [] }] };
@@ -292,6 +299,7 @@ describe('FacultyDashboard', () => {
   });
 
   describe('times on a new date', () => {
+    /** Shows My Classes and opens New Request. */
     const openNewRequest = async () => {
       renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
       await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
@@ -327,11 +335,13 @@ describe('FacultyDashboard', () => {
   });
 
   describe('adding and removing dates from the keyboard', () => {
+    /** Shows My Classes and opens New Request. */
     const openNewRequest = async () => {
       renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
       await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
       return screen.findByRole('dialog');
     };
+    /** Whether one element comes after another on the page. */
     const comesAfter = (a, b) => !!(b.compareDocumentPosition(a) & Node.DOCUMENT_POSITION_FOLLOWING);
 
     it('puts Add Another Date after the last date, before the model preferences', async () => {

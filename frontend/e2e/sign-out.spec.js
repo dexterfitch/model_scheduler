@@ -1,7 +1,11 @@
+/**
+ * End-to-end: after signing out, Back doesn't leave the last page's name on the tab.
+ */
+
 import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers';
 
-// What the browser itself shows on the tab, which can differ from document.title
+/** The title Chrome really shows on the tab, which can differ from document.title. */
 const tabTitle = async (context, page) => {
   const cdp = await context.newCDPSession(page);
   return (await cdp.send('Target.getTargetInfo')).targetInfo.title;

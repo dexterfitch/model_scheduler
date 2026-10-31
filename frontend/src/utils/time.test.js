@@ -1,13 +1,18 @@
+/**
+ * Tests for splitting free time around gigs, and the class time defaults.
+ */
+
 import { availabilityEvents, formatTimeForInput, newClassTimes, endAfterStart } from './time';
 import { CALENDAR_COLORS } from './constants';
 
-// Available 9 AM–5 PM (Eastern), Nov 2
 const slot = { id: 7, status: 'active', starts_at: '2026-11-02T14:00:00Z', ends_at: '2026-11-02T22:00:00Z' };
+/** A gig at these times. */
 const gigAt = (id, start, end, extra = {}) => ({
   id, status: 'confirmed', art_model_availability: { id: 7 },
   faculty_request: { starts_at: start, ends_at: end, building: 'Fox', room_number: '201' },
   ...extra
 });
+/** Calendar pieces as title, start and end. */
 const summary = (events) => events.map(e => [e.title, new Date(e.start).toISOString(), new Date(e.end).toISOString()]);
 
 describe('availabilityEvents', () => {
@@ -63,7 +68,6 @@ describe('availabilityEvents', () => {
 });
 
 describe('formatTimeForInput', () => {
-  // Time fields step by 5 minutes, so a saved time is shown on the nearest 5-minute mark
   it('rounds a saved time to the nearest 5 minutes for the time pickers', () => {
     expect(formatTimeForInput(new Date(2026, 10, 2, 20, 59))).toBe('21:00');
     expect(formatTimeForInput(new Date(2026, 10, 2, 10, 2))).toBe('10:00');

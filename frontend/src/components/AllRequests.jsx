@@ -1,3 +1,10 @@
+/**
+ * The admin Requests page: every class, grouped as pending, matched and cancelled,
+ * filterable by status and dates and searchable by class, faculty or department.
+ * Shows who could take each pending date, offers ready emails to models, and lets
+ * admins edit, cancel, release and rebook, or correct the record of past dates.
+ */
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert, Dropdown } from "react-bootstrap";
@@ -11,12 +18,12 @@ import { payStatusLabel, wasCorrected } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
 import { dateCoverage, notifyLists, notifyEmailLink } from "../utils/coverage";
 
+/** The Requests page. */
 function AllRequests() {
   const navigate = useNavigate();
   const { confirm, notify } = useDialog();
   const sameDayNote = "Releases on the day of a class are still paid.";
   const [allSeries, setAllSeries] = useState([]);
-  // The past gig whose record is being corrected: { gig, date, series }
   const [correcting, setCorrecting] = useState(null);
   const [search, setSearch] = useState("");
   const today = new Date();
@@ -26,7 +33,6 @@ function AllRequests() {
   const [filterEnd, setFilterEnd] = useState(
     new Date(today.getFullYear(), today.getMonth() + 1, 0).toLocaleDateString('en-CA')
   );
-  // Which dates to show: 'upcoming' (the default), 'past', or a date 'range'
   const [when, setWhen] = useState('upcoming');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -34,8 +40,6 @@ function AllRequests() {
     api.get("/request_series").then(res => setAllSeries(res.data));
   }, []);
 
-  // Every model, their free time and their bookings, to show who could take each
-  // pending date and who to email. Without it, the page just leaves those out.
   const [pool, setPool] = useState(null);
   useEffect(() => {
     Promise.all([api.get("/users"), api.get("/art_model_availabilities"), api.get("/gigs")])
@@ -43,6 +47,10 @@ function AllRequests() {
       .catch(() => setPool(null));
   }, []);
 
+  /**
+   * Classes in one status group, after the date filter and search, in date order (most recent first
+   * for Past).
+   */
   const filterSeries = (statusFilter) => {
     const term = search.trim().toLowerCase();
     return allSeries
@@ -55,7 +63,6 @@ function AllRequests() {
       .filter(s => {
         const dates = s.faculty_requests || [];
         const now = new Date();
-        // Upcoming: a date hasn't finished yet. Past: every date has finished.
         if (when === 'upcoming') return dates.some(r => new Date(r.ends_at) >= now);
         if (when === 'past') return dates.length > 0 && dates.every(r => new Date(r.ends_at) < now);
         const from = new Date(filterStart + "T00:00:00");
@@ -65,7 +72,6 @@ function AllRequests() {
       .filter(s => {
         const className = s.class_name?.toLowerCase() || "";
         const department = s.department?.toLowerCase() || "";
-        // The faculty member is on the class itself; its dates don't carry them
         const faculty = s.user || s.faculty_requests?.[0]?.user;
         const firstName = faculty?.first_name?.toLowerCase() || "";
         const lastName = faculty?.last_name?.toLowerCase() || "";
@@ -73,7 +79,6 @@ function AllRequests() {
         return className.includes(term) || department.includes(term) ||
           firstName.includes(term) || lastName.includes(term) || fullName.includes(term);
       })
-      // Past classes show the most recent first
       .sort((a, b) => when === 'past' ? firstStartsAt(b) - firstStartsAt(a) : firstStartsAt(a) - firstStartsAt(b));
   };
 
@@ -87,6 +92,7 @@ function AllRequests() {
   });
   const [editError, setEditError] = useState('');
 
+  /** Releases every booked model from the class's remaining dates, after confirming. */
   const handleReleaseRemaining = async (seriesId) => {
     const confirmed = await confirm({
       title: 'Release models and rematch?',
@@ -104,6 +110,7 @@ function AllRequests() {
     }
   };
 
+  /** Cancels the class's remaining dates, after confirming. */
   const handleCancelSeries = async (seriesId, isSingle) => {
     const confirmed = await confirm({
       title: 'Cancel this class?',
@@ -123,6 +130,7 @@ function AllRequests() {
     }
   };
 
+  /** Releases one model from one date so someone else can be booked, after confirming. */
   const handleFindNewModel = async (gig) => {
     const modelName = `${gig.art_model_availability?.user?.first_name} ${gig.art_model_availability?.user?.last_name}`;
     const confirmed = await confirm({
@@ -141,10 +149,12 @@ function AllRequests() {
     }
   };
 
+  /** Opens Edit Class with the class's details and its remaining dates. */
   const openEditSeriesModal = (s) => {
     const activeRequests = (s.faculty_requests || [])
       .filter(r => r.status !== 'archived')
       .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+    /** Two-digit number for dates. */
     const pad = (n) => String(n).padStart(2, '0');
 
     setSeriesForm({
@@ -171,6 +181,7 @@ function AllRequests() {
     setEditingSeries(s);
   };
 
+  /** Saves Edit Class: the class details, changed dates and new dates. */
   const handleSaveSeriesEdit = async () => {
     setEditError('');
     try {
@@ -226,6 +237,7 @@ function AllRequests() {
     }
   };
 
+  /** Adds a new date row to Edit Class, starting 9 to 11 AM. */
   const addSeriesDate = () => {
     setSeriesForm(prev => ({
       ...prev,
@@ -233,16 +245,17 @@ function AllRequests() {
     }));
   };
 
+  /** Changes a date row in Edit Class; the end time follows the start. */
   const updateSeriesDate = (index, field, value) => {
     setSeriesForm(prev => ({
       ...prev,
-      // The end follows the start (see endAfterStart)
       dates: prev.dates.map((d, i) => i !== index ? d
         : field === 'start' ? { ...d, start: value, end: endAfterStart(d.start, d.end, value) }
         : { ...d, [field]: value })
     }));
   };
 
+  /** Removes a date row that hasn't been saved yet. */
   const removeNewSeriesDate = (tempId) => {
     setSeriesForm(prev => ({
       ...prev,
@@ -250,6 +263,7 @@ function AllRequests() {
     }));
   };
 
+  /** Cancels a saved date from Edit Class, after confirming. */
   const handleRemoveExistingDate = async (d) => {
     const isMatched = d.status === 'matched' || d.booked > 0;
     const confirmed = await confirm({
@@ -275,16 +289,17 @@ function AllRequests() {
     }
   };
 
-  // A date is over once it has finished; a class is finished once all its dates are.
-  // Nothing about the past can be changed, so finished dates and classes get no actions.
+  /** Whether a date has finished. */
   const hasEnded = (req) => new Date(req.ends_at) < new Date();
-  // Once a date has started, its record can only be corrected, not rebooked
+  /** Whether a date has started; from then on its record can only be corrected. */
   const hasStarted = (req) => new Date(req.starts_at) <= new Date();
+  /** Whether every remaining date of a class has finished. */
   const isFinished = (s) => {
     const live = (s.faculty_requests || []).filter(r => r.status !== 'archived');
     return live.length > 0 && live.every(hasEnded);
   };
 
+  /** A class's dates to show and its counts of matched, pending, cancelled and bookable dates. */
   const getSeriesMeta = (s) => {
     const allRequests = s.faculty_requests || [];
     const displayRequests = (s.status === 'archived' ? allRequests : allRequests.filter(r => r.status !== 'archived'))
@@ -293,7 +308,6 @@ function AllRequests() {
     const matchedCount = allRequests.filter(r => r.status === 'matched').length;
     const pendingCount = allRequests.filter(r => r.status === 'pending').length;
     const archivedCount = allRequests.filter(r => r.status === 'archived').length;
-    // Only models on dates that haven't started yet can be released
     const bookedCount = allRequests
       .filter(r => r.status !== 'archived' && !hasStarted(r))
       .reduce((sum, r) => sum + (r.confirmed_gigs?.length || 0), 0);
@@ -301,11 +315,11 @@ function AllRequests() {
     return { allRequests, displayRequests, matchedCount, pendingCount, archivedCount, bookedCount };
   };
 
+  /** The class's model preferences in words, one line per model when they differ. */
   const renderPreferenceSummary = (s, separator) => {
     const parts = [];
     if ((s.models_needed || 1) > 1) parts.push(<strong key="count">{formatModelCount(s.models_needed)}</strong>);
     if (s.model_slots?.length > 0) {
-      // Faculty set preferences for each model separately
       s.model_slots.forEach(slot => parts.push(`Model ${slot.position}: ${formatPreferenceSummary(slot, s.model_mode, { onlySet: true })}`));
     } else {
       parts.push(formatPreferenceSummary(s, s.model_mode, { onlySet: true }));
@@ -315,8 +329,9 @@ function AllRequests() {
     ));
   };
 
-  // How many models could take a pending date: none free at all, none who fit
-  // what the faculty asked for, or how many who fit
+  /**
+   * The tag saying who could take a pending date: no models free, none matching, or how many match.
+   */
   const renderCoverage = (req, s) => {
     if (!pool || !s) return null;
     const { free, matching } = dateCoverage(req, s, pool);
@@ -327,22 +342,25 @@ function AllRequests() {
     return <Badge bg="light" text="dark" className={`ms-2 border ${styles.badge}`}>{matching.length} matching free</Badge>;
   };
 
-  // The dates of a class still waiting for a model
+  /** The class's dates that still need a model and haven't started. */
   const openDates = (s) => (s.faculty_requests || [])
     .filter(r => r.status === 'pending' && !hasStarted(r))
     .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
 
-  // Dates still waiting where no model who fits is free: the ones worth emailing about
+  /** Open dates where no matching model is free. */
   const uncoveredDates = (s) => pool
     ? openDates(s).filter(d => dateCoverage(d, s, pool).matching.length === 0)
     : [];
 
-  // Ready emails, in the coordinator's own mail app, to the models who fit the
-  // class or to every model willing to pose that way, about the uncovered dates
+  /**
+   * The Notify Models choices: a ready email to the models who match, or to every model willing to
+   * pose that way.
+   */
   const renderNotifyItems = (s) => {
     const { matching, all } = notifyLists(s, pool.models);
     const dates = uncoveredDates(s);
     const everyone = s.model_mode === 'nude' ? 'All models willing to pose nude' : 'All models';
+    /** One email choice, or a plain line when nobody is on its list. */
     const item = (label, people) => people.length === 0
       ? <Dropdown.ItemText key={label} className="text-muted">{label} (0)</Dropdown.ItemText>
       : (
@@ -352,11 +370,13 @@ function AllRequests() {
       );
     return [item('Models who match', matching), item(everyone, all)];
   };
-  // Only offered when at least one date has no model who fits free
+  /** Whether a class has a date worth emailing models about. */
   const canNotify = (s) => uncoveredDates(s).length > 0;
 
-  // A date that already started: everyone on its record, how they're paid,
-  // and a Correct button for each, in place of release and rebook
+  /**
+   * Everyone on the record of a date that started, how they're paid, and a Make Correction link for
+   * each.
+   */
   const renderPastGigs = (req, s) => {
     const onRecord = req.gigs ?? req.confirmed_gigs ?? [];
     if (onRecord.length === 0) return <div className="ms-3">No model was booked.</div>;
@@ -384,6 +404,7 @@ function AllRequests() {
     );
   };
 
+  /** One date of a class: status, time, booked models or record, tags and links. */
   const renderDateRow = (req, showBadge, isSingle, s) => (
     <div key={req.id} className="small text-muted mb-1">
       {showBadge && req.status === 'matched' && (
@@ -451,6 +472,7 @@ function AllRequests() {
     </div>
   );
 
+  /** The class's buttons on wider screens. */
   const renderActionButtons = (s, showAction, matchedCount, bookedCount) => {
     if (isFinished(s)) return <span className="text-muted small">Finished. Use Make Correction next to a date to fix its record.</span>;
     const activeCount = s.faculty_requests?.filter(r => r.status !== 'archived').length || 0;
@@ -488,7 +510,7 @@ function AllRequests() {
     );
   };
 
-  // Phone cards: the main button, plus a More menu for everything else
+  /** The class's buttons on phones: the main one, with the rest in a More menu. */
   const renderCardActions = (s, showAction, matchedCount, bookedCount) => {
     if (isFinished(s)) return <div className="text-muted small">Finished. Use Make Correction next to a date to fix its record.</div>;
     const activeCount = s.faculty_requests?.filter(r => r.status !== 'archived').length || 0;
@@ -537,6 +559,7 @@ function AllRequests() {
     );
   };
 
+  /** The class's department, number of dates and room. */
   const renderSeriesInfo = (s, showAction, allRequests) => {
     const activeCount = allRequests.filter(r => r.status !== 'archived').length;
 
@@ -557,6 +580,7 @@ function AllRequests() {
     );
   };
 
+  /** One class as a card, for phones. */
   const renderSeriesCard = (s, showAction, showActionColumn = true) => {
     const { allRequests, displayRequests, matchedCount, pendingCount, bookedCount } = getSeriesMeta(s);
     const faculty = s.user;
@@ -596,6 +620,7 @@ function AllRequests() {
     );
   };
 
+  /** A group of classes as a table, for wider screens. */
   const renderDesktopTable = (seriesList, showAction, showActionColumn = true) => (
     <div className="d-none d-md-block">
       <Table hover responsive className="shadow-sm bg-white align-middle mb-0">
@@ -656,6 +681,7 @@ function AllRequests() {
     </div>
   );
 
+  /** A group of classes: the table on wider screens, cards on phones. */
   const renderSection = (seriesList, showAction, showActionColumn = true) => (
     <>
       {renderDesktopTable(seriesList, showAction, showActionColumn)}
@@ -682,8 +708,6 @@ function AllRequests() {
         </InputGroup>
       </div>
 
-      {/* Two kinds of filter: what state a class is in (left), and which dates to
-          show (right on wider screens, under a dividing line on phones) */}
       <div className="py-3 border-bottom border-info mb-4 date-filter-box">
         <div className="d-flex flex-column flex-md-row flex-md-wrap justify-content-md-between align-items-md-start gap-3">
           <div role="group" aria-labelledby="requests-status-label">

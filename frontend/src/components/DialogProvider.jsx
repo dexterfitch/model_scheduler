@@ -1,34 +1,38 @@
+/**
+ * Confirmation and message windows for the whole app, used instead of the browser's
+ * own pop-ups so they can be styled, read by screen readers and tested.
+ */
+
 import React, { createContext, useCallback, useContext, useId, useMemo, useRef, useState } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 
-// App-wide replacement for the browser's confirm() and alert() popups:
-// styled, accessible windows with clearly labelled buttons.
-//
-//   const { confirm, notify } = useDialog();
-//   if (!(await confirm({ title: 'Cancel this class?', message: '…', confirmLabel: 'Cancel Class', danger: true }))) return;
-//   await notify({ title: "Couldn't save", message: 'The server said why.' });
 const DialogContext = createContext(null);
 
+/** Holds the one open window and offers confirm and notify to every page. */
 export function DialogProvider({ children }) {
   const [dialog, setDialog] = useState(null);
   const resolver = useRef(null);
   const titleId = useId();
 
+  /** Opens a window and resolves with the answer when it closes. */
   const open = useCallback((options) => new Promise((resolve) => {
     resolver.current = resolve;
     setDialog(options);
   }), []);
 
+  /** Closes the window with the given answer. */
   const close = (result) => {
     resolver.current?.(result);
     resolver.current = null;
     setDialog(null);
   };
 
+  /**
+   * What pages call: confirm asks a yes-or-no question (true if confirmed); notify shows a message
+   * with an OK button.
+   */
   const value = useMemo(() => ({
-    // Resolves true if they confirm, false if they go back or close the window
     confirm: (options) => open({ kind: 'confirm', ...options }),
-    // Resolves once they close the message
     notify: (options) => open({ kind: 'notify', ...(typeof options === 'string' ? { message: options } : options) }),
   }), [open]);
 
@@ -67,6 +71,7 @@ export function DialogProvider({ children }) {
   );
 }
 
+/** The confirm and notify functions, for any page inside DialogProvider. */
 export const useDialog = () => {
   const dialogs = useContext(DialogContext);
   if (!dialogs) throw new Error('useDialog must be used inside <DialogProvider>');

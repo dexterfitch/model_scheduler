@@ -1,3 +1,7 @@
+/**
+ * End-to-end: faculty and models each land on their own first page after signing in.
+ */
+
 import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers';
 

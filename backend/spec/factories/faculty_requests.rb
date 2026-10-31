@@ -1,3 +1,5 @@
+# Test class dates: a clothed class a week from now, 10 AM to noon, in its own class.
+
 FactoryBot.define do
   factory :faculty_request do
     association :user

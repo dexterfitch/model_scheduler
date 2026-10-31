@@ -1,5 +1,10 @@
+/**
+ * Tests for who could take a pending date, and the email to models.
+ */
+
 import { fitsPreferences, dateCoverage, notifyLists, notifyEmailLink } from './coverage';
 
+/** A model. */
 const model = (id, extra = {}) => ({
   id, role: 'model', first_name: `M${id}`, last_name: 'Test', email: `m${id}@mica.edu`,
   skin_tone: 'Light', gender_identity: 'Woman', body_type: 'Average', genitalia: 'Female', willing_to_model_nude: true, ...extra
@@ -8,6 +13,7 @@ const anyPrefs = { pref_skin_tone: 'Any', pref_gender: 'Any', pref_body_type: 'A
 const date = { id: 11, status: 'pending', models_needed: 1, starts_at: '2099-03-02T15:00:00Z', ends_at: '2099-03-02T17:00:00Z', confirmed_gigs: [] };
 const series = { id: 1, class_name: 'Gesture Drawing', department: 'Drawing', building: 'Fox', room_number: '120',
   model_mode: 'clothed', model_slots: [], ...anyPrefs, faculty_requests: [date] };
+/** Free time for a model. */
 const slot = (user, start = '2099-03-02T13:00:00Z', end = '2099-03-02T20:00:00Z') => ({ id: user.id * 10, status: 'active', user, starts_at: start, ends_at: end });
 
 describe('fitsPreferences', () => {
@@ -59,7 +65,6 @@ describe('dateCoverage', () => {
       { position: 1, ...anyPrefs, pref_gender: 'Woman' },
       { position: 2, ...anyPrefs, pref_gender: 'Man' },
     ] };
-    // Spot 1 (a woman) is already booked on this date, so only spot 2 is open
     const halfBooked = { ...date, models_needed: 2, confirmed_gigs: [{ id: 5, model_slot_position: 1, art_model_availability: { user: model(9) } }] };
     const result = dateCoverage(halfBooked, twoSpots, { models: [man, woman], availabilities: [slot(man), slot(woman)], gigs: [] });
     expect(result.matching.map(m => m.id)).toEqual([1]);

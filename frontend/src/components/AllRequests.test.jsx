@@ -1,3 +1,8 @@
+/**
+ * Tests for the admin Requests page: filters and search, editing, cancelling and
+ * releasing, past dates and corrections, and who could take a pending date.
+ */
+
 import { screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -11,11 +16,10 @@ vi.mock('../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }
 }));
 
-// Answer the confirmation window that opens
+/** Answers the confirmation window with this button. */
 const confirmWith = async (buttonName) =>
   userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: buttonName }));
 
-// A 2-model class with one model (Alex) booked so far
 const faculty = { first_name: 'Priya', last_name: 'Nair' };
 const series = {
   id: 1, class_name: 'Figure Drawing I', department: 'Drawing', building: 'Main', status: 'pending',
@@ -28,6 +32,7 @@ const series = {
   }]
 };
 
+/** Shows the Requests page. */
 function renderPage() {
   renderWithDialogs(
     <MemoryRouter initialEntries={['/requests']}>
@@ -56,7 +61,7 @@ describe('AllRequests (admin requests page)', () => {
   it('releases just one model from a date, with a real button that names the model', async () => {
     renderPage();
     const [releaseButton] = await screen.findAllByRole('button', { name: 'Release Alex Booked from this date and find someone else' });
-    expect(releaseButton.tagName).toBe('BUTTON');   // real buttons can be reached with Tab
+    expect(releaseButton.tagName).toBe('BUTTON');
     await userEvent.click(releaseButton);
     await confirmWith('Release Model');
     expect(api.delete).toHaveBeenCalledWith('/gigs/100');
@@ -162,7 +167,6 @@ describe('AllRequests (admin requests page)', () => {
   });
 
   it("makes each date's Find Model link a real button, so it works from the keyboard", async () => {
-    // One date is fully booked and one isn't, so each date gets its own link
     const booked = { ...series.faculty_requests[0], id: 11, status: 'matched' };
     const open = { ...series.faculty_requests[0], id: 12, status: 'pending', confirmed_gigs: [],
                    starts_at: daysFromNow(19, 15), ends_at: daysFromNow(19, 17) };
@@ -250,7 +254,6 @@ describe('AllRequests (admin requests page)', () => {
   });
 
   describe('search', () => {
-    // Like the real server: the faculty member is on the class, not on each date
     const bell = {
       ...series, id: 3, class_name: 'Sculpture Basics', department: 'Sculpture',
       user: { first_name: 'Marcus', last_name: 'Bell' },
@@ -258,6 +261,7 @@ describe('AllRequests (admin requests page)', () => {
     };
     beforeEach(() => api.get.mockResolvedValue({ data: [series, bell] }));
 
+    /** Searches the page for this text. */
     const searchFor = async (text) => {
       renderPage();
       await screen.findAllByText('Sculpture Basics');
@@ -284,13 +288,13 @@ describe('AllRequests (admin requests page)', () => {
   });
 
   describe('classes that already happened', () => {
+    /** A date with a model booked. */
     const booked = (id, days, name) => ({
       id, status: 'matched', models_needed: 1, starts_at: daysFromNow(days, 15), ends_at: daysFromNow(days, 17),
       confirmed_gigs: [{ id: id + 500, status: 'confirmed', art_model_availability: { user: { first_name: name, last_name: 'Model' } } }]
     });
     const finished = { ...series, id: 8, class_name: 'Gesture Drawing', status: 'matched', models_needed: 1,
       faculty_requests: [booked(81, -14, 'Jordan'), booked(82, -7, 'Jordan')] };
-    // One date already happened, the next is still to come
     const ongoing = { ...series, id: 9, class_name: 'Ongoing Class', status: 'matched', models_needed: 1,
       faculty_requests: [booked(91, -3, 'Past'), booked(92, 6, 'Future')] };
 
@@ -323,7 +327,6 @@ describe('AllRequests (admin requests page)', () => {
 
       const row = screen.getAllByText('Gesture Drawing').map(el => el.closest('tr')).find(Boolean);
       expect(within(row).getByText(/Finished/)).toBeInTheDocument();
-      // The only thing left to do on a past date is correct its record
       expect(within(row).getAllByRole('button').every(b => /^Make Correction for /.test(b.getAttribute('aria-label')))).toBe(true);
     });
   });
@@ -375,12 +378,15 @@ describe('AllRequests (admin requests page)', () => {
   });
 
   describe('who could take a pending date', () => {
+    /** A model. */
     const person = (id, extra = {}) => ({ id, role: 'model', first_name: `Model${id}`, last_name: 'Test', email: `model${id}@mica.edu`,
       skin_tone: 'Light', gender_identity: 'Woman', body_type: 'Average', willing_to_model_nude: false, ...extra });
+    /** Free time covering the whole test class day. */
     const freeAllDay = (user) => ({ id: user.id * 10, status: 'active', user,
       starts_at: daysFromNow(12, 8), ends_at: daysFromNow(12, 22) });
     const fatClass = { ...series, pref_body_type: 'Fat' };
 
+    /** Sets what the fake API returns for classes, people and free time. */
     const load = ({ list = [fatClass], users = [], availability = [] } = {}) => api.get.mockImplementation((url) => {
       if (url === '/users') return Promise.resolve({ data: users });
       if (url.startsWith('/art_model_availabilities')) return Promise.resolve({ data: availability });
@@ -460,7 +466,6 @@ describe('AllRequests (admin requests page)', () => {
       renderPage();
       const [menu] = await screen.findAllByRole('button', { name: 'Notify Models' });
       await userEvent.click(menu);
-      // Shown, so the coordinator knows, but not something to click
       expect((await screen.findAllByText('Models who match (0)')).length).toBeGreaterThan(0);
       expect(screen.queryByRole('link', { name: 'Models who match (0)' })).toBeNull();
       expect(screen.queryByRole('button', { name: 'Models who match (0)' })).toBeNull();

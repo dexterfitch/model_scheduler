@@ -1,10 +1,11 @@
+# Cancelling a whole class: dates still to come are cancelled, dates already worked stay booked.
+
 require "rails_helper"
 
 RSpec.describe RequestSeries, type: :model do
   describe "#cancel_entire_series!" do
     let(:series) { create(:request_series) }
 
-    # A date that already happened, with a model who worked it
     let!(:past_gig) do
       req = create(:faculty_request, request_series: series)
       gig = create(:gig, faculty_request: req)
@@ -14,7 +15,6 @@ RSpec.describe RequestSeries, type: :model do
       gig
     end
 
-    # A date still to come
     let!(:future_gig) do
       req = create(:faculty_request, request_series: series,
         starts_at: 10.days.from_now.change(hour: 10), ends_at: 10.days.from_now.change(hour: 12))

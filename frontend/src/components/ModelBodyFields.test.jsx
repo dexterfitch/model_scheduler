@@ -1,7 +1,12 @@
+/**
+ * Tests for the body type and genitalia questions.
+ */
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelBodyFields from './ModelBodyFields';
 
+/** A dropdown by its name. */
 const select = (container, name) => container.querySelector(`select[name="${name}"]`);
 
 describe('ModelBodyFields', () => {

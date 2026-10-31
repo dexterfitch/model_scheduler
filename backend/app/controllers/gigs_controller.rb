@@ -1,12 +1,14 @@
+# Bookings of a model into a class date. Admins book, release and correct;
+# models see their own gigs, with only what their gig cards need.
 class GigsController < ApplicationController
   before_action -> { require_role(:admin, :model) }, only: [:index]
   before_action -> { require_role(:admin) }, only: [:create, :destroy, :correct]
 
+  # Lists gigs: every gig with full details and corrections for admins; a model's own as gig cards.
   def index
     gigs = if current_user.role_admin?
       Gig.includes(faculty_request: :user, art_model_availability: :user).all
     else
-      # Models only see their own gigs
       Gig.includes(faculty_request: :user, art_model_availability: :user)
         .joins(:art_model_availability)
         .where(art_model_availabilities: { user_id: current_user.id })
@@ -19,6 +21,10 @@ class GigsController < ApplicationController
     end
   end
 
+  # Books a model's free time into a class date. The date is locked while booking so
+  # two admins can't fill the last spot at once, and a class with per-model
+  # preferences gets the spot this model fits best. Reuses the model's old
+  # cancelled gig on that date, if there is one, so each model has one record per date.
   def create
     gig = reusable_cancelled_gig || Gig.new
     gig.assign_attributes(gig_params)
@@ -27,16 +33,12 @@ class GigsController < ApplicationController
     gig.confirmed_by = current_user
 
     saved = Gig.transaction do
-      # Lock the request so two admins can't over-fill the last open slot at once
       gig.faculty_request&.lock!
 
-      # Classes with per-model preferences: fill the open slot this model fits best
       if gig.faculty_request && gig.art_model_availability
         gig.model_slot_position = gig.faculty_request.best_open_slot_for(gig.art_model_availability.user)
       end
       
-      # context: :create runs the new-booking checks (room in the class, not
-      # already booked, still bookable) even when reusing an old record
       gig.save(context: :create)
     end
 
@@ -52,6 +54,8 @@ class GigsController < ApplicationController
     end
   end
 
+  # Releases a model from a date that hasn't started. Same-day releases stay paid.
+  # The date goes back to needing a model.
   def destroy
     gig = Gig.find(params[:id])
     if gig.faculty_request.starts_at <= Time.current
@@ -70,7 +74,7 @@ class GigsController < ApplicationController
     render json: { message: "Gig cancelled. Billable: #{is_late_cancel}" }, status: :ok
   end
 
-  # An admin fixes the record of a gig whose class already happened
+  # Corrects the record of a gig whose class has already started (see PastGigCorrection).
   def correct
     gig = Gig.find(params[:id])
     PastGigCorrection.new(gig: gig, admin: current_user, params: correction_params).apply!
@@ -81,16 +85,18 @@ class GigsController < ApplicationController
 
   private
 
+  # A gig with its class, model and corrections, as admins see it.
   def admin_json(gig)
     gig.as_json.merge("corrections" => gig.corrections)
   end
 
+  # Allowed fields for a correction.
   def correction_params
     params.require(:correction).permit(:kind, :note, :worked_starts_at, :worked_ends_at, :reset_hours, :stand_in_user_id)
   end
 
-  # What a model's own gig cards need, and nothing more: no faculty notes,
-  # no faculty contact details
+  # A gig as a model's gig card shows it: class, time, place and faculty name only.
+  # No faculty notes or contact details, and no corrections notes.
   def model_card(gig)
     gig.serializable_hash(only: [:id, :status, :billable, :no_show, :worked_starts_at, :worked_ends_at, :model_slot_position, :faculty_request_id, :art_model_availability_id]).merge(
       "faculty_request" => gig.faculty_request.serializable_hash(
@@ -104,8 +110,8 @@ class GigsController < ApplicationController
     )
   end
 
-  # Rebooking a model who was released from this class reuses their old record,
-  # so each model has one record per date and a same-day release isn't paid twice
+  # The model's most recent cancelled gig on the same date, to rebook instead of adding a second
+  # record.
   def reusable_cancelled_gig
     availability = ArtModelAvailability.find_by(id: gig_params[:art_model_availability_id])
     return unless availability
@@ -118,6 +124,7 @@ class GigsController < ApplicationController
       .first
   end
 
+  # Allowed fields for a booking: the date and the model's free time.
   def gig_params
     params.require(:gig).permit(:faculty_request_id, :art_model_availability_id)
   end
