@@ -1,7 +1,8 @@
 /**
  * The SuperUser Panel: try the app as faculty or a model, change people's roles,
- * grant SuperUser status, create sock accounts and manage their free time, and
- * clear the test data made under the SuperUser's own account.
+ * grant SuperUser status, remove a person's data on request, create sock accounts
+ * and manage their free time, and clear the test data made under the SuperUser's
+ * own account.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -205,6 +206,27 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     }
   };
 
+  /**
+   * Removes a person's data on request, after a warning, and shows the row as removed.
+   * Says why if it can't be done yet.
+   */
+  const handleRemoveData = async (person) => {
+    const confirmed = await confirm({
+      title: `Remove ${person.first_name} ${person.last_name}'s data?`,
+      message: "Their name, email, phone, photo and every personal answer are deleted, their upcoming free time and updates are removed, and they're signed out everywhere. Past gigs and classes stay, shown as Removed Person, so reports still add up. This can't be undone.",
+      confirmLabel: 'Remove Data',
+      cancelLabel: 'Go Back',
+      danger: true
+    });
+    if (!confirmed) return;
+    try {
+      const res = await api.post(`/users/${person.id}/remove_data`);
+      setUsers(prev => prev.map(u => (u.id === person.id ? res.data : u)));
+    } catch (err) {
+      showError("Couldn't remove their data", err);
+    }
+  };
+
   /** Switches the SuperUser's own role, to try the app as faculty or a model. */
   const handleSwitchRole = async (targetRole, skinTone) => {
     if (targetRole === 'model' && !skinTone && !hasSkinTone(currentUser)) {
@@ -380,6 +402,8 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                     <td>
                       {u.id === currentUser.id ? (
                         <span className="text-muted small">That's you</span>
+                      ) : u.removed_at ? (
+                        <Badge bg="secondary">Data removed</Badge>
                       ) : (
                         <div className="d-flex gap-2 align-items-center flex-wrap">
                           {!u.superuser && (
@@ -392,6 +416,11 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                           {u.role === 'admin' && !u.superuser && (
                             <button className="btn btn-sm btn-warning text-dark" onClick={() => handlePromoteToSuperUser(u.id)}>
                               ⭐ Make SuperUser
+                            </button>
+                          )}
+                          {!u.superuser && (
+                            <button className="btn btn-sm btn-outline-secondary" onClick={() => handleRemoveData(u)}>
+                              Remove Data
                             </button>
                           )}
                         </div>
@@ -421,6 +450,8 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                   </div>
                   {u.id === currentUser.id ? (
                     <span className="text-muted small">That's you</span>
+                  ) : u.removed_at ? (
+                    <Badge bg="secondary">Data removed</Badge>
                   ) : (
                     <div className="d-flex flex-column gap-2">
                       {!u.superuser && (
@@ -433,6 +464,11 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
                       {u.role === 'admin' && !u.superuser && (
                         <button className="btn btn-sm btn-warning text-dark w-100" onClick={() => handlePromoteToSuperUser(u.id)}>
                           ⭐ Make SuperUser
+                        </button>
+                      )}
+                      {!u.superuser && (
+                        <button className="btn btn-sm btn-outline-secondary w-100" onClick={() => handleRemoveData(u)}>
+                          Remove Data
                         </button>
                       )}
                     </div>

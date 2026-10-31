@@ -231,3 +231,10 @@ describe('ModelDashboard', () => {
     expect(await screen.findByRole('dialog', { name: "Couldn't cancel" })).toHaveTextContent('already started');
   });
 });
+
+describe('a retired model', () => {
+  it("is told they're retired and can't add free time", async () => {
+    renderWithDialogs(<ModelDashboard user={{ ...model, retired_at: '2026-10-01T00:00:00Z' }} />);
+    expect(await screen.findByText(/You're retired from the pose pool/)).toBeInTheDocument();
+  });
+});

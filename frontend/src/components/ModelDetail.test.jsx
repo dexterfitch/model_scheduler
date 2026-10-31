@@ -30,6 +30,46 @@ beforeEach(() => {
   api.get.mockImplementation((url) => Promise.resolve({ data: url === '/users/5' ? jordan : [] }));
 });
 
+describe('retiring a model', () => {
+  /** Shows Jordan's page. */
+  const openJordan = () => renderWithDialogs(
+    <MemoryRouter initialEntries={['/models/5']}>
+      <Routes><Route path="/models/:id" element={<ModelDetail />} /></Routes>
+    </MemoryRouter>
+  );
+
+  it('retires the model after saying what that means', async () => {
+    api.post.mockResolvedValue({ data: { ...jordan, retired_at: '2026-10-31T12:00:00Z' } });
+    openJordan();
+    await userEvent.click(await screen.findByRole('button', { name: 'Retire Model' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Retire Jordan Ellis?' });
+    expect(dialog).toHaveTextContent(/won't be offered for classes/);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Retire Model' }));
+
+    expect(api.post).toHaveBeenCalledWith('/users/5/retire');
+    expect(await screen.findByText('Retired')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bring Back' })).toBeInTheDocument();
+  });
+
+  it("says why when the model can't be retired yet", async () => {
+    api.post.mockRejectedValue({ response: { data: { error: 'Jordan has 2 upcoming gigs. Release them first.' } } });
+    openJordan();
+    await userEvent.click(await screen.findByRole('button', { name: 'Retire Model' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Retire Model' }));
+    expect(await screen.findByText(/2 upcoming gigs/)).toBeInTheDocument();
+  });
+
+  it('brings a retired model back', async () => {
+    api.get.mockImplementation((url) => Promise.resolve({ data: url === '/users/5' ? { ...jordan, retired_at: '2026-10-01T00:00:00Z' } : [] }));
+    api.post.mockResolvedValue({ data: { ...jordan, retired_at: null } });
+    openJordan();
+    await userEvent.click(await screen.findByRole('button', { name: 'Bring Back' }));
+    expect(api.post).toHaveBeenCalledWith('/users/5/reinstate');
+    expect(await screen.findByRole('button', { name: 'Retire Model' })).toBeInTheDocument();
+  });
+});
+
 describe("ModelDetail (admin's view of a model)", () => {
   it("lets an admin choose the day as well as the times for a model's availability", async () => {
     api.post.mockResolvedValue({ data: {} });

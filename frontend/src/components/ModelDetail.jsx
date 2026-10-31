@@ -1,6 +1,6 @@
 /**
  * An admin's view of one model: their profile and their calendar, where admins can
- * manage the model's free time.
+ * manage the model's free time, and retire the model or bring them back.
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -18,7 +18,7 @@ import StatusToast from "./StatusToast";
 function ModelDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { confirm } = useDialog();
+  const { confirm, notify } = useDialog();
   const [user, setUser] = useState(null);
   const [availabilities, setAvailabilities] = useState([]);
   const [error, setError] = useState('');
@@ -58,6 +58,32 @@ function ModelDetail() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  /**
+   * Retires the model after saying what that means, or brings a retired model back.
+   * Says why if it can't be done yet.
+   */
+  const handleRetire = async () => {
+    const name = `${user.first_name} ${user.last_name}`;
+    if (!user.retired_at) {
+      const confirmed = await confirm({
+        title: `Retire ${name}?`,
+        message: `${user.first_name} won't be offered for classes, counted as free, or emailed by Notify Models, and can't add free time. Their upcoming free time is removed; past gigs stay. You can bring them back later.`,
+        confirmLabel: 'Retire Model',
+        cancelLabel: 'Go Back',
+        danger: true
+      });
+      if (!confirmed) return;
+    }
+    try {
+      const res = await api.post(`/users/${user.id}/${user.retired_at ? 'reinstate' : 'retire'}`);
+      setUser(res.data);
+      setPageSuccess(res.data.retired_at ? `${name} is retired.` : `${name} is back in the pool.`);
+      api.get(`/art_model_availabilities?user_id=${id}`).then(r => setAvailabilities(r.data)).catch(() => {});
+    } catch (err) {
+      notify({ title: user.retired_at ? "Couldn't bring them back" : "Couldn't retire this model", message: extractErrorMessages(err, 'Please try again.') });
+    }
+  };
 
   /** Opens Add Availability on the clicked day. */
   const handleDateSelect = (selectInfo) => {
@@ -181,8 +207,19 @@ function ModelDetail() {
           <Card className="shadow-sm border-0 bg-light">
             <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
               <div>
-                <h2 className="mb-1">{user.first_name} {user.last_name}</h2>
+                <h2 className="mb-1">
+                  {user.first_name} {user.last_name}
+                  {user.retired_at && <Badge bg="secondary" className="ms-2 fs-6 align-middle">Retired</Badge>}
+                </h2>
                 <div className="text-muted">{user.email}</div>
+                <Button
+                  variant={user.retired_at ? 'outline-success' : 'outline-secondary'}
+                  size="sm"
+                  className="mt-2"
+                  onClick={handleRetire}
+                >
+                  {user.retired_at ? 'Bring Back' : 'Retire Model'}
+                </Button>
               </div>
               <div className="text-md-end">
                 <div className="mb-2">

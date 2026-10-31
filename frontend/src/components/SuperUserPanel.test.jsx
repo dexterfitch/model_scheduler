@@ -12,6 +12,7 @@ import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
 
+
 const me      = { id: 1, role: 'admin',   superuser: true, first_name: 'Dex',   last_name: 'Fitch', email: 'dfitch@mica.edu', skin_tone: 'Medium' };
 const priya   = { id: 2, role: 'faculty', first_name: 'Priya', last_name: 'Nair', email: 'pnair@mica.edu' };
 const otherAdmin = { id: 3, role: 'admin', first_name: 'Sam', last_name: 'Lee', email: 'slee@mica.edu' };
@@ -216,5 +217,38 @@ describe('SuperUserPanel', () => {
       expect(await screen.findByRole('dialog')).toHaveTextContent("You don't have any test classes or availability.");
       expect(api.delete).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("removing a person's data", () => {
+  it('removes the data after a warning, and marks the row', async () => {
+    api.post.mockResolvedValue({ data: { ...priya, first_name: 'Removed', last_name: 'Person', email: 'removed-2@removed.invalid', removed_at: '2026-10-31T12:00:00Z' } });
+    renderPanel();
+    const row = await rowFor('pnair@mica.edu');
+    await userEvent.click(within(row).getByRole('button', { name: 'Remove Data' }));
+
+    const dialog = await screen.findByRole('dialog', { name: "Remove Priya Nair's data?" });
+    expect(dialog).toHaveTextContent(/can't be undone/);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Remove Data' }));
+
+    expect(api.post).toHaveBeenCalledWith('/users/2/remove_data');
+    const updated = await rowFor('removed-2@removed.invalid');
+    expect(within(updated).getByText('Data removed')).toBeInTheDocument();
+    expect(within(updated).queryByRole('button', { name: 'Remove Data' })).toBeNull();
+  });
+
+  it("isn't offered for the SuperUser themselves or other SuperUsers", async () => {
+    api.get.mockResolvedValue({ data: [me, priya, { ...otherAdmin, superuser: true }] });
+    renderPanel();
+    expect(within(await rowFor('dfitch@mica.edu')).queryByRole('button', { name: 'Remove Data' })).toBeNull();
+    expect(within(await rowFor('slee@mica.edu')).queryByRole('button', { name: 'Remove Data' })).toBeNull();
+  });
+
+  it("says why when the data can't be removed yet", async () => {
+    api.post.mockRejectedValue({ response: { data: { error: 'Priya has 1 upcoming class. Cancel it first.' } } });
+    renderPanel();
+    await userEvent.click(within(await rowFor('pnair@mica.edu')).getByRole('button', { name: 'Remove Data' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove Data' }));
+    expect(await screen.findByText(/1 upcoming class/)).toBeInTheDocument();
   });
 });

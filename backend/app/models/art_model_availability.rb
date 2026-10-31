@@ -16,6 +16,7 @@ class ArtModelAvailability < ApplicationRecord
   validate :end_after_start
   validate :must_be_within_business_hours
   validate :must_be_future_time, on: :create, unless: :recording_past
+  validate :model_must_not_be_retired, on: :create, unless: :recording_past
   validate :prevent_edit_with_active_gig, on: :update
   validate :must_not_move_into_past, on: :update, unless: :recording_past
 
@@ -139,6 +140,11 @@ class ArtModelAvailability < ApplicationRecord
     if starts_at < Time.current
       errors.add(:starts_at, "must be in the future")
     end
+  end
+
+  # A retired model can't add free time.
+  def model_must_not_be_retired
+    errors.add(:base, "This model is retired, so they can't add free time") if user&.retired?
   end
 
   # Changed time can't be moved to start in the past. Free time already under way

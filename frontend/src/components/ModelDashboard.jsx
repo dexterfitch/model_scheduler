@@ -1,7 +1,7 @@
 /**
  * The model's page: My Gigs (upcoming, completed and cancelled, with cancelling)
  * and Manage Availability (their free time on a calendar, plus Open Calls they can
- * sign up for).
+ * sign up for). A retired model is told they can't add free time or sign up.
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -306,6 +306,13 @@ function ModelDashboard({ user }) {
         </Card.Body>
         <div className="rainbow-bar"></div>
       </Card>
+
+      {user.retired_at && (
+        <Alert variant="secondary">
+          You're retired from the pose pool, so you can't add free time or sign up for open calls.
+          If you'd like to come back, contact the coordinator.
+        </Alert>
+      )}
 
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3 tabs-equal-height" justify>
         <Tab eventKey="schedule" title={<span className="d-block">My Gigs <span className="d-block d-md-inline">({upcomingCount} upcoming)</span></span>}>

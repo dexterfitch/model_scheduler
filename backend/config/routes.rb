@@ -5,6 +5,9 @@ Rails.application.routes.draw do
     member do
       post "promote"
       post "promote_to_superuser"
+      post "retire"
+      post "reinstate"
+      post "remove_data"
     end
   end
 

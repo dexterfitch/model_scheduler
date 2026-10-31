@@ -1,7 +1,12 @@
 # Anyone who signs in: an admin, faculty member or model (role is chosen on first
 # sign-in). Models answer personal questions used for matching; every one can be
 # Prefer not to say or left blank, except skin tone and gender, which must be answered.
+# A model can be retired (no longer offered or counted), and anyone's data can be
+# removed on request, which keeps their past gigs and classes under "Removed Person".
 class User < ApplicationRecord
+  # Raised when a person can't be retired or removed yet, with the reason.
+  class NotYet < StandardError; end
+
   has_many :art_model_availabilities, dependent: :destroy
   has_many :faculty_requests, dependent: :destroy
   has_many :request_series, dependent: :destroy
@@ -69,7 +74,76 @@ class User < ApplicationRecord
     end
   end
 
+  # Whether the model has retired from the pool.
+  def retired?
+    retired_at.present?
+  end
+
+  # The model's confirmed gigs on dates still to come.
+  def upcoming_gigs
+    Gig.confirmed.joins(:art_model_availability, :faculty_request)
+      .where(art_model_availabilities: { user_id: id })
+      .where("faculty_requests.starts_at > ?", Time.current)
+  end
+
+  # The faculty member's class dates still to come that aren't cancelled.
+  def upcoming_class_dates
+    FacultyRequest.where(user_id: id).where.not(status: :archived).where("starts_at > ?", Time.current)
+  end
+
+  # Retires a model: their free time still to come is taken away, so they're no
+  # longer offered or counted. Past gigs stay. Raises NotYet while they have
+  # upcoming gigs.
+  def retire!
+    refuse_with_upcoming_gigs!
+    transaction do
+      clear_future_free_time!
+      update_columns(retired_at: Time.current, updated_at: Time.current)
+    end
+  end
+
+  # Removes a person's data on request: name, contact details, photo and every
+  # personal answer are cleared, their free time still to come and their updates are
+  # deleted, and every sign-in ends. Their past gigs and classes stay, so pay and
+  # reports still add up. Raises NotYet while they have upcoming gigs or classes.
+  def remove_data!
+    refuse_with_upcoming_gigs!
+    classes = upcoming_class_dates.count
+    if classes.positive?
+      raise NotYet, "#{first_name} has #{classes} upcoming class date#{'s' if classes != 1}. Cancel #{classes == 1 ? 'it' : 'them'} first."
+    end
+
+    transaction do
+      clear_future_free_time!
+      notifications.delete_all
+      update_columns(
+        first_name: "Removed", last_name: "Person", email: "removed-#{id}@removed.invalid",
+        phone: nil, stage_name: nil, pronouns: nil, skin_tone: nil, gender_identity: nil,
+        body_type: nil, genitalia: nil, image_url: nil, willing_to_model_nude: false, superuser: false,
+        retired_at: retired_at || Time.current, removed_at: Time.current,
+        token_version: token_version + 1, updated_at: Time.current
+      )
+    end
+  end
+
   private
+
+  # Raises NotYet while the model has confirmed gigs still to come.
+  def refuse_with_upcoming_gigs!
+    count = upcoming_gigs.count
+    return if count.zero?
+
+    raise NotYet, "#{first_name} has #{count} upcoming gig#{'s' if count != 1}. Release them first."
+  end
+
+  # Takes away free time that hasn't started: blocks with gig history are cancelled
+  # (keeping the history), the rest are deleted.
+  def clear_future_free_time!
+    future = art_model_availabilities.where("starts_at > ?", Time.current)
+    with_history = Gig.select(:art_model_availability_id)
+    future.where(id: with_history).update_all(status: ArtModelAvailability.statuses[:cancelled], updated_at: Time.current)
+    future.where.not(id: with_history).delete_all
+  end
 
   # A model can't stop posing nude while booked into an upcoming nude class.
   def no_upcoming_nude_bookings

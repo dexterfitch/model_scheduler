@@ -83,6 +83,21 @@ describe('notifyLists', () => {
   });
 });
 
+describe('retired models and removed people', () => {
+  it("aren't counted as free or emailed about classes", () => {
+    const retired = model(1, { retired_at: '2026-10-01T00:00:00Z' });
+    const removed = model(2, { removed_at: '2026-10-01T00:00:00Z' });
+    const active = model(3);
+    const result = dateCoverage(date, series, {
+      models: [retired, removed, active],
+      availabilities: [slot(retired), slot(removed), slot(active)],
+      gigs: [],
+    });
+    expect(result.free.map(m => m.id)).toEqual([3]);
+    expect(notifyLists(series, [retired, removed, active]).all.map(m => m.id)).toEqual([3]);
+  });
+});
+
 describe('notifyEmailLink', () => {
   it("opens an email to the models in BCC, listing the open dates and asking for I'm Available", () => {
     const link = notifyEmailLink(series, [date], [model(1), model(2)], 'https://posepool.mica.edu');

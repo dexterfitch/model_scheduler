@@ -34,11 +34,15 @@ class Gig < ApplicationRecord
 
   private
   
-  # New bookings need active free time and a class date that isn't cancelled and
-  # hasn't started (unless an admin is recording someone who covered).
+  # New bookings need a model who isn't retired, active free time, and a class date
+  # that isn't cancelled and hasn't started (unless an admin is recording someone
+  # who covered).
   def must_be_bookable
     return unless faculty_request && art_model_availability
 
+    if !recording_past && art_model_availability.user&.retired?
+      errors.add(:base, "This model is retired, so they can't be booked")
+    end
     if art_model_availability.cancelled?
       errors.add(:base, "This model cancelled that availability, so they can't be booked into it")
     end

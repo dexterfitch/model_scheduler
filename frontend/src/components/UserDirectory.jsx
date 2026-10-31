@@ -1,5 +1,6 @@
 /**
- * The Directory: models and faculty, with links to each model's page.
+ * The Directory: models and faculty, with links to each model's page. Retired models
+ * come after the others, marked Retired; people whose data was removed aren't listed.
  */
 
 import React, { useState, useEffect } from "react";
@@ -20,8 +21,10 @@ function UserDirectory() {
     }).catch(err => console.error(err));
   }, []);
 
-  const faculty = users.filter(u => u.role === "faculty");
-  const models = users.filter(u => u.role === "model");
+  const people = users.filter(u => !u.removed_at);
+  const faculty = people.filter(u => u.role === "faculty");
+  const activeModels = people.filter(u => u.role === "model" && !u.retired_at);
+  const models = [...activeModels, ...people.filter(u => u.role === "model" && u.retired_at)];
 
   return (
     <Container className="py-4">
@@ -31,7 +34,7 @@ function UserDirectory() {
 
       <Tabs defaultActiveKey="models" className="mb-3">
 
-        <Tab eventKey="models" title={`Models (${models.length})`}>
+        <Tab eventKey="models" title={`Models (${activeModels.length})`}>
 
           <div className="d-none d-md-block">
             <Table hover responsive className="bg-white shadow-sm">
@@ -47,7 +50,10 @@ function UserDirectory() {
               <tbody>
                 {models.map(u => (
                   <tr key={u.id}>
-                    <td className="align-middle fw-bold">{u.first_name} {u.last_name}</td>
+                    <td className="align-middle fw-bold">
+                      {u.first_name} {u.last_name}
+                      {u.retired_at && <Badge bg="secondary" className="ms-2">Retired</Badge>}
+                    </td>
                     <td className="align-middle">
                       <div className="small">{u.email}</div>
                       {u.phone && <div className="small text-muted">{u.phone}</div>}
@@ -84,7 +90,10 @@ function UserDirectory() {
                 <div key={u.id} className="card mb-3 shadow-sm">
                   <div className="card-body">
                     <div className="d-flex justify-content-between align-items-start mb-2">
-                      <div className="fw-bold fs-6">{u.first_name} {u.last_name}</div>
+                      <div className="fw-bold fs-6">
+                        {u.first_name} {u.last_name}
+                        {u.retired_at && <Badge bg="secondary" className="ms-2">Retired</Badge>}
+                      </div>
                       {u.willing_to_model_nude
                         ? <Badge bg="danger">Nude OK</Badge>
                         : <Badge bg="success">Clothed Only</Badge>}

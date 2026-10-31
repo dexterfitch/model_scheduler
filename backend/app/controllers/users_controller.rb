@@ -1,11 +1,12 @@
 # People's profiles and roles. Everyone edits their own profile; admins list
-# everyone, create offline model accounts and change roles. Only a SuperUser can
-# make admins, change an admin's role or profile, or grant SuperUser status.
+# everyone, create offline model accounts, change roles and retire models. Only a
+# SuperUser can make admins, change an admin's role or profile, grant SuperUser
+# status, or remove a person's data.
 class UsersController < ApplicationController
   ALLOWED_ROLES = %w[admin faculty model].freeze
   SELECTABLE_ROLES = %w[faculty model].freeze
 
-  before_action -> { require_role(:admin) }, only: [:index, :promote, :create, :promote_to_superuser]
+  before_action -> { require_role(:admin) }, only: [:index, :promote, :create, :promote_to_superuser, :retire, :reinstate, :remove_data]
   before_action :require_self_or_admin, only: [:show, :update]
 
   # Admins only: everyone.
@@ -90,6 +91,49 @@ class UsersController < ApplicationController
     
     user.update(superuser: true)
     render json: user
+  end
+
+  # Admins only: retires a model, so they're no longer offered for classes, counted
+  # or emailed. Their free time still to come is taken away; past gigs stay.
+  def retire
+    user = User.find(params[:id])
+    unless user.role_model?
+      return render json: { error: "Only models can be retired." }, status: :unprocessable_content
+    end
+
+    user.retire!
+    render json: user
+  rescue User::NotYet => e
+    render json: { error: e.message }, status: :unprocessable_content
+  end
+
+  # Admins only: brings a retired model back into the pool.
+  def reinstate
+    user = User.find(params[:id])
+    if user.removed_at
+      return render json: { error: "This person's data was removed, so they can't be brought back." }, status: :unprocessable_content
+    end
+
+    user.update_columns(retired_at: nil, updated_at: Time.current)
+    render json: user
+  end
+
+  # SuperUsers only: removes a person's data on request (see User#remove_data!).
+  # Not for the SuperUser themselves or another SuperUser.
+  def remove_data
+    unless current_user.superuser?
+      return render json: { error: "Only a SuperUser can remove someone's data." }, status: :forbidden
+    end
+
+    user = User.find(params[:id])
+    if user == current_user || user.superuser?
+      return render json: { error: "A SuperUser's data can't be removed here." }, status: :unprocessable_content
+    end
+
+    user.remove_data!
+    render json: user
+  rescue User::NotYet => e
+    render json: { error: e.message }, status: :unprocessable_content
   end
 
   # A new user's one-time choice of faculty or model.

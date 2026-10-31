@@ -32,8 +32,8 @@ const fitsClass = (user, series, openSlots) => {
   return openSlots(slots).some(slot => fitsPreferences(user, slot, series.model_mode));
 };
 
-/** Just the models. */
-const modelsOnly = (users) => (users || []).filter(u => u?.role === 'model');
+/** Just the models in the pool: not retired, and with their data still held. */
+const modelsOnly = (users) => (users || []).filter(u => u?.role === 'model' && !u.retired_at && !u.removed_at);
 
 /** The models free for the whole date and not booked elsewhere then, and which of them match. */
 export const dateCoverage = (date, series, { models, availabilities, gigs }) => {

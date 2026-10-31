@@ -44,8 +44,10 @@ class RequestSeriesController < ApplicationController
 
   # Open calls for the signed-in model: classes with dates still to come that need a
   # model, that this model could pose for (nude classes only for models willing),
-  # leaving out dates they're already booked on. Soonest first.
+  # leaving out dates they're already booked on. Soonest first. Retired models get none.
   def available_for_model
+    return render json: [] if current_user.retired?
+
     series_list = RequestSeries.visible_to_model(current_user)
       .includes(faculty_requests: { confirmed_gigs: :art_model_availability })
 
