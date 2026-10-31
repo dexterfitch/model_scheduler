@@ -201,6 +201,13 @@ test("the model's two tabs sit side by side and share the width (phone)", async 
   const [a, b] = [await gigs.boundingBox(), await availability.boundingBox()];
   expect(Math.abs(a.y - b.y), 'both tabs should be on the same row').toBeLessThan(2);
   expect(Math.abs(a.width - b.width), 'the tabs should be the same width').toBeLessThan(2);
+
+  // Whichever tab is open, both reach down to the line under the tabs
+  for (const tab of [availability, gigs]) {
+    await tab.click();
+    const [x, y] = [await gigs.boundingBox(), await availability.boundingBox()];
+    expect(Math.abs((x.y + x.height) - (y.y + y.height)), 'both tabs should end at the same line').toBeLessThan(2);
+  }
 });
 
 test.describe('desktop calendar', () => {

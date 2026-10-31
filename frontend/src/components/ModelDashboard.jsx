@@ -284,7 +284,7 @@ function ModelDashboard({ user }) {
         <div className="rainbow-bar"></div>
       </Card>
 
-      <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3" justify>
+      <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3 tabs-equal-height" justify>
         {/* Phones show "My Gigs" over "(2 upcoming)"; wider screens keep it on one line */}
         <Tab eventKey="schedule" title={<span className="d-block">My Gigs <span className="d-block d-md-inline">({upcomingCount} upcoming)</span></span>}>
           <div className="d-flex flex-wrap gap-2 mb-3">

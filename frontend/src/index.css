@@ -170,3 +170,16 @@ h3, .h3, h4, .h4, h5, .h5 {
     padding: 0.25rem 0.5rem;
   }
 }
+
+/* Tabs that share the width: each tab is as tall as the tallest, so the open
+   tab always meets the line underneath even when the other tab wraps onto two lines */
+.tabs-equal-height .nav-item {
+  display: flex;
+}
+.tabs-equal-height .nav-link {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
