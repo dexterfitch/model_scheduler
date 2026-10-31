@@ -33,6 +33,7 @@ class FacultyRequestsController < ApplicationController
 
   # Moves a date to a new day or time. Faculty can only move dates that are still
   # pending and unbooked; the new date must be from tomorrow to four months out.
+  # Models booked on the date are told the new time.
   def update
     @request = FacultyRequest.find(params[:id])
 
@@ -54,14 +55,18 @@ class FacultyRequestsController < ApplicationController
 
     if @request.update(update_params)
       @request.request_series&.update_status!
+      if @request.saved_change_to_starts_at? || @request.saved_change_to_ends_at?
+        Notifier.date_moved(@request, actor: current_user)
+      end
       render json: @request
     else
       render json: { errors: @request.errors.full_messages }, status: :unprocessable_content
     end
   end
 
-  # Cancels a date. Booked models are released (paid if it's the same day). A date
-  # that has started with a model booked can't be cancelled.
+  # Cancels a date. Booked models are released (paid if it's the same day) and told,
+  # and so is the faculty member when an admin cancelled it. A date that has started
+  # with a model booked can't be cancelled.
   def destroy
     @request = FacultyRequest.find(params[:id])
 
@@ -73,8 +78,11 @@ class FacultyRequestsController < ApplicationController
 
     series = @request.request_series
     had_booked_models = @request.confirmed_gigs.exists?
+    was_open = !@request.archived?
+    booked = Notifier.confirmed_gigs_on(@request)
     is_late_cancel = @request.cancel_with_billing!
     series&.update_status!
+    Notifier.dates_cancelled(was_open ? [@request] : [], Notifier.now_cancelled(booked), actor: current_user)
 
     if had_booked_models
       render json: { message: "Request cancelled. Gig billable: #{is_late_cancel}" }, status: :ok

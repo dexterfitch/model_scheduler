@@ -1,5 +1,6 @@
 /**
- * The frame around every signed-in page: navigation for the person's role, a skip
+ * The frame around every signed-in page: navigation for the person's role, the
+ * Updates button (kept outside the phone menu so new updates always show), a skip
  * link, the page title, the SuperUser banner and the Report a Bug window.
  */
 
@@ -11,6 +12,7 @@ import styles from './Layout.module.css';
 import { useDialog } from './DialogProvider';
 import { extractErrorMessages } from '../utils/formatters';
 import { setPageTitle } from '../utils/pageTitle';
+import UpdatesBell from './UpdatesBell';
 
 const HOME_TITLES = { admin: 'Dashboard', faculty: 'My Classes', model: 'My Gigs' };
 const PAGE_TITLES = [
@@ -91,6 +93,9 @@ function Layout({ currentUser, onLogout, refreshUser }) {
       <Navbar bg="dark" variant="dark" expand="lg" className="mb-4" expanded={navExpanded} onToggle={setNavExpanded}>
         <Container>
           <Navbar.Brand as={Link} to="/">MICA Pose Pool</Navbar.Brand>
+          <div className="ms-auto me-2 order-lg-last ms-lg-2 me-lg-0">
+            <UpdatesBell onNavigate={() => setNavExpanded(false)} />
+          </div>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">

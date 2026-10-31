@@ -5,6 +5,7 @@ class User < ApplicationRecord
   has_many :art_model_availabilities, dependent: :destroy
   has_many :faculty_requests, dependent: :destroy
   has_many :request_series, dependent: :destroy
+  has_many :notifications, dependent: :delete_all
 
   GENDER_IDENTITIES = ["Woman", "Man", "Non-binary", "Prefer not to say"].freeze
   SKIN_TONES = ["Light", "Medium", "Dark"].freeze

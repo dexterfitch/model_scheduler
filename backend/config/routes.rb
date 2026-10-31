@@ -18,6 +18,9 @@ Rails.application.routes.draw do
   resources :gigs, only: [:index, :create, :destroy]
   post "gigs/:id/corrections", to: "gigs#correct"
 
+  get "notifications", to: "notifications#index"
+  post "notifications/read", to: "notifications#read"
+
   get "test_data", to: "test_data#show"
   delete "test_data", to: "test_data#destroy"
 

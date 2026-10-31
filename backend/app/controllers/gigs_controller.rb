@@ -25,6 +25,7 @@ class GigsController < ApplicationController
   # two admins can't fill the last spot at once, and a class with per-model
   # preferences gets the spot this model fits best. Reuses the model's old
   # cancelled gig on that date, if there is one, so each model has one record per date.
+  # The model and the faculty member are told.
   def create
     gig = reusable_cancelled_gig || Gig.new
     gig.assign_attributes(gig_params)
@@ -48,6 +49,7 @@ class GigsController < ApplicationController
       faculty_request.refresh_match_status!
       faculty_request.update(needs_attention: false) if faculty_request.matched?
       faculty_request.request_series&.update_status!
+      Notifier.booked(gig, actor: current_user)
       render json: gig, status: :created
     else
       render json: { errors: gig.errors.full_messages }, status: :unprocessable_content
@@ -55,7 +57,7 @@ class GigsController < ApplicationController
   end
 
   # Releases a model from a date that hasn't started. Same-day releases stay paid.
-  # The date goes back to needing a model.
+  # The date goes back to needing a model, and the model is told.
   def destroy
     gig = Gig.find(params[:id])
     if gig.faculty_request.starts_at <= Time.current
@@ -70,6 +72,7 @@ class GigsController < ApplicationController
     end
 
     gig.faculty_request&.request_series&.update_status!
+    Notifier.released([gig.reload], actor: current_user)
 
     render json: { message: "Gig cancelled. Billable: #{is_late_cancel}" }, status: :ok
   end

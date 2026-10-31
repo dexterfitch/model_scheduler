@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_30_140000) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_31_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -92,6 +92,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_30_140000) do
     t.index ["request_series_id"], name: "index_model_slots_on_request_series_id"
   end
 
+  create_table "notifications", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "kind", null: false
+    t.string "title", null: false
+    t.json "dates", default: [], null: false
+    t.boolean "paid"
+    t.string "about"
+    t.string "group_key", null: false
+    t.datetime "read_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "read_at"], name: "index_notifications_on_user_id_and_read_at"
+    t.index ["user_id", "updated_at"], name: "index_notifications_on_user_id_and_updated_at"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
   create_table "request_series", force: :cascade do |t|
     t.string "class_name", null: false
     t.string "department", null: false
@@ -140,5 +156,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_30_140000) do
   add_foreign_key "gigs", "faculty_requests"
   add_foreign_key "gigs", "users", column: "confirmed_by_id"
   add_foreign_key "model_slots", "request_series"
+  add_foreign_key "notifications", "users"
   add_foreign_key "request_series", "users"
 end

@@ -210,20 +210,26 @@ class RequestSeriesController < ApplicationController
   end
 
   # Admins only: releases every booked model from the class's remaining dates so they can be
-  # rebooked.
+  # rebooked. Each released model is told.
   def release_remaining
     @series = RequestSeries.find(params[:id])
+    booked = Notifier.confirmed_gigs_on(@series.faculty_requests.where("starts_at > ?", Time.current))
     @series.release_remaining_for_rematch!
+    Notifier.released(Notifier.now_cancelled(booked), actor: current_user)
     render json: @series
   end
 
-  # Cancels every date of the class that hasn't started yet.
+  # Cancels every date of the class that hasn't started yet. Booked models are told,
+  # and so is the faculty member when an admin cancelled it.
   def destroy
     @series = RequestSeries.find(params[:id])
 
     require_admin_or_owner(@series)
 
+    upcoming = @series.faculty_requests.where.not(status: :archived).where("starts_at > ?", Time.current).to_a
+    booked = Notifier.confirmed_gigs_on(upcoming)
     @series.cancel_entire_series!
+    Notifier.dates_cancelled(upcoming, Notifier.now_cancelled(booked), actor: current_user)
     head :no_content
   end
 

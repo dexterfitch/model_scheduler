@@ -10,6 +10,7 @@ import api from '../services/api';
 import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({ default: { post: vi.fn() } }));
+vi.mock('./UpdatesBell', () => ({ default: () => <button>Updates</button> }));
 
 /** Shows the frame for a person. */
 function renderLayout(user, { onLogout = vi.fn(), refreshUser = vi.fn() } = {}) {
@@ -28,6 +29,14 @@ const model   = { id: 3, role: 'model',   first_name: 'Jordan' };
 beforeEach(() => vi.clearAllMocks());
 
 describe('Layout (navigation)', () => {
+  it('shows the Updates button to everyone', () => {
+    for (const user of [admin, faculty, model]) {
+      const { unmount } = renderWithDialogs(<MemoryRouter><Layout currentUser={user} onLogout={vi.fn()} refreshUser={vi.fn()} /></MemoryRouter>);
+      expect(screen.getByRole('button', { name: 'Updates' })).toBeInTheDocument();
+      unmount();
+    }
+  });
+
   it('gives admins the full admin menu, without the SuperUser Panel', () => {
     renderLayout(admin);
     for (const name of ['Requests', 'Gigs', 'Calendar', 'Directory', 'Reports']) {

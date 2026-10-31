@@ -65,7 +65,8 @@ class ArtModelAvailabilitiesController < ApplicationController
   # Cancels a booked gig in this block (the one given by gig_id, or the only one).
   # With cancel_remaining_series, the model is also taken off the class's later
   # dates. Classes that have started can't be cancelled. A model cancelling flags
-  # the class for the coordinator's attention.
+  # the class for the coordinator's attention and tells every admin and the faculty
+  # member; an admin cancelling tells the model.
   def cancel
     availability = ArtModelAvailability.find(params[:id])
 
@@ -79,12 +80,19 @@ class ArtModelAvailabilitiesController < ApplicationController
     end
 
     cancel_remaining_series = ActiveModel::Type::Boolean.new.cast(params[:cancel_remaining_series])
+    booked = Notifier.confirmed_gigs_of(availability.user_id)
 
     if availability.cancel_with_gig!(
       gig_id: params[:gig_id],
       cancel_remaining_series: cancel_remaining_series,
       flag_for_attention: !current_user.role_admin?
     )
+      cancelled = Notifier.now_cancelled(booked)
+      if current_user.role_admin?
+        Notifier.released(cancelled, actor: current_user)
+      else
+        Notifier.dropped_out(cancelled, actor: current_user)
+      end
       render json: availability
     else
       render json: { error: "No active gig found for this availability slot" }, status: :unprocessable_content
