@@ -149,6 +149,28 @@ for (const [pageName, path] of [['Requests', '/requests'], ['Gigs', '/gigs']]) {
   });
 }
 
+test('Requests tags are compact and stay inside their card (phone)', async ({ page }) => {
+  await loginAs(page, 'preyes@mica.edu');
+  await page.goto('/requests');
+  const card = page.locator('.card').filter({ visible: true }).filter({ has: page.locator('.badge') }).first();
+  await expect(card).toBeVisible();
+
+  const problems = await page.evaluate(() => {
+    const out = [];
+    for (const badge of document.querySelectorAll('.card .badge')) {
+      const box = badge.getBoundingClientRect();
+      if (!box.width) continue;
+      const card = badge.closest('.card').getBoundingClientRect();
+      const style = getComputedStyle(badge);
+      const name = badge.textContent.trim();
+      if (parseFloat(style.paddingTop) > 8) out.push(`"${name}" has ${style.paddingTop} of padding above its text`);
+      if (box.right > card.right + 1) out.push(`"${name}" runs past the edge of its card`);
+    }
+    return out;
+  });
+  expect(problems, problems.join('\n')).toEqual([]);
+});
+
 test.describe('desktop calendar', () => {
   test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
 

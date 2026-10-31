@@ -1,5 +1,12 @@
+/* Tags on Requests (Matched, Past, No models free…): compact, and allowed to wrap
+   onto two lines on narrow screens instead of running past the card */
 .badge {
-  padding: 1em 0.83em 0.8em 0.75em !important;
+  padding: 0.4em 0.65em !important;
+  margin-block: 0.15rem;
+  line-height: 1.25;
+  white-space: normal;
+  text-align: left;
+  vertical-align: middle;
   font-weight: 400 !important;
   color: var(--brand-black) !important;
 }
