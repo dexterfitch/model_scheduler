@@ -15,7 +15,7 @@ class SessionsController < ApplicationController
     mica_email = auth.info.email.to_s.downcase.end_with?("@mica.edu")
 
     unless email_verified && workspace == "mica.edu" && mica_email
-      Rails.logger.warn("Rejected login: #{auth.info.email} (verified=#{email_verified}, hd=#{workspace.presence || 'none'})")
+      Rails.logger.warn("Rejected login (verified=#{email_verified}, hd=#{workspace.presence || 'none'})")
       return redirect_to sign_in_page_with("Please sign in with your MICA Google account."), allow_other_host: true
     end
 

@@ -14,7 +14,8 @@ Bundler.require(*Rails.groups)
 # The Pose Pool API.
 module Backend
   # Rails settings for the API: Eastern time, API-only, and a cookie session used
-  # only during Google sign-in.
+  # only during Google sign-in. The cookie is SameSite=Lax: Google sends the browser
+  # back with an ordinary top-level visit, which Lax cookies go along with.
   class Application < Rails::Application
     config.load_defaults 8.0
     config.time_zone = "Eastern Time (US & Canada)"
@@ -24,7 +25,7 @@ module Backend
       key: '_mica_scheduler_session',
       secure: Rails.env.production?,
       httponly: true,
-      same_site: Rails.env.production? ? :none : :lax
+      same_site: :lax
     config.middleware.use ActionDispatch::Cookies
     config.middleware.use ActionDispatch::Session::CookieStore, config.session_options
   end

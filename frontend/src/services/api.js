@@ -1,7 +1,8 @@
 /**
- * The connection to the API. Sends the sign-in token with every request, and tells
- * the app (with a pose-pool:signed-out event) when the server rejects a token that
- * was sent, so the person can be signed out with a message.
+ * The connection to the API. Sends the sign-in token with every request (unless the
+ * request already carries one), and tells the app (with a pose-pool:signed-out event)
+ * when the server rejects a token that was sent, so the person can be signed out with
+ * a message. Requests marked quiet never trigger that event.
  */
 
 import axios from 'axios';
@@ -15,7 +16,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
+  if (token && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -24,7 +25,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && error.config?.headers?.Authorization) {
+    if (error.response?.status === 401 && error.config?.headers?.Authorization && !error.config.quiet) {
       window.dispatchEvent(new CustomEvent('pose-pool:signed-out'));
     }
     return Promise.reject(error);

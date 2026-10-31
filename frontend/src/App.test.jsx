@@ -104,7 +104,7 @@ describe('App: login and logout', () => {
     render(<App />);
     await userEvent.click(await screen.findByRole('button', { name: 'Log out' }));
 
-    expect(api.delete).toHaveBeenCalledWith('/logout');
+    expect(api.delete).toHaveBeenCalledWith('/logout', expect.objectContaining({ headers: { Authorization: 'Bearer abc123' } }));
     expect(localStorage.getItem('token')).toBeNull();
     expect(await screen.findByText('Login page')).toBeInTheDocument();
   });
@@ -120,5 +120,43 @@ describe('App: login and logout', () => {
 
     expect(localStorage.getItem('token')).toBeNull();
     expect(await screen.findByText('Login page')).toBeInTheDocument();
+  });
+
+  it("keeps a sign-out that couldn't reach the server, to send again later", async () => {
+    localStorage.setItem('token', 'abc123');
+    api.get.mockResolvedValue({ data: faculty });
+    api.delete.mockRejectedValue({});
+    visit('/');
+
+    render(<App />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Log out' }));
+
+    expect(await screen.findByText('Login page')).toBeInTheDocument();
+    expect(localStorage.getItem('pendingSignOut')).toBe('abc123');
+  });
+
+  it('sends that sign-out again when the app next opens, and then forgets it', async () => {
+    localStorage.setItem('pendingSignOut', 'old-token');
+    api.get.mockRejectedValue({});
+    visit('/login');
+
+    render(<App />);
+
+    expect(await screen.findByText('Login page')).toBeInTheDocument();
+    expect(api.delete).toHaveBeenCalledWith('/logout', expect.objectContaining({ headers: { Authorization: 'Bearer old-token' } }));
+    await vi.waitFor(() => expect(localStorage.getItem('pendingSignOut')).toBeNull());
+  });
+
+  it('forgets an unsent sign-out once someone signs in again, so the new sign-in keeps working', async () => {
+    localStorage.setItem('pendingSignOut', 'old-token');
+    api.delete.mockRejectedValue({});
+    api.get.mockImplementation((url) =>
+      url === '/me' ? Promise.reject({}) : Promise.resolve({ data: faculty }));
+    visit('/login_success/5#token=new-token');
+
+    render(<App />);
+
+    expect(await screen.findByText('Faculty dashboard')).toBeInTheDocument();
+    expect(localStorage.getItem('pendingSignOut')).toBeNull();
   });
 });

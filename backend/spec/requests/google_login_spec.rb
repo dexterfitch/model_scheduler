@@ -37,6 +37,14 @@ RSpec.describe "Signing in with Google", type: :request do
     expect(response.location).to include("/login?error=Please+sign+in+with+your+MICA+Google+account.")
   end
 
+  it "keeps a turned-away person's email out of the server log" do
+    logged = []
+    allow(Rails.logger).to receive(:warn) { |message| logged << message.to_s }
+    google_says(email: "someone.personal@gmail.com", hd: nil)
+    expect(logged.join).to include("Rejected")
+    expect(logged.join).not_to include("someone.personal")
+  end
+
   it "turns away a MICA address Google hasn't verified" do
     google_says(email: "unverified@mica.edu", verified: false)
     expect(response.location).to include("/login?error=Please+sign+in+with+your+MICA+Google+account.")

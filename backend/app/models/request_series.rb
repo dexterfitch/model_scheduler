@@ -18,6 +18,7 @@ class RequestSeries < ApplicationRecord
 
   validates :class_name, presence: true
   validates :department, presence: true
+  validates :department, inclusion: { in: FacultyRequest::DEPARTMENTS }, if: :department_changed?
   validates :building, presence: true, inclusion: { in: FacultyRequest::BUILDINGS }
   validates :model_mode, presence: true, inclusion: { in: %w[clothed nude] }
   validates :pref_gender, inclusion: { in: User::GENDER_IDENTITIES + ["Any"] }, allow_nil: true

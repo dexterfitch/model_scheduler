@@ -1,5 +1,5 @@
 # A block of time a model is free to be booked. Gigs book classes into it.
-# New time must be in the future and between 8:00 AM and 10:00 PM Eastern. A block
+# New or moved time must start in the future, between 8:00 AM and 10:00 PM Eastern. A block
 # with a booked gig can't be edited or deleted, only cancelled through the gig.
 class ArtModelAvailability < ApplicationRecord
   belongs_to :user
@@ -17,6 +17,7 @@ class ArtModelAvailability < ApplicationRecord
   validate :must_be_within_business_hours
   validate :must_be_future_time, on: :create, unless: :recording_past
   validate :prevent_edit_with_active_gig, on: :update
+  validate :must_not_move_into_past, on: :update, unless: :recording_past
 
   # Saves time a person added or changed, joined with any free time the same model
   # already has that overlaps it or meets it end to end, so one model never has two
@@ -138,6 +139,14 @@ class ArtModelAvailability < ApplicationRecord
     if starts_at < Time.current
       errors.add(:starts_at, "must be in the future")
     end
+  end
+
+  # Changed time can't be moved to start in the past. Free time already under way
+  # keeps its start, so its end can still change.
+  def must_not_move_into_past
+    return unless starts_at && will_save_change_to_starts_at?
+
+    errors.add(:starts_at, "can't be moved into the past") if starts_at < Time.current
   end
 
   # The end must come after the start.

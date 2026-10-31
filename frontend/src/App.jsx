@@ -1,13 +1,15 @@
 /**
  * The app's shell: signs people in, sends new users to choose a role, and shows each
  * role its own pages (admin, faculty or model). Signs people out when their token
- * stops working, with a message on the sign-in page.
+ * stops working, with a message on the sign-in page, and sends any sign-out that
+ * couldn't reach the server before.
  */
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Spinner } from "react-bootstrap";
 import api from './services/api';
+import { signOutOnServer, retryPendingSignOut, forgetPendingSignOut } from './services/signOut';
 
 import Layout from './components/Layout';
 import LoginPage from "./components/LoginPage";
@@ -38,6 +40,7 @@ function LoginSuccess({ onLogin }) {
     const token = new URLSearchParams(window.location.hash.slice(1)).get('token') || searchParams.get('token');
     if (token) {
       localStorage.setItem('token', token);
+      forgetPendingSignOut();
     }
 
     api.get(`/users/${id}`).then(res => {
@@ -75,17 +78,21 @@ function App() {
     return () => window.removeEventListener('pose-pool:signed-out', signedOut);
   }, []);
 
-  /** Signs out on the server (ending every token) and in the browser. */
+  useEffect(() => {
+    retryPendingSignOut();
+    window.addEventListener('online', retryPendingSignOut);
+    return () => window.removeEventListener('online', retryPendingSignOut);
+  }, []);
+
+  /**
+   * Signs out on the server (ending every token) and in the browser. If the server
+   * can't be reached, the sign-out is sent again later.
+   */
   const handleLogout = async () => {
-    try {
-      await api.delete("/logout");
-    } catch (err) {
-      console.error("Logout error", err);
-    } finally {
-      localStorage.removeItem('token');
-      setCurrentUser(null);
-      setNeedsRoleSelection(false);
-    }
+    await signOutOnServer(localStorage.getItem('token'));
+    localStorage.removeItem('token');
+    setCurrentUser(null);
+    setNeedsRoleSelection(false);
   };
 
   /** Replaces the signed-in user after their profile or role changes. */

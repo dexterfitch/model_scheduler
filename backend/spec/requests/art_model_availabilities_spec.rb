@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Availability permissions", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
   let(:model)       { create(:user, :model) }
   let(:other_model) { create(:user, :model) }
   let(:admin)       { create(:user, :admin) }
@@ -104,6 +106,23 @@ RSpec.describe "Availability permissions", type: :request do
       patch_slot(as: model, changes: { ends_at: slot.starts_at + 4.hours })
       expect(response).to have_http_status(:ok)
       expect(slot.reload.ends_at).to eq(slot.starts_at + 4.hours)
+    end
+
+    it "won't move free time so it starts in the past" do
+      patch_slot(as: model, changes: { starts_at: 2.days.ago.change(hour: 9), ends_at: 2.days.ago.change(hour: 12) })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["errors"].join).to include("past")
+      expect(slot.reload.starts_at).to be > Time.current
+    end
+
+    it "still lets a model shorten free time that's already under way" do
+      travel_to Time.current.change(hour: 12) do
+        started = Time.current.change(hour: 10)
+        slot.update_columns(starts_at: started, ends_at: started + 6.hours)
+        patch_slot(as: model, changes: { ends_at: started + 4.hours })
+        expect(response).to have_http_status(:ok)
+        expect(slot.reload.ends_at).to eq(started + 4.hours)
+      end
     end
 
     it "locks a slot once a gig is booked on it" do

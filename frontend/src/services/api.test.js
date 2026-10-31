@@ -16,6 +16,12 @@ describe('api (backend connection)', () => {
     expect(sent.headers.Authorization).toBe('Bearer abc123');
   });
 
+  it('keeps a token header the caller set itself', async () => {
+    localStorage.setItem('token', 'current');
+    const { data: sent } = await api.get('/me', { adapter: echo, headers: { Authorization: 'Bearer earlier' } });
+    expect(sent.headers.Authorization).toBe('Bearer earlier');
+  });
+
   it('sends no token header when nobody is logged in', async () => {
     const { data: sent } = await api.get('/me', { adapter: echo });
     expect(sent.headers.Authorization).toBeUndefined();
@@ -36,6 +42,18 @@ describe('api (backend connection)', () => {
 
     await expect(api.get('/gigs', { adapter: expired })).rejects.toBeTruthy();
     expect(heard).toHaveBeenCalledTimes(1);
+    window.removeEventListener('pose-pool:signed-out', heard);
+  });
+
+  it("doesn't, for a request marked quiet (like sending an old sign-out again)", async () => {
+    localStorage.setItem('token', 'current');
+    const heard = vi.fn();
+    window.addEventListener('pose-pool:signed-out', heard);
+    /** A fake network that rejects the token. */
+    const expired = async (config) => Promise.reject({ response: { status: 401 }, config });
+
+    await expect(api.delete('/logout', { adapter: expired, quiet: true })).rejects.toBeTruthy();
+    expect(heard).not.toHaveBeenCalled();
     window.removeEventListener('pose-pool:signed-out', heard);
   });
 

@@ -3,6 +3,20 @@
 require "rails_helper"
 
 RSpec.describe RequestSeries, type: :model do
+  describe "department" do
+    it "must be one on the list, so a wrong one is reported on the class" do
+      series = build(:request_series, department: "Basket Weaving")
+      expect(series).not_to be_valid
+      expect(series.errors[:department]).to be_present
+    end
+
+    it "doesn't stop an older class with a department no longer on the list from being edited" do
+      series = create(:request_series)
+      series.update_column(:department, "Old Department")
+      expect(series.update(class_name: "Renamed")).to be true
+    end
+  end
+
   describe "#cancel_entire_series!" do
     let(:series) { create(:request_series) }
 
