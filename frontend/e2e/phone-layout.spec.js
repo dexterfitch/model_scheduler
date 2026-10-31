@@ -218,7 +218,7 @@ test("the chosen skin tone's ring has room around it (phone)", async ({ page }) 
 
   const gaps = await group.evaluate(el => {
     const ring = 6; // the blue ring reaches 6px past the circle
-    const circles = [...el.querySelectorAll('label > span')].map(c => c.getBoundingClientRect());
+    const circles = [...el.querySelectorAll('label > span[aria-hidden="true"]')].map(c => c.getBoundingClientRect());
     const selected = el.parentElement.querySelector('.form-text').getBoundingClientRect();
     return {
       belowRing: selected.top - (Math.max(...circles.map(c => c.bottom)) + ring),
