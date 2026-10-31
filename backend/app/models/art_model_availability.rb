@@ -103,9 +103,9 @@ class ArtModelAvailability < ApplicationRecord
     # Keep the record so there's a history of who dropped out; model cancellations aren't paid
     gig.update_columns(status: Gig.statuses[:cancelled], billable: false, updated_at: Time.current)
     # Losing any model means the session is short-staffed again
-    request.update!(status: :pending, needs_attention: flag_for_attention) unless request.archived?
+    request.update_columns(status: FacultyRequest.statuses[:pending], needs_attention: flag_for_attention, updated_at: Time.current) unless request.archived?
     availability.gigs.reload
-    availability.update!(status: :cancelled) unless availability.active_gig
+    availability.update_columns(status: ArtModelAvailability.statuses[:cancelled], updated_at: Time.current) unless availability.active_gig
   end
 
   def prevent_past_deletion

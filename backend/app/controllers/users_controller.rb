@@ -24,7 +24,12 @@ class UsersController < ApplicationController
   end
 
   def update
+    if @target_user.role_admin? && @target_user != current_user && !current_user.superuser?
+      return render json: { error: "Only a SuperUser can change another admin's profile." }, status: :forbidden
+    end
+
     safe_params = user_params.except(:role)
+    safe_params = safe_params.except(:email) unless can_change_email_of?(@target_user)
 
     if @target_user.update(safe_params)
       render json: @target_user
@@ -102,6 +107,10 @@ class UsersController < ApplicationController
     @target_user = User.find(params[:id])
     return if current_user.role_admin? || @target_user.id == current_user.id
     render json: { error: "Not authorized" }, status: :forbidden
+  end
+
+  def can_change_email_of?(target)
+    current_user.superuser? || (current_user.role_admin? && !target.role_admin?)
   end
 
   def user_params

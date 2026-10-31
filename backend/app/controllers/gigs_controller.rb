@@ -60,8 +60,8 @@ class GigsController < ApplicationController
     is_late_cancel = gig.faculty_request.starts_at.to_date == Date.current
 
     Gig.transaction do
-      gig.update!(status: 'cancelled', billable: is_late_cancel)
-      gig.art_model_availability&.update!(status: 'active')
+      gig.update_columns(status: Gig.statuses[:cancelled], billable: is_late_cancel, updated_at: Time.current)
+      gig.art_model_availability&.update_columns(status: ArtModelAvailability.statuses[:active], updated_at: Time.current)
       gig.faculty_request&.refresh_match_status!
     end
 

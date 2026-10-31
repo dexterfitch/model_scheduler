@@ -65,13 +65,14 @@ class RequestSeries < ApplicationRecord
   def update_status!
     active_requests = faculty_requests.where.not(status: :archived)
 
-    if active_requests.none?
-      update!(status: :archived)
+    new_status = if active_requests.none?
+      :archived
     elsif active_requests.all? { |r| r.status == 'matched' }
-      update!(status: :matched)
+      :matched
     else
-      update!(status: :pending)
+      :pending
     end
+    update_columns(status: RequestSeries.statuses[new_status], updated_at: Time.current)
   end
 
   # Most models already booked on any one remaining date; models_needed can't go below this.
@@ -94,10 +95,9 @@ class RequestSeries < ApplicationRecord
           # Same rule as releasing a single date: same-day releases are paid
           gig.update_columns(status: Gig.statuses[:cancelled],
             billable: request.starts_at.to_date == Date.current, updated_at: Time.current)
-          availability.gigs.reload
-          availability.update!(status: :active)
+          availability.update_columns(status: ArtModelAvailability.statuses[:active], updated_at: Time.current)
         end
-        request.update!(status: :pending)
+        request.update_columns(status: FacultyRequest.statuses[:pending], updated_at: Time.current)
       end
     end
 

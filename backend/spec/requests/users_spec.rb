@@ -24,6 +24,42 @@ RSpec.describe "User profile permissions", type: :request do
     expect(user.reload.email).to eq("new.address@mica.edu")
   end
 
+  describe "protecting admin accounts" do
+    let(:superuser)   { create(:user, :admin, superuser: true) }
+    let(:other_admin) { create(:user, :admin) }
+
+    def patch_profile(target, as:, changes:)
+      patch "/users/#{target.id}", params: { user: changes }, headers: auth_headers(as), as: :json
+    end
+
+    it "won't let an admin change the SuperUser's email (that would hand over their account)" do
+      original = superuser.email
+      patch_profile(superuser, as: admin, changes: { email: "someone.else@mica.edu" })
+      expect(response).to have_http_status(:forbidden)
+      expect(superuser.reload.email).to eq(original)
+    end
+
+    it "won't let an admin edit another admin's profile" do
+      patch_profile(other_admin, as: admin, changes: { first_name: "Changed" })
+      expect(response).to have_http_status(:forbidden)
+      expect(other_admin.reload.first_name).not_to eq("Changed")
+    end
+
+    it "won't let an admin change their own email, but saves the rest" do
+      original = admin.email
+      patch_profile(admin, as: admin, changes: { email: "new.me@mica.edu", first_name: "Pat" })
+      expect(response).to have_http_status(:ok)
+      expect(admin.reload.email).to eq(original)
+      expect(admin.first_name).to eq("Pat")
+    end
+
+    it "lets the SuperUser change an admin's email" do
+      patch_profile(other_admin, as: superuser, changes: { email: "fixed.address@mica.edu" })
+      expect(response).to have_http_status(:ok)
+      expect(other_admin.reload.email).to eq("fixed.address@mica.edu")
+    end
+  end
+
   describe "viewing profiles" do
     let(:model)   { create(:user, :model, :nude_ok, genitalia: "Intersex") }
     let(:faculty) { create(:user) }

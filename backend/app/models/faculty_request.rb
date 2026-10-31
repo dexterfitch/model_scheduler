@@ -110,13 +110,13 @@ class FacultyRequest < ApplicationRecord
       booked = confirmed_gigs.includes(:art_model_availability).to_a
 
       if booked.any?
-        update!(status: :archived)
+        update_columns(status: FacultyRequest.statuses[:archived], updated_at: Time.current)
         booked.each do |gig|
-          gig.update!(status: :cancelled, billable: is_late_cancel)
-          gig.art_model_availability.update!(status: :active)
+          gig.update_columns(status: Gig.statuses[:cancelled], billable: is_late_cancel, updated_at: Time.current)
+          gig.art_model_availability.update_columns(status: ArtModelAvailability.statuses[:active], updated_at: Time.current)
         end
       elsif gigs.exists?
-        update!(status: :archived)
+        update_columns(status: FacultyRequest.statuses[:archived], updated_at: Time.current)
       else
         destroy!
       end
