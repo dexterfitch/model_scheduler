@@ -17,6 +17,6 @@ test("after signing out, Back doesn't show the last page's name on the tab", asy
 
   await page.goBack();
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByRole('button', { name: /Sign in with MICA Google Account/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Sign in with MICA Google Account/ })).toBeVisible();
   await expect.poll(() => tabTitle(context, page)).toBe('Sign In · MICA Pose Pool');
 });

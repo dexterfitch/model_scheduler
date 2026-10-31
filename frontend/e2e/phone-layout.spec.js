@@ -193,6 +193,16 @@ test("the calendar's month or week heading has its own line, above the buttons (
   expect(titleBox.y + titleBox.height, 'the heading should sit above the buttons').toBeLessThanOrEqual(buttonsBox.y + 1);
 });
 
+test("the model's two tabs sit side by side and share the width (phone)", async ({ page }) => {
+  await loginAs(page, 'jellis@mica.edu');
+  const gigs = page.getByRole('tab', { name: /My Gigs/ });
+  const availability = page.getByRole('tab', { name: 'Manage Availability' });
+  await expect(availability).toBeVisible();
+  const [a, b] = [await gigs.boundingBox(), await availability.boundingBox()];
+  expect(Math.abs(a.y - b.y), 'both tabs should be on the same row').toBeLessThan(2);
+  expect(Math.abs(a.width - b.width), 'the tabs should be the same width').toBeLessThan(2);
+});
+
 test.describe('desktop calendar', () => {
   test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
 
