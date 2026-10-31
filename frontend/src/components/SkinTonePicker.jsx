@@ -11,7 +11,7 @@ function SkinTonePicker({ value, onChange, label = 'Skin Tone', required = false
   return (
     <div>
       <div id={labelId} className={labelClassName}>{label}{required && ' *'}</div>
-      <div role="radiogroup" aria-labelledby={labelId} className="d-flex gap-2">
+      <div role="radiogroup" aria-labelledby={labelId} className="d-flex gap-3 py-2">
         {SKIN_TONE_OPTIONS.map(tone => (
           <label key={tone.label} className={styles.swatch} title={tone.label}>
             <input
@@ -32,7 +32,7 @@ function SkinTonePicker({ value, onChange, label = 'Skin Tone', required = false
           </label>
         ))}
       </div>
-      <div className="form-text mt-1" aria-hidden="true">
+      <div className="form-text mt-2" aria-hidden="true">
         Selected: <strong>{value || 'None'}</strong>
       </div>
     </div>

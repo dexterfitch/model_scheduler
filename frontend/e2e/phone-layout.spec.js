@@ -210,6 +210,25 @@ test("the model's two tabs sit side by side and share the width (phone)", async 
   }
 });
 
+test("the chosen skin tone's ring has room around it (phone)", async ({ page }) => {
+  await loginAs(page, 'jellis@mica.edu');
+  await page.goto('/profile');
+  const group = page.getByRole('radiogroup', { name: /Skin Tone/ });
+  await group.getByRole('radio').first().check({ force: true });
+
+  const gaps = await group.evaluate(el => {
+    const ring = 6; // the blue ring reaches 6px past the circle
+    const circles = [...el.querySelectorAll('label > span')].map(c => c.getBoundingClientRect());
+    const selected = el.parentElement.querySelector('.form-text').getBoundingClientRect();
+    return {
+      belowRing: selected.top - (Math.max(...circles.map(c => c.bottom)) + ring),
+      betweenCircles: circles[1].left - circles[0].right - 2 * ring,
+    };
+  });
+  expect(gaps.belowRing, 'space between the ring and the "Selected:" line').toBeGreaterThanOrEqual(6);
+  expect(gaps.betweenCircles, "a ring shouldn't touch the next circle").toBeGreaterThanOrEqual(2);
+});
+
 test.describe('desktop calendar', () => {
   test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
 
