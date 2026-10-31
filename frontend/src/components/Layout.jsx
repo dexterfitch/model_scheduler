@@ -5,6 +5,7 @@ import api from '../services/api';
 import styles from './Layout.module.css';
 import { useDialog } from './DialogProvider';
 import { extractErrorMessages } from '../utils/formatters';
+import { setPageTitle } from '../utils/pageTitle';
 
 // What each page is called in the browser tab
 const HOME_TITLES = { admin: 'Dashboard', faculty: 'My Classes', model: 'My Gigs' };
@@ -27,7 +28,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
   const { notify } = useDialog();
 
   useEffect(() => {
-    document.title = pageTitle(location.pathname, currentUser.role);
+    setPageTitle(pageTitle(location.pathname, currentUser.role));
   }, [location.pathname, currentUser.role]);
 
   const [navExpanded, setNavExpanded] = useState(false);

@@ -3,6 +3,7 @@ import { Container, Card, Alert, Button } from "react-bootstrap";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import styles from "./LoginPage.module.css";
 import { API_URL } from "../services/api";
+import { setPageTitle } from '../utils/pageTitle';
 
 function LoginPage({ notice }) {
   const [searchParams] = useSearchParams();
@@ -10,7 +11,7 @@ function LoginPage({ notice }) {
   const error = searchParams.get("error") || notice;
 
   useEffect(() => {
-    document.title = 'Sign In · MICA Pose Pool';
+    setPageTitle('Sign In · MICA Pose Pool');
     document.body.classList.add(styles.loginBg);
     return () => document.body.classList.remove(styles.loginBg);
   }, []);
@@ -28,8 +29,8 @@ function LoginPage({ notice }) {
           )}
 
           <p className="mb-3 text-warning">
-            Thank you for being among the first users of the app! Some technical issues may arise as I continue to develop and improve the platform.<br /><br />
-            Please let us know (dfitch@mica.edu & tengleman@mica.edu) if you encounter any problems or have suggestions for improvement. Your feedback is invaluable in helping create a better experience for everyone. 
+            Thank you for being among the first users of<br />MICA Pose Pool!<br /><br />
+            Please let us know if you encounter any problems or have suggestions for improvement. Your feedback is invaluable in helping create a better experience for everyone. 
           </p>
 
           <p className="mb-3">

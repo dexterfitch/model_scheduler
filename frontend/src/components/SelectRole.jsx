@@ -7,6 +7,7 @@ import SkinTonePicker from "./SkinTonePicker";
 import ModelBodyFields from "./ModelBodyFields";
 import PersonalQuestionsNote from "./PersonalQuestionsNote";
 import { extractErrorMessages } from "../utils/formatters";
+import { setPageTitle } from '../utils/pageTitle';
 
 const SelectRole = ({ onLogin, userId: propUserId }) => {
   const location = useLocation();
@@ -33,7 +34,7 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
   }, [userId, navigate]);
 
   useEffect(() => {
-    document.title = 'Welcome · MICA Pose Pool';
+    setPageTitle('Welcome · MICA Pose Pool');
   }, []);
 
   const handleFacultySelect = () => {
