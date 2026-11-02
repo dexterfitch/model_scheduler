@@ -11,6 +11,7 @@ import { formatTimeShort, formatDateNumeric } from "../utils/time";
 import styles from "./Reports.module.css";
 import { isPaid, workedTimes, paidHours, wasCorrected } from "../utils/pay";
 import { toCsv, downloadCsv } from '../utils/csv';
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** The first and last day of the current month, as date fields expect them. */
 const monthBounds = (today = new Date()) => ({
@@ -33,10 +34,12 @@ const CANCELLED_BADGE = {
 function Reports() {
   const [gigs, setGigs] = useState([]);
   const [fetchError, setFetchError] = useState('');
+  const fetchErrorRef = useRevealMessage(fetchError);
   const [startDate, setStartDate] = useState(() => monthBounds().start);
   const [endDate, setEndDate] = useState(() => monthBounds().end);
   const [report, setReport] = useState(null);
   const [formError, setFormError] = useState('');
+  const formErrorRef = useRevealMessage(formError);
 
   useEffect(() => {
     api.get("/gigs")
@@ -290,7 +293,7 @@ function Reports() {
       <h2 className={`mb-4 ${styles.printHide}`}>Reports</h2>
 
       {fetchError && (
-        <Alert variant="danger" dismissible onClose={() => setFetchError('')}>
+        <Alert ref={fetchErrorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setFetchError('')}>
           {fetchError}
         </Alert>
       )}
@@ -323,7 +326,7 @@ function Reports() {
               )}
             </Col>
           </Row>
-          {formError && <Alert variant="danger" className="mt-3 mb-0">{formError}</Alert>}
+          {formError && <Alert ref={formErrorRef} tabIndex={-1} variant="danger" className="mt-3 mb-0">{formError}</Alert>}
         </Card.Body>
       </Card>
 

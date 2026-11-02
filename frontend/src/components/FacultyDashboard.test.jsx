@@ -77,6 +77,18 @@ describe('FacultyDashboard', () => {
     expect(await screen.findByText(/Date #1 \(Nov 9\)/)).toBeInTheDocument();
   });
 
+  it("brings New Request's error into view when the server refuses it, even with the form scrolled down", async () => {
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    api.post.mockRejectedValue({ response: { data: { error: 'Date #1 (Nov 9): Starts at must be in the future' } } });
+    renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+    await submitNewRequest();
+    const alert = (await screen.findByText(/Date #1 \(Nov 9\)/)).closest('[role="alert"]');
+    expect(scrolled).toHaveBeenCalled();
+    expect(alert).toHaveFocus();
+    delete Element.prototype.scrollIntoView;
+  });
+
   it('labels the New Request form, including the remove button on each date', async () => {
     renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
     await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));

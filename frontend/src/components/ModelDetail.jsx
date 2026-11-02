@@ -13,6 +13,7 @@ import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
 import GigDates from "./GigDates";
 import StatusToast from "./StatusToast";
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** The model's page for admins. */
 function ModelDetail() {
@@ -22,12 +23,14 @@ function ModelDetail() {
   const [user, setUser] = useState(null);
   const [availabilities, setAvailabilities] = useState([]);
   const [error, setError] = useState('');
+  const errorRef = useRevealMessage(error);
   const [pageSuccess, setPageSuccess] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [times, setTimes] = useState({ start: '09:00', end: '17:00' });
   const [modalError, setModalError] = useState('');
+  const modalErrorRef = useRevealMessage(modalError);
   const [gigs, setGigs] = useState([]);
   const [activeGig, setActiveGig] = useState(null);
 
@@ -192,7 +195,7 @@ function ModelDetail() {
   return (
     <Container className="py-4">
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError('')}>
+        <Alert ref={errorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setError('')}>
           {error}
         </Alert>
       )}
@@ -257,7 +260,7 @@ function ModelDetail() {
         </Modal.Header>
         <Modal.Body>
           {modalError && (
-            <Alert variant="danger" dismissible onClose={() => setModalError('')}>
+            <Alert ref={modalErrorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setModalError('')}>
               {modalError}
             </Alert>
           )}

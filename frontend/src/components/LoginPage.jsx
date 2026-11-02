@@ -8,12 +8,14 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import styles from "./LoginPage.module.css";
 import { API_URL } from "../services/api";
 import { setPageTitle } from '../utils/pageTitle';
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** The sign-in page with the Google sign-in link. */
 function LoginPage({ notice }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const error = searchParams.get("error") || notice;
+  const errorRef = useRevealMessage(error);
 
   useEffect(() => {
     setPageTitle('Sign In · MICA Pose Pool');
@@ -28,7 +30,7 @@ function LoginPage({ notice }) {
           <h2 className="mb-2">MICA Pose Pool</h2>
           
           {error && (
-            <Alert variant="danger" dismissible onClose={() => navigate('/login', { replace: true })}>
+            <Alert ref={errorRef} tabIndex={-1} variant="danger" dismissible onClose={() => navigate('/login', { replace: true })}>
               {error}
             </Alert>
           )}

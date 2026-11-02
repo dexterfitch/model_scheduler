@@ -16,6 +16,7 @@ import SkinTonePicker from "./SkinTonePicker";
 import { extractErrorMessages } from "../utils/formatters";
 import { useDialog } from "./DialogProvider";
 import ErrorLog from "./ErrorLog";
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** The panel, for SuperUsers only. */
 const SuperUserPanel = ({ currentUser, refreshUser }) => {
@@ -32,13 +33,17 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
     willing_to_model_nude: false, body_type: "", genitalia: ""
   });
   const [sockErrors, setSockErrors] = useState([]);
+  const sockErrorsRef = useRevealMessage(sockErrors);
   const [sockSuccess, setSockSuccess] = useState(false);
+  const sockSuccessRef = useRevealMessage(sockSuccess);
 
   const [selectedModelId, setSelectedModelId] = useState("");
   const [modelAvailability, setModelAvailability] = useState([]);
   const [newSlots, setNewSlots] = useState([]);
   const [availErrors, setAvailErrors] = useState([]);
+  const availErrorsRef = useRevealMessage(availErrors);
   const [availSuccess, setAvailSuccess] = useState(false);
+  const availSuccessRef = useRevealMessage(availSuccess);
   const [modelGigs, setModelGigs] = useState([]);
 
   /** Loads everyone. */
@@ -490,13 +495,13 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
         </div>
         <div className="card-body">
           {sockSuccess && (
-            <div className="alert alert-success alert-dismissible fade show" role="alert">
+            <div ref={sockSuccessRef} tabIndex={-1} className="alert alert-success alert-dismissible fade show" role="alert">
               Sock account created successfully!
               <button type="button" className="btn-close" aria-label="Close" onClick={() => setSockSuccess(false)}></button>
             </div>
           )}
           {sockErrors.length > 0 && (
-            <div className="alert alert-danger alert-dismissible fade show" role="alert">
+            <div ref={sockErrorsRef} tabIndex={-1} className="alert alert-danger alert-dismissible fade show" role="alert">
               {sockErrors.map((e, i) => <div key={i}>{e}</div>)}
               <button type="button" className="btn-close" aria-label="Close" onClick={() => setSockErrors([])}></button>
             </div>
@@ -614,13 +619,13 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
               </div>
 
               {availSuccess && (
-                <div className="alert alert-success alert-dismissible fade show" role="alert">
+                <div ref={availSuccessRef} tabIndex={-1} className="alert alert-success alert-dismissible fade show" role="alert">
                   Availability saved!
                   <button type="button" className="btn-close" aria-label="Close" onClick={() => setAvailSuccess(false)}></button>
                 </div>
               )}
               {availErrors.length > 0 && (
-                <div className="alert alert-danger alert-dismissible fade show" role="alert">
+                <div ref={availErrorsRef} tabIndex={-1} className="alert alert-danger alert-dismissible fade show" role="alert">
                   {availErrors.map((e, i) => <div key={i}>{e}</div>)}
                   <button type="button" className="btn-close" aria-label="Close" onClick={() => setAvailErrors([])}></button>
                 </div>

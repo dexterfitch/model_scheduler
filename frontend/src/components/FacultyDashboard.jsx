@@ -19,6 +19,7 @@ import {
 } from "../utils/modelPreferences";
 import StatusToast from "./StatusToast";
 import CalendarLinkButton from "./CalendarLinkButton";
+import { useRevealMessage } from '../utils/revealMessage';
 
 const PREFERENCE_KEYS = Object.keys(DEFAULT_MODEL_PREFERENCES);
 /** Just the preference fields of a class. */
@@ -43,20 +44,24 @@ function FacultyDashboard({ user }) {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitError, setSubmitError] = useState('');
+  const submitErrorRef = useRevealMessage(submitError);
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingRequest, setEditingRequest] = useState(null);
   const [editFormData, setEditFormData] = useState({ starts_at: "", starts_time: "", ends_time: "" });
   const [editError, setEditError] = useState('');
+  const editErrorRef = useRevealMessage(editError);
   const [editingSeries, setEditingSeries] = useState(null);
   const [classFormData, setClassFormData] = useState({
     class_name: "", department: "", building: "", room_number: "",
     ...DEFAULT_MODEL_PREFERENCES, notes: ""
   });
   const [classError, setClassError] = useState('');
+  const classErrorRef = useRevealMessage(classError);
   const [addingDateSeriesId, setAddingDateSeriesId] = useState(null);
   const [newDateForm, setNewDateForm] = useState({ date: '', start_time: '', end_time: '' });
   const [addDateError, setAddDateError] = useState(''); 
+  const addDateErrorRef = useRevealMessage(addDateError);
 
   const [formData, setFormData] = useState({
     class_name: "",
@@ -525,7 +530,7 @@ function FacultyDashboard({ user }) {
                   {addingDateSeriesId === s.id ? (
                     <div className="p-2 bg-light rounded border">
                       {addDateError && (
-                        <Alert variant="danger" dismissible onClose={() => setAddDateError('')} className="py-2 small">
+                        <Alert ref={addDateErrorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setAddDateError('')} className="py-2 small">
                           {addDateError}
                         </Alert>
                       )}
@@ -682,7 +687,7 @@ function FacultyDashboard({ user }) {
         </Modal.Header>
         <Modal.Body>
           {submitError && (
-            <Alert variant="danger" dismissible onClose={() => setSubmitError('')}>
+            <Alert ref={submitErrorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setSubmitError('')}>
               {submitError}
             </Alert>
           )}
@@ -808,7 +813,7 @@ function FacultyDashboard({ user }) {
         </Modal.Header>
         <Modal.Body>
           {editError && (
-            <Alert variant="danger" dismissible onClose={() => setEditError('')}>
+            <Alert ref={editErrorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setEditError('')}>
               {editError}
             </Alert>
           )}
@@ -845,7 +850,7 @@ function FacultyDashboard({ user }) {
         </Modal.Header>
         <Modal.Body>
           {classError && (
-            <Alert variant="danger" dismissible onClose={() => setClassError('')}>
+            <Alert ref={classErrorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setClassError('')}>
               {classError}
             </Alert>
           )}

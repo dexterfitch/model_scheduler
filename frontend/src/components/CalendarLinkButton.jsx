@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { Alert, Button, Form, InputGroup, Modal } from 'react-bootstrap';
 import api from '../services/api';
 import { useDialog } from './DialogProvider';
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** The button, and the window it opens. */
 function CalendarLinkButton({ className = '' }) {
@@ -15,6 +16,7 @@ function CalendarLinkButton({ className = '' }) {
   const [show, setShow] = useState(false);
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
+  const errorRef = useRevealMessage(error);
   const [copied, setCopied] = useState(false);
 
   /** Opens the window and loads the person's link (made the first time). */
@@ -70,7 +72,7 @@ function CalendarLinkButton({ className = '' }) {
           <Modal.Title id="calendar-link-title" as="h2" className="h5">Add to Your Calendar</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {error && <Alert variant="danger">{error}</Alert>}
+          {error && <Alert ref={errorRef} tabIndex={-1} variant="danger">{error}</Alert>}
           <p>Subscribe to this link and your calendar app keeps your schedule up to date by itself.</p>
           <Form.Group controlId="calendar-link-url" className="mb-3">
             <Form.Label>Your private calendar link</Form.Label>

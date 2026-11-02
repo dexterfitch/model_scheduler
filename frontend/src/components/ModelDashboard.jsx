@@ -16,6 +16,7 @@ import { extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
 import StatusToast from "./StatusToast";
 import CalendarLinkButton from "./CalendarLinkButton";
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** The model's page. */
 function ModelDashboard({ user }) {
@@ -29,6 +30,7 @@ function ModelDashboard({ user }) {
   const [selectedDate, setSelectedDate] = useState("");
   const [times, setTimes] = useState({ start: "09:00", end: "17:00" });
   const [modalError, setModalError] = useState('');
+  const modalErrorRef = useRevealMessage(modalError);
   const [pageSuccess, setPageSuccess] = useState('');
   const [activeGig, setActiveGig] = useState(null);
   const [gigFilter, setGigFilter] = useState('confirmed');
@@ -538,7 +540,7 @@ function ModelDashboard({ user }) {
         </Modal.Header>
         <Modal.Body>
           {modalError && (
-            <Alert variant="danger" dismissible onClose={() => setModalError('')}>
+            <Alert ref={modalErrorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setModalError('')}>
               {modalError}
             </Alert>
           )}

@@ -12,6 +12,7 @@ import ModelBodyFields from "./ModelBodyFields";
 import PersonalQuestionsNote from "./PersonalQuestionsNote";
 import { extractErrorMessages } from "../utils/formatters";
 import { setPageTitle } from '../utils/pageTitle';
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** The role choice, and the new-model form. */
 const SelectRole = ({ onLogin, userId: propUserId }) => {
@@ -21,6 +22,7 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
   const [step, setStep] = useState('selection');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const errorRef = useRevealMessage(error);
 
   const [formData, setFormData] = useState({
     stage_name: '',
@@ -115,7 +117,7 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
             <h2 className="mb-4">Welcome to MICA Pose Pool</h2>
             <p className="lead mb-4">To finish setting up your account, please tell us who you are.</p>
             {error && (
-              <Alert variant="danger" dismissible onClose={() => setError('')}>
+              <Alert ref={errorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setError('')}>
                 {error}
               </Alert>
             )}
@@ -151,7 +153,7 @@ const SelectRole = ({ onLogin, userId: propUserId }) => {
             <PersonalQuestionsNote />
 
             {error && (
-              <Alert variant="danger" dismissible onClose={() => setError('')}>
+              <Alert ref={errorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setError('')}>
                 {error}
               </Alert>
             )}

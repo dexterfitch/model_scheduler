@@ -4,7 +4,7 @@
  * the Save button sits far below it.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { GENDER_IDENTITIES } from '../utils/constants';
@@ -12,6 +12,7 @@ import SkinTonePicker from './SkinTonePicker';
 import ModelBodyFields from './ModelBodyFields';
 import PersonalQuestionsNote from './PersonalQuestionsNote';
 import { extractErrorMessages } from '../utils/formatters';
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** The form's values from the saved profile. */
 const savedValues = (user) => ({
@@ -58,13 +59,7 @@ const Profile = ({ currentUser, setCurrentUser }) => {
   };
 
   /** Saves the profile; on a refusal, shows why and goes back to what's saved. */
-  const messageRef = useRef(null);
-
-  useEffect(() => {
-    if (!message.text) return;
-    messageRef.current?.scrollIntoView?.({ block: 'center' });
-    messageRef.current?.focus();
-  }, [message]);
+  const messageRef = useRevealMessage(message.text ? message : null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

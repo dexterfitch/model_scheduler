@@ -13,6 +13,7 @@ import { CALENDAR_COLORS } from "../utils/constants";
 import SharedCalendar from "./SharedCalendar";
 import { useDialog } from "./DialogProvider";
 import CalendarLinkButton from "./CalendarLinkButton";
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** The full schedule and the upcoming free time, by model. */
 function AdminCalendar() {
@@ -21,6 +22,7 @@ function AdminCalendar() {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [availabilities, setAvailabilities] = useState([]);
   const [error, setError] = useState(null);
+  const errorRef = useRevealMessage(error);
 
   /**
    * Loads gigs, class dates and free time; builds the calendar's events and groups the bookable
@@ -118,7 +120,7 @@ function AdminCalendar() {
   return (
     <Container fluid className="py-4">
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError(null)}>
+        <Alert ref={errorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setError(null)}>
           {error}
         </Alert>
       )}

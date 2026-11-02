@@ -9,6 +9,7 @@ import api from "../services/api";
 import { extractErrorMessages } from "../utils/formatters";
 import { formatDateWithWeekday, formatTimeShort, formatTimeForInput } from "../utils/time";
 import { isPaid, payStatusLabel, paidHours, workedTimes } from "../utils/pay";
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** A person's full name. */
 const fullName = (person) => [person?.first_name, person?.last_name].filter(Boolean).join(' ');
@@ -28,6 +29,7 @@ function CorrectRecordModal({ gig, date, series, onSaved, onClose }) {
   const [standInId, setStandInId] = useState('');
   const [models, setModels] = useState(null);
   const [error, setError] = useState('');
+  const errorRef = useRevealMessage(error);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -125,7 +127,7 @@ function CorrectRecordModal({ gig, date, series, onSaved, onClose }) {
             </>
           )}
 
-          {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+          {error && <Alert ref={errorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
           <fieldset className="mb-3">
             <legend className="h6 fw-bold">What needs correcting?</legend>

@@ -18,6 +18,7 @@ import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constan
 import { payStatusLabel, wasCorrected } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
 import { dateCoverage, notifyLists, notifyEmailLink } from "../utils/coverage";
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** The Requests page. */
 function AllRequests() {
@@ -104,6 +105,7 @@ function AllRequests() {
     class_name: '', department: '', building: '', room_number: '', notes: '', models_needed: 1, dates: []
   });
   const [editError, setEditError] = useState('');
+  const editErrorRef = useRevealMessage(editError);
 
   /** Releases every booked model from the class's remaining dates, after confirming. */
   const handleReleaseRemaining = async (seriesId) => {
@@ -813,7 +815,7 @@ function AllRequests() {
             </Alert>
           )}
           {editError && (
-            <Alert variant="danger" dismissible onClose={() => setEditError('')}>
+            <Alert ref={editErrorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setEditError('')}>
               {editError}
             </Alert>
           )}

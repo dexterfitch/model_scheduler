@@ -12,6 +12,7 @@ import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatModelCount, calculateMatchScore, formatPreferenceSummary } from "../utils/formatters";
 import { formatTime, formatDateWithWeekday, formatDateTime, availabilityCoversRequest, hasSchedulingConflict } from "../utils/time";
 import StatusToast from "./StatusToast";
+import { useRevealMessage } from '../utils/revealMessage';
 
 /** A model's full name. */
 const modelName = (user) => `${user?.first_name} ${user?.last_name}`;
@@ -57,6 +58,7 @@ function GigCreator() {
   const [bookedByRequest, setBookedByRequest] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const errorRef = useRevealMessage(error);
   const [successMsg, setSuccessMsg] = useState('');
   const [staffed, setStaffed] = useState(false);
   const [booking, setBooking] = useState(false);
@@ -274,7 +276,7 @@ function GigCreator() {
   return (
     <Container className="py-4" style={{ maxWidth: '800px' }}>
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError('')}>
+        <Alert ref={errorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setError('')}>
           {error}
         </Alert>
       )}
