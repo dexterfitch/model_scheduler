@@ -25,7 +25,7 @@ test('faculty create a nude request and the gender label updates as they choose'
   await form.locator('select[name="pref_genitalia"]').selectOption('Male');
   await form.locator('select[name="pref_gender"]').selectOption({ label: 'Woman (Trans)' });
 
-  await form.locator('input[type="date"]').fill(tenDaysOut());
+  await form.getByLabel('Date', { exact: true }).fill(tenDaysOut());
   const times = form.locator('input[type="time"]');
   await times.nth(0).fill('10:00');
   await times.nth(1).fill('12:00');
