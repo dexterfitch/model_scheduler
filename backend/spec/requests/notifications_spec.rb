@@ -7,7 +7,7 @@ RSpec.describe "Updates", type: :request do
   let(:faculty) { create(:user, first_name: "Priya") }
   let(:model)   { create(:user, :model, first_name: "Jordan", last_name: "Ellis") }
   let(:series)  { create(:request_series, user: faculty, class_name: "Anatomy Lab") }
-  let(:date)    { create(:faculty_request, user: faculty, request_series: series) }
+  let(:date)    { create(:faculty_request, user: faculty, request_series: series, class_name: "Anatomy Lab") }
   let(:slot)    { create(:art_model_availability, user: model) }
 
   # Books the model into the date, as an admin would.
@@ -32,7 +32,7 @@ RSpec.describe "Updates", type: :request do
 
     it "shows each person only their own, newest first, with how many are unread" do
       Notification.add!(user: model, kind: "booked", request: date)
-      later = create(:faculty_request, user: faculty, request_series: create(:request_series, user: faculty, class_name: "Painting II"))
+      later = create(:faculty_request, user: faculty, class_name: "Painting II", request_series: create(:request_series, user: faculty, class_name: "Painting II"))
       Notification.add!(user: model, kind: "booked", request: later)
       Notification.add!(user: faculty, kind: "class_booked", request: date)
 
