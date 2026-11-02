@@ -1,10 +1,11 @@
 /**
  * The frame around every signed-in page: navigation for the person's role, the
- * Updates button (kept outside the phone menu so new updates always show), a skip
+ * Updates button (before Report a bug and Logout on wide screens, and beside the
+ * menu button on phones so new updates always show), a skip
  * link, the page title, the SuperUser banner and the Report a Bug window.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { Navbar, Nav, Container, Button, Modal, Form } from 'react-bootstrap';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
@@ -26,6 +27,18 @@ const PAGE_TITLES = [
   [/^\/superuser/, 'SuperUser Panel'],
   [/^\/profile/, 'My Profile'],
 ];
+const WIDE_SCREEN = '(min-width: 992px)';
+
+/** Whether the screen is wide enough for the full navigation bar (Bootstrap's lg), following resizes. */
+const useWideScreen = () => useSyncExternalStore(
+  (onChange) => {
+    const query = window.matchMedia?.(WIDE_SCREEN);
+    query?.addEventListener?.('change', onChange);
+    return () => query?.removeEventListener?.('change', onChange);
+  },
+  () => window.matchMedia?.(WIDE_SCREEN).matches ?? false
+);
+
 /** The tab title for a page. */
 const pageTitle = (path, role) =>
   `${PAGE_TITLES.find(([pattern]) => pattern.test(path))?.[1] || HOME_TITLES[role] || 'Home'} · MICA Pose Pool`;
@@ -40,6 +53,8 @@ function Layout({ currentUser, onLogout, refreshUser }) {
   }, [location.pathname, currentUser.role]);
 
   const [navExpanded, setNavExpanded] = useState(false);
+  const wide = useWideScreen();
+  const bell = <UpdatesBell onNavigate={() => setNavExpanded(false)} />;
   const [showBugModal, setShowBugModal] = useState(false);
   const [bugDescription, setBugDescription] = useState('');
 
@@ -93,9 +108,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
       <Navbar bg="dark" variant="dark" expand="lg" className="mb-4" expanded={navExpanded} onToggle={setNavExpanded}>
         <Container>
           <Navbar.Brand as={Link} to="/">MICA Pose Pool</Navbar.Brand>
-          <div className="ms-auto me-2 order-lg-last ms-lg-2 me-lg-0">
-            <UpdatesBell onNavigate={() => setNavExpanded(false)} />
-          </div>
+          {!wide && <div className="ms-auto me-2">{bell}</div>}
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
@@ -140,6 +153,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
                   </Button>
                 </>
               )}
+              {wide && bell}
               <Button
                 variant="outline-warning"
                 size="sm"

@@ -29,6 +29,25 @@ const model   = { id: 3, role: 'model',   first_name: 'Jordan' };
 beforeEach(() => vi.clearAllMocks());
 
 describe('Layout (navigation)', () => {
+  it('puts the Updates button before Report a bug and Logout on wide screens', () => {
+    const before = window.matchMedia;
+    window.matchMedia = (query) => ({ matches: query === '(min-width: 992px)', addEventListener() {}, removeEventListener() {} });
+    renderLayout(faculty);
+    const [bell, bug, logout] = ['Updates', 'Report a bug', 'Logout'].map(name => screen.getByRole('button', { name }));
+    expect(bell.closest('.navbar-collapse')).toBe(bug.closest('.navbar-collapse'));
+    expect(bell.compareDocumentPosition(bug) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(bug.compareDocumentPosition(logout) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    window.matchMedia = before;
+  });
+
+  it('keeps the Updates button beside the menu button on phones, outside the menu', () => {
+    const before = window.matchMedia;
+    window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
+    renderLayout(faculty);
+    expect(screen.getByRole('button', { name: 'Updates' }).closest('.navbar-collapse')).toBeNull();
+    window.matchMedia = before;
+  });
+
   it('shows the Updates button to everyone', () => {
     for (const user of [admin, faculty, model]) {
       const { unmount } = renderWithDialogs(<MemoryRouter><Layout currentUser={user} onLogout={vi.fn()} refreshUser={vi.fn()} /></MemoryRouter>);
