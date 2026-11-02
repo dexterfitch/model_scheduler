@@ -354,6 +354,7 @@ describe('AllRequests (admin requests page)', () => {
     it('tells a finished class to use the Make Correction links', async () => {
       renderPage();
       await userEvent.click(await screen.findByRole('button', { name: 'Date Range' }));
+      fireEvent.change(screen.getAllByLabelText('From')[0], { target: { value: new Date(Date.now() - 30 * 86400000).toLocaleDateString('en-CA') } });
       expect((await screen.findAllByText('Finished. Use Make Correction next to a date to fix its record.')).length).toBeGreaterThan(0);
     });
 
