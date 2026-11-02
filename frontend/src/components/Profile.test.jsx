@@ -101,6 +101,32 @@ describe('Profile', () => {
     expect(screen.getByLabelText('Genitalia')).toHaveValue('Intersex');
   });
 
+  it('brings a refused save’s reason into view and moves focus to it, even when scrolled down', async () => {
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    api.patch.mockRejectedValue({ response: { data: { errors: ["You're booked for 4 nude sessions; cancel those first."] } } });
+    renderProfile(model);
+    await userEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('booked for 4 nude sessions');
+    expect(scrolled).toHaveBeenCalled();
+    expect(alert).toHaveFocus();
+    delete Element.prototype.scrollIntoView;
+  });
+
+  it('brings Profile saved into view too', async () => {
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    api.patch.mockResolvedValue({ data: model });
+    renderProfile(model);
+    await userEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Profile saved.');
+    expect(scrolled).toHaveBeenCalled();
+    delete Element.prototype.scrollIntoView;
+  });
+
   it('explains to models why they are asked personal questions, but not to faculty', () => {
     const { unmount } = renderProfile(model);
     expect(screen.getByRole('button', { name: 'Why are we asking?' })).toBeInTheDocument();

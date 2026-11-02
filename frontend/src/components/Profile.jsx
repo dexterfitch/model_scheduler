@@ -1,8 +1,10 @@
 /**
  * My Profile, for models: their details and the personal questions used for matching.
+ * After saving, the result (saved, or why not) is scrolled into view and focused, since
+ * the Save button sits far below it.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { GENDER_IDENTITIES } from '../utils/constants';
@@ -56,6 +58,14 @@ const Profile = ({ currentUser, setCurrentUser }) => {
   };
 
   /** Saves the profile; on a refusal, shows why and goes back to what's saved. */
+  const messageRef = useRef(null);
+
+  useEffect(() => {
+    if (!message.text) return;
+    messageRef.current?.scrollIntoView?.({ block: 'center' });
+    messageRef.current?.focus();
+  }, [message]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -83,7 +93,7 @@ const Profile = ({ currentUser, setCurrentUser }) => {
         <div className="card-body">
           
           {message.text && (
-            <div className={`alert alert-${message.type}`} role={message.type === 'success' ? 'status' : 'alert'}>
+            <div ref={messageRef} tabIndex={-1} className={`alert alert-${message.type}`} role={message.type === 'success' ? 'status' : 'alert'}>
               {message.text}
               {message.type === 'success' && (
                 <button type="button" className="btn btn-link alert-link p-0 ms-2 align-baseline" onClick={() => navigate('/')}>
