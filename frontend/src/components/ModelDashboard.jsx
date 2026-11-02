@@ -1,5 +1,6 @@
 /**
- * The model's page: My Gigs (upcoming, completed and cancelled, with cancelling)
+ * The model's page: My Gigs (upcoming, completed and cancelled, with cancelling one
+ * date or every remaining date of a class, and which of a class's dates each gig is)
  * and Manage Availability (their free time on a calendar, plus Open Calls they can
  * sign up for), plus a calendar subscription link. A retired model is told they
  * can't add free time or sign up.
@@ -290,6 +291,20 @@ function ModelDashboard({ user }) {
     ).length;
   };
 
+  /**
+   * Where a confirmed gig falls among the model's confirmed dates in the same class,
+   * like date 1 of 2, or null when it's the class's only date for them.
+   */
+  const seriesPosition = (gig) => {
+    const seriesId = gig.faculty_request.request_series_id;
+    if (!seriesId || gig.status !== 'confirmed') return null;
+    const dates = myGigs
+      .filter(g => g.status === 'confirmed' && g.faculty_request.request_series_id === seriesId)
+      .sort((a, b) => new Date(a.faculty_request.starts_at) - new Date(b.faculty_request.starts_at));
+    if (dates.length < 2) return null;
+    return { index: dates.findIndex(g => g.id === gig.id) + 1, total: dates.length };
+  };
+
   const otherSeriesCount = activeGig ? otherFutureSeriesGigsCount(activeGig) : 0;
 
   return (
@@ -361,6 +376,12 @@ function ModelDashboard({ user }) {
                     <Card.Body>
                       {renderGigStatusBadge(gig)}
                       <Card.Title>{gig.faculty_request.class_name}</Card.Title>
+                      {seriesPosition(gig) && (
+                        <div className="small text-primary fw-semibold mb-2">
+                          <i className="bi bi-collection me-1" aria-hidden="true"></i>
+                          Date {seriesPosition(gig).index} of your {seriesPosition(gig).total} dates in this class
+                        </div>
+                      )}
                       {(gig.faculty_request.user || gig.faculty_request.department) && (
                         <div className="text-muted small mb-2">
                           <i className="bi bi-person me-1" aria-hidden="true"></i>
@@ -386,14 +407,25 @@ function ModelDashboard({ user }) {
                           : "Clothed"}
                       </div>
                       {gig.status === 'confirmed' && !hasStarted(gig) && (
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          className="w-100"
-                          onClick={() => cancelGig(gig.art_model_availability.id, gig)}
-                        >
-                          Cancel
-                        </Button>
+                        otherFutureSeriesGigsCount(gig) > 0 ? (
+                          <div className="d-grid gap-2">
+                            <Button variant="outline-danger" size="sm" onClick={() => cancelGig(gig.art_model_availability.id, gig)}>
+                              Cancel This Date
+                            </Button>
+                            <Button variant="outline-danger" size="sm" onClick={() => cancelGig(gig.art_model_availability.id, gig, true)}>
+                              Cancel All {otherFutureSeriesGigsCount(gig) + 1} Remaining
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            className="w-100"
+                            onClick={() => cancelGig(gig.art_model_availability.id, gig)}
+                          >
+                            Cancel
+                          </Button>
+                        )
                       )}
                     </Card.Body>
                   </Card>

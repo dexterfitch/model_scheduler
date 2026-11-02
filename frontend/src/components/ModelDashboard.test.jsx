@@ -8,7 +8,7 @@ import ModelDashboard from './ModelDashboard';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
 import { renderWithDialogs } from '../test/render';
-import { formatTimeShort } from '../utils/time';
+import { formatTimeShort, formatDateWithWeekday } from '../utils/time';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 vi.mock('./SharedCalendar', () => ({
@@ -236,5 +236,58 @@ describe('a retired model', () => {
   it("is told they're retired and can't add free time", async () => {
     renderWithDialogs(<ModelDashboard user={{ ...model, retired_at: '2026-10-01T00:00:00Z' }} />);
     expect(await screen.findByText(/You're retired from the pose pool/)).toBeInTheDocument();
+  });
+});
+
+describe('gigs that are part of a class with several dates', () => {
+  const slotA = { id: 6, status: 'active', starts_at: daysFromNow(8, 13), ends_at: daysFromNow(8, 21) };
+  const slotB = { id: 7, status: 'active', starts_at: daysFromNow(15, 13), ends_at: daysFromNow(15, 21) };
+  /** A gig in the Illustration Portfolio class. */
+  const portfolio = (id, slotFor, day) => ({
+    id, status: 'confirmed', art_model_availability: slotFor,
+    faculty_request: { id, request_series_id: 40, class_name: 'Illustration Portfolio', model_mode: 'clothed',
+      starts_at: daysFromNow(day, 14), ends_at: daysFromNow(day, 16) }
+  });
+  const first = portfolio(200, slotA, 8);
+  const second = portfolio(201, slotB, 15);
+
+  beforeEach(() => {
+    api.get.mockImplementation((url) => {
+      if (url === '/gigs') return Promise.resolve({ data: [second, first, morning] });
+      return Promise.resolve({ data: [] });
+    });
+  });
+
+  /** The card for a gig, found by its date. */
+  const cardFor = async (gig) => {
+    await screen.findAllByText('Illustration Portfolio');
+    const day = formatDateWithWeekday(gig.faculty_request.starts_at);
+    return screen.getAllByText(day).map(el => el.closest('.card')).find(Boolean);
+  };
+
+  it('says which of the class’s dates each card is', async () => {
+    renderWithDialogs(<ModelDashboard user={model} />);
+    expect(await cardFor(first)).toHaveTextContent('Date 1 of your 2 dates in this class');
+    expect(await cardFor(second)).toHaveTextContent('Date 2 of your 2 dates in this class');
+    const [morningCard] = (await screen.findAllByText('Morning Figure Drawing')).map(el => el.closest('.card')).filter(Boolean);
+    expect(morningCard).not.toHaveTextContent(/dates in this class/);
+  });
+
+  it('offers to cancel just that date or every remaining date, right on the card', async () => {
+    renderWithDialogs(<ModelDashboard user={model} />);
+    const card = await cardFor(first);
+    expect(within(card).getByRole('button', { name: 'Cancel This Date' })).toBeInTheDocument();
+    await userEvent.click(within(card).getByRole('button', { name: 'Cancel All 2 Remaining' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Cancel all your remaining dates?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel All Remaining' }));
+    expect(api.post).toHaveBeenCalledWith('/art_model_availabilities/6/cancel', { gig_id: 200, cancel_remaining_series: true });
+  });
+
+  it('keeps a plain Cancel on a gig that’s the only date of its class', async () => {
+    renderWithDialogs(<ModelDashboard user={model} />);
+    const [card] = (await screen.findAllByText('Morning Figure Drawing')).map(el => el.closest('.card')).filter(Boolean);
+    expect(within(card).getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: /Remaining/ })).toBeNull();
   });
 });
