@@ -1,7 +1,8 @@
 /**
- * My Classes, for faculty: their classes on Upcoming and Past tabs, New Request,
- * and editing or cancelling dates and classes that aren't booked. Past classes are
- * read-only. Faculty never see which model is booked.
+ * My Classes, for faculty: their classes on Upcoming and Past tabs, New Request
+ * (whose dates can repeat weekly), a calendar subscription link, and editing or
+ * cancelling dates and classes that aren't booked. Past classes are read-only.
+ * Faculty never see which model is booked.
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -10,13 +11,14 @@ import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
 import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, firstStartsAt, formatTimeForInput, newClassTimes, endAfterStart } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, firstStartsAt, formatTimeForInput, newClassTimes, endAfterStart, weeklyDatesAfter } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
 import ModelPreferenceFields from "./ModelPreferenceFields";
 import {
   DEFAULT_MODEL_PREFERENCES, DEFAULT_SLOT_STATE, applyPreferenceChange, modelSlotsPayload, slotFormState
 } from "../utils/modelPreferences";
 import StatusToast from "./StatusToast";
+import CalendarLinkButton from "./CalendarLinkButton";
 
 const PREFERENCE_KEYS = Object.keys(DEFAULT_MODEL_PREFERENCES);
 /** Just the preference fields of a class. */
@@ -25,6 +27,8 @@ const pickPreferences = (obj) =>
 
 /** Whether a class has different preferences for each model. */
 const hasModelSlots = (s) => (s.model_slots || []).length > 0;
+
+const MAX_DATES = 50;
 
 /** A new date row, starting 9 to 11 AM. */
 const emptyDate = () => {
@@ -65,6 +69,8 @@ function FacultyDashboard({ user }) {
   });
 
   const [dates, setDates] = useState([emptyDate()]);
+  const [repeatUntil, setRepeatUntil] = useState('');
+  const [repeatMessage, setRepeatMessage] = useState('');
   const [view, setView] = useState('upcoming');
 
   /** Loads the faculty member's classes, in date order. */
@@ -139,6 +145,26 @@ function FacultyDashboard({ user }) {
     setDates(prev => prev.filter((_, i) => i !== index));
   };
 
+  /**
+   * Adds a date for every week after the latest chosen date, up to Repeat weekly
+   * until, at that date's times. Weeks already listed are skipped, and a class
+   * never gets more than MAX_DATES dates.
+   */
+  const handleRepeatWeekly = () => {
+    const pattern = dates.filter(d => d.date).sort((a, b) => a.date.localeCompare(b.date)).pop();
+    if (!pattern) return setRepeatMessage('Choose the first date, then repeat it.');
+    if (!repeatUntil) return setRepeatMessage('Choose the last date to repeat until.');
+
+    const listed = new Set(dates.map(d => d.date));
+    const weeks = weeklyDatesAfter(pattern.date, repeatUntil).filter(day => !listed.has(day));
+    const added = weeks.slice(0, Math.max(MAX_DATES - dates.length, 0));
+    setDates(prev => [...prev, ...added.map(day => ({ date: day, start_time: pattern.start_time, end_time: pattern.end_time }))]);
+
+    if (added.length === 0) return setRepeatMessage('No new weeks to add.');
+    const capped = added.length < weeks.length ? ` (a class can have at most ${MAX_DATES} dates)` : '';
+    setRepeatMessage(`Added ${added.length} weekly date${added.length === 1 ? '' : 's'}${capped}.`);
+  };
+
   /** Sends New Request: the class, its dates and its preferences. */
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -201,6 +227,8 @@ function FacultyDashboard({ user }) {
           ...DEFAULT_MODEL_PREFERENCES, ...DEFAULT_SLOT_STATE, notes: "", room_number: ""
         });
         setDates([emptyDate()]);
+        setRepeatUntil('');
+        setRepeatMessage('');
       })
       .catch((err) => {
         console.error(err);
@@ -611,7 +639,8 @@ function FacultyDashboard({ user }) {
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
           <h2>My Classes</h2>
-          <p className="text-muted mb-0">Manage your model needs. Once a model is booked, only an admin can change that class.</p>
+          <p className="text-muted mb-2">Manage your model needs. Once a model is booked, only an admin can change that class.</p>
+          <CalendarLinkButton />
         </div>
         <div className={`d-grid d-md-block {styles.requestBtn}`}>
           <Button
@@ -737,6 +766,17 @@ function FacultyDashboard({ user }) {
             <Button variant="outline-primary" size="sm" type="button" onClick={addDate} className="mb-2">
               <i className="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Another Date
             </Button>
+
+            <div className="d-flex flex-wrap align-items-end gap-2 mb-1">
+              <Form.Group controlId="new-repeat-until">
+                <Form.Label className="small mb-1">Repeat weekly until</Form.Label>
+                <Form.Control size="sm" type="date" value={repeatUntil} onChange={e => setRepeatUntil(e.target.value)} />
+              </Form.Group>
+              <Button variant="outline-primary" size="sm" type="button" onClick={handleRepeatWeekly}>
+                <i className="bi bi-arrow-repeat me-1" aria-hidden="true"></i> Add Weekly Dates
+              </Button>
+            </div>
+            <div role="status" className="small text-muted mb-2">{repeatMessage}</div>
 
             <hr />
             <h5>Model Preferences</h5>

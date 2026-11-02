@@ -48,9 +48,9 @@ class User < ApplicationRecord
     user
   end
 
-  # Profile JSON without timestamps.
+  # Profile JSON without timestamps or the private calendar link token.
   def as_json(options = {})
-    super({ except: [:created_at, :updated_at] }.merge(options))
+    super({ except: [:created_at, :updated_at, :calendar_token] }.merge(options))
   end
 
   # The matching option from today's list, ignoring capitals and spaces, or nil.
@@ -104,7 +104,7 @@ class User < ApplicationRecord
 
   # Removes a person's data on request: name, contact details, photo and every
   # personal answer are cleared, their free time still to come and their updates are
-  # deleted, and every sign-in ends. Their past gigs and classes stay, so pay and
+  # deleted, and every sign-in and calendar link ends. Their past gigs and classes stay, so pay and
   # reports still add up. Raises NotYet while they have upcoming gigs or classes.
   def remove_data!
     refuse_with_upcoming_gigs!
@@ -120,7 +120,7 @@ class User < ApplicationRecord
         first_name: "Removed", last_name: "Person", email: "removed-#{id}@removed.invalid",
         phone: nil, stage_name: nil, pronouns: nil, skin_tone: nil, gender_identity: nil,
         body_type: nil, genitalia: nil, image_url: nil, willing_to_model_nude: false, superuser: false,
-        retired_at: retired_at || Time.current, removed_at: Time.current,
+        retired_at: retired_at || Time.current, removed_at: Time.current, calendar_token: nil,
         token_version: token_version + 1, updated_at: Time.current
       )
     end

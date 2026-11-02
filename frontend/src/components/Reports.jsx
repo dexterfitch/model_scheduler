@@ -1,6 +1,7 @@
 /**
  * Reports: paid hours per model for a date range, by department and nude or clothed,
- * with paid late cancellations and corrected gigs labelled. Prints as a table.
+ * with paid late cancellations and corrected gigs labelled. Prints as a table, or
+ * downloads as a CSV file for payroll.
  */
 
 import React, { useState, useEffect } from "react";
@@ -9,6 +10,7 @@ import api from "../services/api";
 import { formatTimeShort, formatDateNumeric } from "../utils/time";
 import styles from "./Reports.module.css";
 import { isPaid, workedTimes, paidHours, wasCorrected } from "../utils/pay";
+import { toCsv, downloadCsv } from '../utils/csv';
 
 /** The first and last day of the current month, as date fields expect them. */
 const monthBounds = (today = new Date()) => ({
@@ -169,6 +171,14 @@ function Reports() {
     return rows;
   };
 
+  /** Downloads the report as a CSV file, one row per paid gig, for payroll. */
+  const handleDownloadCsv = () => {
+    const header = ['Model', 'Department', 'Class', 'Faculty', 'Date', 'Time', 'Mode', 'Status', 'Hours'];
+    const rows = flattenReportRows().map(r =>
+      [r.modelName, r.department, r.className, r.facultyName, r.date, r.timeRange, r.mode, r.status, r.hours]);
+    downloadCsv(`model-hours-${startDate}-to-${endDate}.csv`, toCsv(header, rows));
+  };
+
   /** One gig's line: faculty, date, time and hours. */
   const renderShiftLine = (shift) => (
     <div className={`py-1 border-bottom border-light ${styles.shiftLine}`}>
@@ -302,9 +312,14 @@ function Reports() {
                 Generate Report
               </Button>
               {report && (
-                <Button variant="outline-dark" className="w-100" onClick={() => window.print()}>
-                  Print
-                </Button>
+                <div className="d-flex gap-2">
+                  <Button variant="outline-dark" className="w-100" onClick={() => window.print()}>
+                    Print
+                  </Button>
+                  <Button variant="outline-dark" className="w-100" onClick={handleDownloadCsv}>
+                    Download CSV
+                  </Button>
+                </div>
               )}
             </Col>
           </Row>

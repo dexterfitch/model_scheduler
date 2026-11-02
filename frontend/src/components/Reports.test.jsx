@@ -144,3 +144,33 @@ describe('Reports (model hours)', () => {
     });
   });
 });
+
+describe('downloading the report as a spreadsheet', () => {
+  let saved;
+  beforeEach(() => {
+    saved = null;
+    URL.createObjectURL = vi.fn((blob) => { saved = blob; return 'blob:report'; });
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  });
+
+  it('downloads every paid gig in the range as a CSV file named for the dates', async () => {
+    api.get.mockResolvedValue({ data: gigs });
+    await runReport('2026-11-01', '2026-11-30');
+    await userEvent.click(await screen.findByRole('button', { name: 'Download CSV' }));
+
+    expect(URL.createObjectURL).toHaveBeenCalled();
+    const text = await saved.text();
+    const lines = text.replace(/^\ufeff/, '').trim().split('\r\n');
+    expect(lines[0]).toBe('Model,Department,Class,Faculty,Date,Time,Mode,Status,Hours');
+    expect(lines).toHaveLength(5);
+    expect(lines.some(l => l.startsWith('Jordan Ellis,Drawing,Figure Drawing I,Priya Nair,') && l.endsWith(',Nude,Confirmed,3'))).toBe(true);
+    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
+  });
+
+  it("isn't offered before a report is run", () => {
+    api.get.mockResolvedValue({ data: gigs });
+    render(<Reports />);
+    expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
+  });
+});

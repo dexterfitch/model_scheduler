@@ -2,7 +2,7 @@
  * Tests for splitting free time around gigs, and the class time defaults.
  */
 
-import { availabilityEvents, formatTimeForInput, newClassTimes, endAfterStart } from './time';
+import { availabilityEvents, formatTimeForInput, newClassTimes, endAfterStart, weeklyDatesAfter } from './time';
 import { CALENDAR_COLORS } from './constants';
 
 const slot = { id: 7, status: 'active', starts_at: '2026-11-02T14:00:00Z', ends_at: '2026-11-02T22:00:00Z' };
@@ -95,5 +95,21 @@ describe('class times', () => {
 
   it('never set the end after 10:00 PM', () => {
     expect(endAfterStart('09:00', '11:00', '21:00')).toBe('22:00');
+  });
+});
+
+describe('weeklyDatesAfter', () => {
+  it('gives the same weekday each week after the first date, up to and including the last', () => {
+    expect(weeklyDatesAfter('2026-10-27', '2026-11-17')).toEqual(['2026-11-03', '2026-11-10', '2026-11-17']);
+  });
+
+  it('keeps the weekday across the change back from daylight saving time', () => {
+    expect(weeklyDatesAfter('2026-10-27', '2026-11-03')).toEqual(['2026-11-03']);
+  });
+
+  it('gives nothing when the last date is before the next week, or missing', () => {
+    expect(weeklyDatesAfter('2026-10-27', '2026-11-02')).toEqual([]);
+    expect(weeklyDatesAfter('2026-10-27', '')).toEqual([]);
+    expect(weeklyDatesAfter('', '2026-11-30')).toEqual([]);
   });
 });

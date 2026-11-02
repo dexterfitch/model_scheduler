@@ -1,7 +1,8 @@
 /**
  * The model's page: My Gigs (upcoming, completed and cancelled, with cancelling)
  * and Manage Availability (their free time on a calendar, plus Open Calls they can
- * sign up for). A retired model is told they can't add free time or sign up.
+ * sign up for), plus a calendar subscription link. A retired model is told they
+ * can't add free time or sign up.
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -13,6 +14,7 @@ import GigDates from "./GigDates";
 import { extractErrorMessages } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, formatTimeForInput, availabilityCoversRequest, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
 import StatusToast from "./StatusToast";
+import CalendarLinkButton from "./CalendarLinkButton";
 
 /** The model's page. */
 function ModelDashboard({ user }) {
@@ -297,6 +299,7 @@ function ModelDashboard({ user }) {
         <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
           <div>
             <h2 className="mb-1">Hello, {user.stage_name || user.first_name}</h2>
+            <CalendarLinkButton className="mt-1" />
           </div>
           <div className="text-end">
             {user.willing_to_model_nude

@@ -70,6 +70,21 @@ export const availabilitySavedMessage = (saved, fallback, { forAdmin = false } =
 
 const CLASS_HOURS = 2;
 const LATEST_END = 22 * 60;
+/**
+ * Every date one week apart after the first, up to and including the last, as
+ * YYYY-MM-DD. Counted on calendar days, so daylight saving changes don't shift them.
+ */
+export const weeklyDatesAfter = (first, last) => {
+  if (!first || !last) return [];
+  const toDay = (s) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
+  const end = toDay(last);
+  const dates = [];
+  for (let day = toDay(first) + 7 * 864e5; day <= end; day += 7 * 864e5) {
+    dates.push(new Date(day).toISOString().slice(0, 10));
+  }
+  return dates;
+};
+
 /** Minutes since midnight for a time like 09:30. */
 const toMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 /** A time like 09:30 for minutes since midnight. */

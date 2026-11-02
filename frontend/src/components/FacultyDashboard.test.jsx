@@ -369,4 +369,48 @@ describe('FacultyDashboard', () => {
       expect(within(date1).getByLabelText('Date')).toHaveFocus();
     });
   });
+
+  describe('repeating a class every week', () => {
+    /** Shows My Classes and opens New Request. */
+    const openNewRequest = async () => {
+      renderWithDialogs(<FacultyDashboard user={{ id: 1 }} />);
+      await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
+      return screen.findByRole('dialog');
+    };
+
+    it('adds a date each week until the chosen day, at the same times', async () => {
+      const dialog = await openNewRequest();
+      const date1 = within(dialog).getByRole('group', { name: 'Date 1' });
+      fireEvent.change(within(date1).getByLabelText('Date'), { target: { value: '2026-11-03' } });
+      fireEvent.change(within(date1).getByLabelText('Start Time'), { target: { value: '13:00' } });
+      fireEvent.change(within(dialog).getByLabelText('Repeat weekly until'), { target: { value: '2026-11-24' } });
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Add Weekly Dates' }));
+
+      const dates = within(dialog).getAllByRole('group', { name: /^Date \d+$/ });
+      expect(dates.map(g => within(g).getByLabelText('Date').value)).toEqual(['2026-11-03', '2026-11-10', '2026-11-17', '2026-11-24']);
+      expect(within(dates[3]).getByLabelText('Start Time')).toHaveValue('13:00');
+      expect(within(dates[3]).getByLabelText('End Time')).toHaveValue('15:00');
+      expect(within(dialog).getByRole('status')).toHaveTextContent('Added 3 weekly dates.');
+    });
+
+    it("doesn't add a week that's already listed", async () => {
+      const dialog = await openNewRequest();
+      fireEvent.change(within(within(dialog).getByRole('group', { name: 'Date 1' })).getByLabelText('Date'), { target: { value: '2026-11-03' } });
+      await userEvent.click(within(dialog).getByRole('button', { name: /Add Another Date/ }));
+      fireEvent.change(within(within(dialog).getByRole('group', { name: 'Date 2' })).getByLabelText('Date'), { target: { value: '2026-11-10' } });
+      fireEvent.change(within(dialog).getByLabelText('Repeat weekly until'), { target: { value: '2026-11-17' } });
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Add Weekly Dates' }));
+
+      const dates = within(dialog).getAllByRole('group', { name: /^Date \d+$/ });
+      expect(dates.map(g => within(g).getByLabelText('Date').value)).toEqual(['2026-11-03', '2026-11-10', '2026-11-17']);
+    });
+
+    it('asks for the first date before repeating', async () => {
+      const dialog = await openNewRequest();
+      fireEvent.change(within(dialog).getByLabelText('Repeat weekly until'), { target: { value: '2026-11-24' } });
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Add Weekly Dates' }));
+      expect(within(dialog).getByRole('status')).toHaveTextContent('Choose the first date, then repeat it.');
+      expect(within(dialog).getAllByRole('group', { name: /^Date \d+$/ })).toHaveLength(1);
+    });
+  });
 });

@@ -21,6 +21,10 @@ Rails.application.routes.draw do
   resources :gigs, only: [:index, :create, :destroy]
   post "gigs/:id/corrections", to: "gigs#correct"
 
+  get "calendar_link", to: "calendar_feeds#link"
+  post "calendar_link/reset", to: "calendar_feeds#reset"
+  get "calendar/:token", to: "calendar_feeds#show"
+
   get "notifications", to: "notifications#index"
   post "notifications/read", to: "notifications#read"
 

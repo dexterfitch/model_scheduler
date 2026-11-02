@@ -1,6 +1,7 @@
 /**
  * The admin Calendar: every booked gig and every class still needing a model, plus a
- * list of each model's upcoming free time (with booked classes cut out).
+ * list of each model's upcoming free time (with booked classes cut out), and a
+ * calendar subscription link for every booking.
  */
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -11,6 +12,7 @@ import { formatDateWithWeekday, formatTime, availabilityEvents } from "../utils/
 import { CALENDAR_COLORS } from "../utils/constants";
 import SharedCalendar from "./SharedCalendar";
 import { useDialog } from "./DialogProvider";
+import CalendarLinkButton from "./CalendarLinkButton";
 
 /** The full schedule and the upcoming free time, by model. */
 function AdminCalendar() {
@@ -122,7 +124,10 @@ function AdminCalendar() {
       )}
       <Row>
         <Col md={9} className="mb-4 mb-md-0">
-          <h2 className="mb-4">Full Schedule</h2>
+          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+            <h2 className="mb-0">Full Schedule</h2>
+            <CalendarLinkButton />
+          </div>
           <SharedCalendar 
             events={calendarEvents} 
             onEventClick={handleEventClick}
