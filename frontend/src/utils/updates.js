@@ -29,8 +29,15 @@ const MESSAGES = {
 };
 
 /** What an update says. */
-export const updateMessage = (update) =>
-  (MESSAGES[update.kind] || ((u) => `${u.title} changed ${when(u.dates)}.`))(update);
+export const updateMessage = (update) => {
+  if (update.kind === 'error') return `Something went wrong in the app: ${update.title}. See the Error Log in the SuperUser Panel.`;
+  return (MESSAGES[update.kind] || ((u) => `${u.title} changed ${when(u.dates)}.`))(update);
+};
 
-/** The page where the change can be seen: Requests for a drop-out, otherwise the person's first page. */
-export const updateLink = (update) => (update.kind === 'dropped_out' ? '/requests' : '/');
+const LINKS = { dropped_out: '/requests', error: '/superuser' };
+
+/**
+ * The page where the change can be seen: Requests for a drop-out, the SuperUser
+ * Panel for an error, otherwise the person's first page.
+ */
+export const updateLink = (update) => LINKS[update.kind] || '/';

@@ -1,5 +1,6 @@
 /**
- * Starts the app, with the shared confirmation and message windows available everywhere.
+ * Starts the app, with the shared confirmation and message windows available everywhere,
+ * and sends errors the page doesn't catch to the Error Log.
  */
 
 import './assets/styles/bootstrap-custom.scss';
@@ -8,6 +9,9 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { DialogProvider } from './components/DialogProvider'
+import { installErrorReporting } from './utils/errorReporting'
+
+installErrorReporting();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

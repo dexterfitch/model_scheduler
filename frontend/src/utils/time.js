@@ -85,6 +85,13 @@ export const weeklyDatesAfter = (first, last) => {
   return dates;
 };
 
+/** The date a year ago today, as YYYY-MM-DD, for loading only recent records. */
+export const oneYearAgo = () => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  return d.toLocaleDateString('en-CA');
+};
+
 /** Minutes since midnight for a time like 09:30. */
 const toMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 /** A time like 09:30 for minutes since midnight. */

@@ -52,6 +52,18 @@ beforeEach(() => {
 });
 
 describe('AllRequests (admin requests page)', () => {
+  it('loads classes from the last 12 months, and everything after Show older classes', async () => {
+    const yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+    renderPage();
+    await screen.findAllByText('1/2 models');
+    expect(api.get).toHaveBeenCalledWith('/request_series', { params: { since: yearAgo.toLocaleDateString('en-CA') } });
+
+    expect(screen.queryByRole('button', { name: 'Show older classes' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Past' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Show older classes' }));
+    await vi.waitFor(() => expect(api.get.mock.calls.filter(([url]) => url === '/request_series').pop()).toEqual(['/request_series', { params: {} }]));
+  });
+
   it('shows booking progress and who is booked', async () => {
     renderPage();
     expect((await screen.findAllByText('1/2 models')).length).toBeGreaterThan(0);

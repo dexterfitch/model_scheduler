@@ -4,7 +4,7 @@
 class Notification < ApplicationRecord
   KINDS = %w[
     booked class_booked released date_cancelled class_cancelled
-    dropped_out model_cancelled date_moved
+    dropped_out model_cancelled date_moved error
   ].freeze
   GATHER_WITHIN = 10.minutes
   KEEP_READ_FOR = 180.days

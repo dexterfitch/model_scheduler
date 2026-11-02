@@ -39,6 +39,14 @@ describe('updateMessage', () => {
   });
 });
 
+describe('error updates', () => {
+  it('say what went wrong and where to look, and link to the SuperUser Panel', () => {
+    const error = { id: 9, kind: 'error', title: 'RuntimeError: boom', dates: [] };
+    expect(updateMessage(error)).toBe('Something went wrong in the app: RuntimeError: boom. See the Error Log in the SuperUser Panel.');
+    expect(updateLink(error)).toBe('/superuser');
+  });
+});
+
 describe('updateLink', () => {
   it('sends admins to Requests for a drop-out, and everyone else to their own first page', () => {
     expect(updateLink(update('dropped_out'))).toBe('/requests');

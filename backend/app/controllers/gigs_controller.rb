@@ -4,7 +4,8 @@ class GigsController < ApplicationController
   before_action -> { require_role(:admin, :model) }, only: [:index]
   before_action -> { require_role(:admin) }, only: [:create, :destroy, :correct]
 
-  # Lists gigs: every gig with full details and corrections for admins; a model's own as gig cards.
+  # Lists gigs: every gig with full details and corrections for admins; a model's own
+  # as gig cards. With since, only gigs on dates on or after that day.
   def index
     gigs = if current_user.role_admin?
       Gig.includes(faculty_request: :user, art_model_availability: :user).all
@@ -12,6 +13,9 @@ class GigsController < ApplicationController
       Gig.includes(faculty_request: :user, art_model_availability: :user)
         .joins(:art_model_availability)
         .where(art_model_availabilities: { user_id: current_user.id })
+    end
+    if (since = since_param)
+      gigs = gigs.joins(:faculty_request).where("faculty_requests.starts_at >= ?", since)
     end
 
     if current_user.role_admin?

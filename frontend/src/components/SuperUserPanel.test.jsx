@@ -11,6 +11,7 @@ import { daysFromNow } from '../test/dates';
 import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
+vi.mock('./ErrorLog', () => ({ default: () => <section>Error Log</section> }));
 
 
 const me      = { id: 1, role: 'admin',   superuser: true, first_name: 'Dex',   last_name: 'Fitch', email: 'dfitch@mica.edu', skin_tone: 'Medium' };
@@ -250,5 +251,12 @@ describe("removing a person's data", () => {
     await userEvent.click(within(await rowFor('pnair@mica.edu')).getByRole('button', { name: 'Remove Data' }));
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove Data' }));
     expect(await screen.findByText(/1 upcoming class/)).toBeInTheDocument();
+  });
+});
+
+describe('the Error Log', () => {
+  it('is on the panel', async () => {
+    renderPanel();
+    expect(await screen.findByText('Error Log')).toBeInTheDocument();
   });
 });

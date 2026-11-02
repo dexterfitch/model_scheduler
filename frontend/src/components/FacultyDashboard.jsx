@@ -642,7 +642,7 @@ function FacultyDashboard({ user }) {
           <p className="text-muted mb-2">Manage your model needs. Once a model is booked, only an admin can change that class.</p>
           <CalendarLinkButton />
         </div>
-        <div className={`d-grid d-md-block {styles.requestBtn}`}>
+        <div className={`d-grid d-md-block ${styles.requestBtn}`}>
           <Button
             className={styles.requestBtn}
             variant="primary" size="lg"

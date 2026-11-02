@@ -25,6 +25,10 @@ Rails.application.routes.draw do
   post "calendar_link/reset", to: "calendar_feeds#reset"
   get "calendar/:token", to: "calendar_feeds#show"
 
+  get "error_reports", to: "error_reports#index"
+  post "error_reports", to: "error_reports#create"
+  delete "error_reports", to: "error_reports#destroy_all"
+
   get "notifications", to: "notifications#index"
   post "notifications/read", to: "notifications#read"
 

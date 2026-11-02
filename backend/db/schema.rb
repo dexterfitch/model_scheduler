@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_31_140000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_02_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -24,6 +24,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_31_140000) do
     t.datetime "updated_at", null: false
     t.index ["user_id", "starts_at", "ends_at"], name: "idx_availability_lookup"
     t.index ["user_id"], name: "index_art_model_availabilities_on_user_id"
+  end
+
+  create_table "error_reports", force: :cascade do |t|
+    t.string "source", null: false
+    t.text "message", null: false
+    t.text "details"
+    t.string "path"
+    t.bigint "user_id"
+    t.string "fingerprint", null: false
+    t.integer "count", default: 1, null: false
+    t.datetime "last_seen_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["fingerprint"], name: "index_error_reports_on_fingerprint"
+    t.index ["last_seen_at"], name: "index_error_reports_on_last_seen_at"
+    t.index ["user_id"], name: "index_error_reports_on_user_id"
   end
 
   create_table "faculty_requests", force: :cascade do |t|
@@ -153,6 +169,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_31_140000) do
   end
 
   add_foreign_key "art_model_availabilities", "users"
+  add_foreign_key "error_reports", "users", on_delete: :nullify
   add_foreign_key "faculty_requests", "users"
   add_foreign_key "gig_corrections", "gigs"
   add_foreign_key "gig_corrections", "users"

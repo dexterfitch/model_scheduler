@@ -1,13 +1,13 @@
 /**
- * The Gig Registry: every booking, filterable by status and dates and searchable by
- * model, faculty or class. A table on wider screens and one card per class on
+ * The Gig Registry: bookings from the last year (or every booking, on request),
+ * filterable by status and dates and searchable by model, faculty or class. A table on wider screens and one card per class on
  * phones. Past gigs can be corrected.
  */
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Table, Container, Badge, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import api from "../services/api";
-import { formatTime, formatDateWithWeekday, formatDateShort } from "../utils/time";
+import { formatTime, formatDateWithWeekday, formatDateShort, oneYearAgo } from "../utils/time";
 import { isPaid, payStatusLabel, workedTimes } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
 
@@ -47,10 +47,11 @@ function AllGigs() {
   const [when, setWhen] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [correcting, setCorrecting] = useState(null);
+  const [showOlder, setShowOlder] = useState(false);
 
-  /** Loads every gig, in date order. */
+  /** Loads the gigs from the last year (or every gig once older ones are asked for), in date order. */
   const fetchGigs = useCallback(() => {
-    api.get("/gigs")
+    api.get("/gigs", { params: showOlder ? {} : { since: oneYearAgo() } })
       .then(res => {
         const sorted = res.data.sort((a, b) =>
           new Date(a.faculty_request.starts_at) - new Date(b.faculty_request.starts_at)
@@ -58,7 +59,7 @@ function AllGigs() {
         setGigs(sorted);
       })
       .catch(err => console.error(err));
-  }, []);
+  }, [showOlder]);
 
   useEffect(() => {
     fetchGigs();
@@ -195,6 +196,15 @@ function AllGigs() {
           </div>
         </div>
       </div>
+
+      {when !== 'upcoming' && !showOlder && (
+        <p className="small text-muted mt-n2 mb-3">
+          Showing gigs from the last 12 months.{' '}
+          <Button variant="link" size="sm" className="p-0 align-baseline" onClick={() => setShowOlder(true)}>
+            Show older gigs
+          </Button>
+        </p>
+      )}
 
       <div className="d-none d-md-block bg-white shadow-sm rounded overflow-hidden">
         <Table hover responsive className="mb-0 align-middle">

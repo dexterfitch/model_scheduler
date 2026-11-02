@@ -1,8 +1,8 @@
 /**
  * The SuperUser Panel: try the app as faculty or a model, change people's roles,
- * grant SuperUser status, remove a person's data on request, create sock accounts
- * and manage their free time, and clear the test data made under the SuperUser's
- * own account.
+ * grant SuperUser status, remove a person's data on request, read the Error Log,
+ * create sock accounts and manage their free time, and clear the test data made
+ * under the SuperUser's own account.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -15,6 +15,7 @@ import ModelBodyFields from "./ModelBodyFields";
 import SkinTonePicker from "./SkinTonePicker";
 import { extractErrorMessages } from "../utils/formatters";
 import { useDialog } from "./DialogProvider";
+import ErrorLog from "./ErrorLog";
 
 /** The panel, for SuperUsers only. */
 const SuperUserPanel = ({ currentUser, refreshUser }) => {
@@ -373,6 +374,8 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
           {clearedMessage && <p className="text-success mt-2 mb-0" role="status">{clearedMessage}</p>}
         </div>
       </div>
+
+      <ErrorLog />
 
       <div className="card shadow mb-4">
         <div className="card-header bg-light fw-bold">User Management</div>

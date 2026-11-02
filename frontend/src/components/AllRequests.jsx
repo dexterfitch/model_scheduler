@@ -1,18 +1,19 @@
 /**
- * The admin Requests page: every class, grouped as pending, matched and cancelled,
- * filterable by status and dates and searchable by class, faculty or department.
+ * The admin Requests page: classes with a date in the last year (or every class, on
+ * request), grouped as pending, matched and cancelled, filterable by status and dates
+ * and searchable by class, faculty or department.
  * Shows who could take each pending date, offers ready emails to models, and lets
  * admins edit, cancel, release and rebook, or correct the record of past dates.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Alert, Dropdown } from "react-bootstrap";
 import api from "../services/api";
 import styles from "./AllRequests.module.css";
 import { useDialog } from "./DialogProvider";
 import { formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateShort, firstStartsAt, formatTimeForInput, newClassTimes, endAfterStart } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateShort, firstStartsAt, formatTimeForInput, newClassTimes, endAfterStart, oneYearAgo } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 import { payStatusLabel, wasCorrected } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
@@ -36,9 +37,21 @@ function AllRequests() {
   const [when, setWhen] = useState('upcoming');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  const [showOlder, setShowOlder] = useState(false);
+
+  /**
+   * Loads the classes with a date in the last year, or every class once older ones
+   * have been asked for.
+   */
+  const reloadSeries = useCallback(() => {
+    api.get("/request_series", { params: showOlder ? {} : { since: oneYearAgo() } })
+      .then(res => setAllSeries(res.data))
+      .catch(() => {});
+  }, [showOlder]);
+
   useEffect(() => {
-    api.get("/request_series").then(res => setAllSeries(res.data));
-  }, []);
+    reloadSeries();
+  }, [reloadSeries]);
 
   const [pool, setPool] = useState(null);
   useEffect(() => {
@@ -104,7 +117,7 @@ function AllRequests() {
     if (!confirmed) return;
     try {
       await api.post(`/request_series/${seriesId}/release_remaining`);
-      api.get("/request_series").then(res => setAllSeries(res.data));
+      reloadSeries();
     } catch (err) {
       notify({ title: "Couldn't release the models", message: extractErrorMessages(err, 'Please try again.') });
     }
@@ -124,7 +137,7 @@ function AllRequests() {
     if (!confirmed) return;
     try {
       await api.delete(`/request_series/${seriesId}`);
-      api.get("/request_series").then(res => setAllSeries(res.data));
+      reloadSeries();
     } catch (err) {
       notify({ title: "Couldn't cancel this class", message: extractErrorMessages(err, 'Please try again.') });
     }
@@ -143,7 +156,7 @@ function AllRequests() {
     if (!confirmed) return;
     try {
       await api.delete(`/gigs/${gig.id}`);
-      api.get("/request_series").then(res => setAllSeries(res.data));
+      reloadSeries();
     } catch (err) {
       notify({ title: "Couldn't release the model", message: extractErrorMessages(err, 'Please try again.') });
     }
@@ -230,10 +243,10 @@ function AllRequests() {
       }
 
       setEditingSeries(null);
-      api.get("/request_series").then(res => setAllSeries(res.data));
+      reloadSeries();
     } catch (err) {
       setEditError(extractErrorMessages(err, "Failed to save changes."));
-      api.get("/request_series").then(res => setAllSeries(res.data));
+      reloadSeries();
     }
   };
 
@@ -283,7 +296,7 @@ function AllRequests() {
         ...prev,
         dates: prev.dates.filter(date => date.id !== d.id)
       }));
-      api.get("/request_series").then(res => setAllSeries(res.data));
+      reloadSeries();
     } catch (err) {
       notify({ title: "Couldn't remove this date", message: extractErrorMessages(err, 'Please try again.') });
     }
@@ -758,6 +771,15 @@ function AllRequests() {
         </div>
       </div>
 
+      {when !== 'upcoming' && !showOlder && (
+        <p className="small text-muted mt-n2 mb-3">
+          Showing classes from the last 12 months.{' '}
+          <Button variant="link" size="sm" className="p-0 align-baseline" onClick={() => setShowOlder(true)}>
+            Show older classes
+          </Button>
+        </p>
+      )}
+
       {(statusFilter === 'all' || statusFilter === 'pending') && (
         <div className="mb-4">
           <h5 className="fw-bold text-warning mb-2">Pending ({pending.length})</h5>
@@ -944,7 +966,7 @@ function AllRequests() {
           onClose={() => setCorrecting(null)}
           onSaved={() => {
             setCorrecting(null);
-            api.get("/request_series").then(res => setAllSeries(res.data));
+            reloadSeries();
           }}
         />
       )}

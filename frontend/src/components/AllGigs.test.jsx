@@ -77,6 +77,17 @@ describe('AllGigs (Gig Registry)', () => {
     expect(within(dates).getByRole('button', { name: 'All Dates' })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('loads the last 12 months of gigs, and everything after Show older gigs', async () => {
+    const yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+    render(<AllGigs />);
+    await screen.findByRole('table');
+    expect(api.get).toHaveBeenCalledWith('/gigs', { params: { since: yearAgo.toLocaleDateString('en-CA') } });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show older gigs' }));
+    await vi.waitFor(() => expect(api.get).toHaveBeenLastCalledWith('/gigs', { params: {} }));
+    expect(screen.queryByRole('button', { name: 'Show older gigs' })).toBeNull();
+  });
+
   it('shows only past or only upcoming gigs', async () => {
     const lastWeek = gig(3, { first_name: 'Riley', last_name: 'Okafor' });
     lastWeek.faculty_request = { ...lastWeek.faculty_request, starts_at: daysFromNow(-7, 15), ends_at: daysFromNow(-7, 17) };

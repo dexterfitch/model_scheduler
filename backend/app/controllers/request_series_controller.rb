@@ -9,7 +9,8 @@ class RequestSeriesController < ApplicationController
 
   # Lists classes with their dates. Admins also get every gig of each date (with
   # corrections) and who dropped out; faculty only learn whether a date is booked
-  # and which admin to contact, never who the model is.
+  # and which admin to contact, never who the model is. With since, only classes
+  # with a date on or after that day.
   def index
     preload = { faculty_requests: { confirmed_gigs: [:confirmed_by, { art_model_availability: :user }] } }
     if current_user.role_admin?
@@ -19,6 +20,9 @@ class RequestSeriesController < ApplicationController
       RequestSeries.all.includes(:user, :model_slots, preload)
     else
       RequestSeries.where(user_id: current_user.id).includes(:user, :model_slots, preload)
+    end
+    if (since = since_param)
+      @series = @series.where(id: FacultyRequest.where("starts_at >= ?", since).select(:request_series_id))
     end
 
     render json: @series, include: {
