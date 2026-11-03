@@ -59,6 +59,23 @@ describe('UserDirectory', () => {
     expect(badge.querySelector('svg')).toBeNull();
   });
 
+  it('lists models and faculty alphabetically by first name, ignoring a leading emoji, with retired models after', async () => {
+    const person = (id, role, first_name, last_name, extra = {}) => ({ id, role, first_name, last_name, email: `${id}@mica.edu`, skin_tone: 'Light', gender_identity: 'Woman', ...extra });
+    api.get.mockResolvedValue({ data: [
+      person(1, 'model', 'Sofia', 'Marsh'), person(2, 'model', 'devon', 'Price'), person(3, 'model', '\u{1F9E6} Test', 'Tester'),
+      person(4, 'model', 'Jordan', 'Ellis', { retired_at: '2026-10-01T00:00:00Z' }), person(5, 'model', 'Ana', 'Zed', { retired_at: '2026-10-01T00:00:00Z' }),
+      person(6, 'faculty', 'Priya', 'Nair'), person(7, 'faculty', 'Alice', 'Chen'), person(8, 'faculty', 'Marcus', 'Bell'),
+    ] });
+    renderWithDialogs(<MemoryRouter><UserDirectory /></MemoryRouter>);
+    const [modelsTable] = await screen.findAllByRole('table');
+    const names = (table) => within(table).getAllByRole('row').slice(1).map(r => r.querySelector('td').textContent.replace('Retired', '').trim());
+    expect(names(modelsTable)).toEqual(['devon Price', 'Sofia Marsh', '\u{1F9E6} Test Tester', 'Ana Zed', 'Jordan Ellis']);
+
+    await userEvent.click(screen.getByRole('tab', { name: /Faculty/ }));
+    const facultyTable = screen.getAllByRole('table').find(t => within(t).queryByText('Alice Chen'));
+    expect(names(facultyTable)).toEqual(['Alice Chen', 'Marcus Bell', 'Priya Nair']);
+  });
+
   describe('retiring and bringing back from the list', () => {
     const riley = { id: 4, role: 'model', first_name: 'Riley', last_name: 'Okafor', email: 'rokafor@mica.edu', skin_tone: 'Medium', gender_identity: 'Prefer not to say' };
     /** Riley's row in the models table. */

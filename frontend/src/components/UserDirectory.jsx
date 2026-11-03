@@ -1,6 +1,7 @@
 /**
- * The Directory: models and faculty, with links to each model's page, and Retire or
- * Bring Back for each model. Retired models come after the others, marked Retired;
+ * The Directory: models and faculty in alphabetical order by first name, with links to
+ * each model's page, and Retire or Bring Back for each model. Retired models come after
+ * the others, marked Retired;
  * people whose data was removed aren't listed.
  */
 
@@ -11,6 +12,12 @@ import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
 import { useRetireModel } from "./useRetireModel";
 import StatusToast from "./StatusToast";
+
+/** A person's name for sorting: first name then last, ignoring case and any leading emoji. */
+const sortName = (u) => `${u.first_name || ''} ${u.last_name || ''}`.replace(/^[^\p{L}\p{N}]+/u, '').toLocaleLowerCase();
+
+/** People in alphabetical order by first name. */
+const alphabetical = (list) => [...list].sort((a, b) => sortName(a).localeCompare(sortName(b)));
 
 /** The Directory page, on Models and Faculty tabs. */
 function UserDirectory() {
@@ -48,9 +55,9 @@ function UserDirectory() {
   }, []);
 
   const people = users.filter(u => !u.removed_at);
-  const faculty = people.filter(u => u.role === "faculty");
-  const activeModels = people.filter(u => u.role === "model" && !u.retired_at);
-  const models = [...activeModels, ...people.filter(u => u.role === "model" && u.retired_at)];
+  const faculty = alphabetical(people.filter(u => u.role === "faculty"));
+  const activeModels = alphabetical(people.filter(u => u.role === "model" && !u.retired_at));
+  const models = [...activeModels, ...alphabetical(people.filter(u => u.role === "model" && u.retired_at))];
 
   return (
     <Container className="py-4">
