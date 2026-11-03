@@ -431,70 +431,72 @@ function AllRequests() {
   };
 
   /** One date of a class: status, time, booked models or record, tags and links. */
-  const renderDateRow = (req, showBadge, isSingle, s) => (
-    <div key={req.id} className="small text-muted mb-1">
-      {showBadge && req.status === 'matched' && (
-        <Badge bg="success" className={`me-2 ${styles.badge}`}>Matched</Badge>
-      )}
-      {showBadge && req.status === 'pending' && (
-        <Badge bg="warning" text="dark" className={`me-2 ${styles.badge}`}>Pending</Badge>
-      )}
-      {showBadge && req.status === 'archived' && (
-        <Badge bg="secondary" className={`me-2 ${styles.badge}`}>Cancelled</Badge>
-      )}
-      {hasEnded(req) && req.status !== 'archived' && (
-        <Badge bg="secondary" className={`me-2 ${styles.badge}`}>Past</Badge>
-      )}
-      <i className="bi bi-calendar3 me-1"></i>
-      {formatDateShort(req.starts_at)} &bull; {formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}
-      {(req.models_needed || 1) > 1 && req.status !== 'archived' && (
-        <Badge bg="light" text="dark" className={`ms-2 border ${styles.badge}`}>
+  const renderDateRow = (req, showBadge, isSingle, s) => {
+    const tags = [
+      showBadge && req.status === 'matched' && <Badge key="status" bg="success" className={styles.badge}>Matched</Badge>,
+      showBadge && req.status === 'pending' && <Badge key="status" bg="warning" text="dark" className={styles.badge}>Pending</Badge>,
+      showBadge && req.status === 'archived' && <Badge key="status" bg="secondary" className={styles.badge}>Cancelled</Badge>,
+      hasEnded(req) && req.status !== 'archived' && <Badge key="past" bg="secondary" className={styles.badge}>Past</Badge>,
+      (req.models_needed || 1) > 1 && req.status !== 'archived' && (
+        <Badge key="count" bg="light" text="dark" className={`border ${styles.badge}`}>
           {(req.confirmed_gigs || []).length}/{req.models_needed} models
         </Badge>
-      )}
-      {req.needs_attention && req.status !== 'archived' && (
-        <Badge bg="danger" className={`ms-2 ${styles.badge}`}>
+      ),
+      req.needs_attention && req.status !== 'archived' && (
+        <Badge key="attention" bg="danger" className={styles.badge}>
           Needs Attention: {req.dropped_out_model_name || 'a model'} dropped out
         </Badge>
-      )}
-      {req.status !== 'archived' && hasStarted(req) && renderPastGigs(req, s)}
-      {req.status !== 'archived' && !hasStarted(req) && (req.confirmed_gigs || []).length > 0 && (
-        req.confirmed_gigs.map(gig => (
-          <div key={gig.id} className="ms-3 mt-1 d-flex flex-wrap align-items-baseline column-gap-2">
-            <span className="text-nowrap">
-              <i className="bi bi-person me-1" aria-hidden="true"></i>
-              {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-            </span>
-            {(!isSingle || (req.models_needed || 1) > 1) && !hasEnded(req) && (
+      ),
+    ].filter(Boolean);
+
+    return (
+      <div key={req.id} className="small text-muted mb-2">
+        {tags.length > 0 && <div className="d-flex flex-wrap gap-1 mb-1">{tags}</div>}
+        <div>
+          <i className="bi bi-calendar3 me-1" aria-hidden="true"></i>
+          <span className="text-nowrap">{formatDateShort(req.starts_at)}</span>
+          {' '}&bull;{' '}
+          <span className="text-nowrap">{formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}</span>
+        </div>
+        {req.status !== 'archived' && hasStarted(req) && renderPastGigs(req, s)}
+        {req.status !== 'archived' && !hasStarted(req) && (req.confirmed_gigs || []).length > 0 && (
+          req.confirmed_gigs.map(gig => (
+            <div key={gig.id} className="ms-3 mt-1 d-flex flex-wrap align-items-baseline column-gap-2">
+              <span className="text-nowrap">
+                <i className="bi bi-person me-1" aria-hidden="true"></i>
+                {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
+              </span>
+              {(!isSingle || (req.models_needed || 1) > 1) && !hasEnded(req) && (
+                <button
+                  type="button"
+                  className="btn btn-link btn-sm p-0 align-baseline"
+                  title="Release this model from only this date and find someone else"
+                  aria-label={`Release ${gig.art_model_availability?.user?.first_name} ${gig.art_model_availability?.user?.last_name} from this date and find someone else`}
+                  onClick={() => handleFindNewModel(gig)}
+                >
+                  Release
+                </button>
+              )}
+            </div>
+          ))
+        )}
+        {req.status === 'pending' && !hasStarted(req) && (
+          <div className="ms-3 mt-1 d-flex flex-wrap align-items-baseline column-gap-2 row-gap-1">
+            {renderCoverage(req, s)}
+            {showBadge && (
               <button
                 type="button"
                 className="btn btn-link btn-sm p-0 align-baseline"
-                title="Release this model from only this date and find someone else"
-                aria-label={`Release ${gig.art_model_availability?.user?.first_name} ${gig.art_model_availability?.user?.last_name} from this date and find someone else`}
-                onClick={() => handleFindNewModel(gig)}
+                onClick={() => navigate(`/gigs/new/${req.id}`)}
               >
-                Release
+                Find Model
               </button>
             )}
           </div>
-        ))
-      )}
-      {req.status === 'pending' && !hasStarted(req) && (
-        <div className="ms-3 mt-1 d-flex flex-wrap align-items-baseline column-gap-2 row-gap-1">
-          {renderCoverage(req, s)}
-          {showBadge && (
-            <button
-              type="button"
-              className="btn btn-link btn-sm p-0 align-baseline"
-              onClick={() => navigate(`/gigs/new/${req.id}`)}
-            >
-              Find Model
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  };
 
   /** The class's buttons on wider screens. */
   const renderActionButtons = (s, showAction, matchedCount, bookedCount) => {

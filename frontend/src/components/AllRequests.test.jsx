@@ -9,7 +9,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import AllRequests from './AllRequests';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
-import { formatDateWithWeekday, formatTime } from '../utils/time';
+import { formatDateWithWeekday, formatDateShort, formatTime } from '../utils/time';
 import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({
@@ -220,6 +220,20 @@ describe('AllRequests (admin requests page)', () => {
     renderPage();
     const links = await screen.findAllByRole('button', { name: 'Find Model' });
     for (const link of links) expect(link.tagName).toBe('BUTTON');
+  });
+
+  it("puts each date's status above its date and time, which wrap between the date and the time, not mid-time", async () => {
+    const booked = { ...series.faculty_requests[0], id: 11, status: 'matched' };
+    const open = { ...series.faculty_requests[0], id: 12, status: 'pending', confirmed_gigs: [],
+                   starts_at: daysFromNow(19, 15), ends_at: daysFromNow(19, 17) };
+    api.get.mockResolvedValue({ data: [{ ...series, models_needed: 1, faculty_requests: [booked, open] }] });
+    renderPage();
+    const [matched] = await screen.findAllByText('Matched', { selector: '.badge' });
+    expect(matched.parentElement).not.toHaveTextContent(formatDateShort(booked.starts_at));
+
+    const [time] = screen.getAllByText(`${formatTime(open.starts_at)} – ${formatTime(open.ends_at)}`);
+    expect(time).toHaveClass('text-nowrap');
+    expect(screen.getAllByText(formatDateShort(open.starts_at))[0]).toHaveClass('text-nowrap');
   });
 
   it("puts a pending date's tag and Find Model on their own line, like a booked model's Release", async () => {
