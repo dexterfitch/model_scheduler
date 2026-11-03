@@ -4,19 +4,21 @@
  */
 
 import React, { createContext, useCallback, useContext, useId, useMemo, useRef, useState } from 'react';
-import { Modal, Button } from 'react-bootstrap';
+import { Modal, Button, Form } from 'react-bootstrap';
 
 const DialogContext = createContext(null);
 
 /** Holds the one open window and offers confirm and notify to every page. */
 export function DialogProvider({ children }) {
   const [dialog, setDialog] = useState(null);
+  const [note, setNote] = useState('');
   const resolver = useRef(null);
   const titleId = useId();
 
   /** Opens a window and resolves with the answer when it closes. */
   const open = useCallback((options) => new Promise((resolve) => {
     resolver.current = resolve;
+    setNote('');
     setDialog(options);
   }), []);
 
@@ -28,8 +30,9 @@ export function DialogProvider({ children }) {
   };
 
   /**
-   * What pages call: confirm asks a yes-or-no question (true if confirmed); notify shows a message
-   * with an OK button.
+   * What pages call: confirm asks a yes-or-no question (true if confirmed, or { note } when
+   * it was asked with a noteLabel, offering an optional note); notify shows a message with
+   * an OK button.
    */
   const value = useMemo(() => ({
     confirm: (options) => open({ kind: 'confirm', ...options }),
@@ -49,14 +52,24 @@ export function DialogProvider({ children }) {
                 {dialog.title || (isConfirm ? 'Are you sure?' : 'Notice')}
               </Modal.Title>
             </Modal.Header>
-            {dialog.message && <Modal.Body>{dialog.message}</Modal.Body>}
+            {(dialog.message || dialog.noteLabel) && (
+              <Modal.Body>
+                {dialog.message}
+                {dialog.noteLabel && (
+                  <Form.Group controlId="dialog-note" className={dialog.message ? 'mt-3' : ''}>
+                    <Form.Label>{dialog.noteLabel}</Form.Label>
+                    <Form.Control as="textarea" rows={2} maxLength={500} value={note} onChange={e => setNote(e.target.value)} />
+                  </Form.Group>
+                )}
+              </Modal.Body>
+            )}
             <Modal.Footer>
               {isConfirm ? (
                 <>
                   <Button variant="outline-secondary" onClick={() => close(false)}>
                     {dialog.cancelLabel || 'Go Back'}
                   </Button>
-                  <Button variant={dialog.danger ? 'danger' : 'primary'} onClick={() => close(true)}>
+                  <Button variant={dialog.danger ? 'danger' : 'primary'} onClick={() => close(dialog.noteLabel ? { note: note.trim() } : true)}>
                     {dialog.confirmLabel || 'Confirm'}
                   </Button>
                 </>

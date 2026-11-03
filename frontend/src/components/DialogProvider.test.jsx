@@ -35,6 +35,14 @@ describe('DialogProvider', () => {
     await waitFor(() => expect(onAnswer).toHaveBeenCalledWith(true));
   });
 
+  it('can ask for an optional note, and resolves with it when confirmed', async () => {
+    const onAnswer = renderAsker(({ confirm }) => confirm({ title: 'Cancel this class?', confirmLabel: 'Cancel Class', noteLabel: 'Reason (optional)' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ask' }));
+    await userEvent.type(await screen.findByLabelText('Reason (optional)'), 'Faculty on leave');
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel Class' }));
+    await waitFor(() => expect(onAnswer).toHaveBeenCalledWith({ note: 'Faculty on leave' }));
+  });
+
   it('resolves false when they go back', async () => {
     const onAnswer = renderAsker(askToCancel);
     await userEvent.click(screen.getByRole('button', { name: 'Ask' }));

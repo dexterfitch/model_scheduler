@@ -76,7 +76,7 @@ describe('AllRequests (admin requests page)', () => {
     expect(releaseButton.tagName).toBe('BUTTON');
     await userEvent.click(releaseButton);
     await confirmWith('Release Model');
-    expect(api.delete).toHaveBeenCalledWith('/gigs/100');
+    expect(api.delete).toHaveBeenCalledWith('/gigs/100', { data: { note: '' } });
   });
 
   it('releases all booked models for rematching', async () => {
@@ -84,7 +84,7 @@ describe('AllRequests (admin requests page)', () => {
     const [button] = await screen.findAllByRole('button', { name: 'Release Models and Rematch' });
     await userEvent.click(button);
     await confirmWith('Release and Rematch');
-    expect(api.post).toHaveBeenCalledWith('/request_series/1/release_remaining');
+    expect(api.post).toHaveBeenCalledWith('/request_series/1/release_remaining', { note: '' });
   });
 
   it('sends the admin to the matching screen to find more models', async () => {
@@ -109,6 +109,31 @@ describe('AllRequests (admin requests page)', () => {
       request_series: expect.objectContaining({ models_needed: 1 })
     }));
     expect(await within(dialog).findByText(/can't be lower/)).toBeInTheDocument();
+  });
+
+  it('lets the admin give a reason when cancelling a class, kept in History', async () => {
+    renderPage();
+    const [cancel] = await screen.findAllByRole('button', { name: 'Cancel Class' });
+    await userEvent.click(cancel);
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Reason (optional, kept in History)'), 'Faculty on leave');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel Class' }));
+    expect(api.delete).toHaveBeenCalledWith('/request_series/1', { data: { note: 'Faculty on leave' } });
+  });
+
+  it('sends the reason for an edit with every change Edit Class saves', async () => {
+    api.patch.mockResolvedValue({ data: {} });
+    renderPage();
+    const [editButton] = await screen.findAllByRole('button', { name: 'Edit Class' });
+    await userEvent.click(editButton);
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Reason for these changes (optional)'), 'Moved rooms');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));
+
+    await vi.waitFor(() => expect(api.patch).toHaveBeenCalledWith('/request_series/1', expect.objectContaining({ note: 'Moved rooms' })));
+    for (const [url, body] of api.patch.mock.calls.filter(([url]) => url.startsWith('/faculty_requests/'))) {
+      expect(body, url).toEqual(expect.objectContaining({ note: 'Moved rooms' }));
+    }
   });
 
   it('labels every field and button in the Edit Class window', async () => {
@@ -153,7 +178,7 @@ describe('AllRequests (admin requests page)', () => {
 
     await userEvent.click(cancel);
     await confirmWith('Cancel Class');
-    expect(api.delete).toHaveBeenCalledWith('/request_series/1');
+    expect(api.delete).toHaveBeenCalledWith('/request_series/1', { data: { note: '' } });
   });
 
   it('on phone cards, keeps the main button and tucks the rest into a More menu', async () => {
@@ -168,7 +193,7 @@ describe('AllRequests (admin requests page)', () => {
     expect(within(card).getByRole('button', { name: 'Edit Class' })).toBeInTheDocument();
     await userEvent.click(within(card).getByRole('button', { name: 'Cancel Class' }));
     await confirmWith('Cancel Class');
-    expect(api.delete).toHaveBeenCalledWith('/request_series/1');
+    expect(api.delete).toHaveBeenCalledWith('/request_series/1', { data: { note: '' } });
   });
 
   it('lists only the preferences faculty actually set', async () => {

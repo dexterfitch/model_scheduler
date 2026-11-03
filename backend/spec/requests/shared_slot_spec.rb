@@ -54,7 +54,7 @@ RSpec.describe "Changing the status of a class saved under older rules", type: :
 
     delete "/faculty_requests/#{request.id}", headers: auth_headers(request.user)
     expect(response).to have_http_status(:no_content)
-    expect(FacultyRequest.exists?(request.id)).to be false
+    expect(request.reload).to be_archived
     expect(request.request_series.reload).to be_archived
   end
 

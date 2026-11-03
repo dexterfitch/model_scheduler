@@ -12,6 +12,7 @@ class User < ApplicationRecord
   has_many :request_series, dependent: :destroy
   has_many :notifications, dependent: :delete_all
   has_many :error_reports, dependent: :nullify
+  has_many :history_entries, dependent: :nullify
 
   GENDER_IDENTITIES = ["Woman", "Man", "Non-binary", "Prefer not to say"].freeze
   SKIN_TONES = ["Light", "Medium", "Dark"].freeze
@@ -105,7 +106,8 @@ class User < ApplicationRecord
 
   # Removes a person's data on request: name, contact details, photo and every
   # personal answer are cleared, their free time still to come and their updates are
-  # deleted, and every sign-in and calendar link ends. Their past gigs and classes stay, so pay and
+  # deleted, their name is taken out of History and other people's updates, and every
+  # sign-in and calendar link ends. Their past gigs and classes stay, so pay and
   # reports still add up. Raises NotYet while they have upcoming gigs or classes.
   def remove_data!
     refuse_with_upcoming_gigs!
@@ -114,9 +116,12 @@ class User < ApplicationRecord
       raise NotYet, "#{first_name} has #{classes} upcoming class date#{'s' if classes != 1}. Cancel #{classes == 1 ? 'it' : 'them'} first."
     end
 
+    old_name = "#{first_name} #{last_name}"
     transaction do
       clear_future_free_time!
       notifications.delete_all
+      HistoryEntry.forget_name!(old_name)
+      Notification.where(about: old_name).update_all(about: "Removed Person")
       update_columns(
         first_name: "Removed", last_name: "Person", email: "removed-#{id}@removed.invalid",
         phone: nil, stage_name: nil, pronouns: nil, skin_tone: nil, gender_identity: nil,

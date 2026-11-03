@@ -3,6 +3,13 @@
 # models to rebook; models see open calls they could sign up for.
 class RequestSeriesController < ApplicationController
   MAX_DATES_PER_SERIES = 50
+  PREFERENCE_FIELDS = %w[pref_skin_tone pref_gender pref_body_type pref_genitalia].freeze
+  # How each kind of change to a class is named in History, in the order listed.
+  EDITED_FIELDS = [
+    [%w[class_name], "class name"], [%w[department], "department"], [%w[building], "building"],
+    [%w[room_number], "room"], [%w[model_mode], "nudity"], [%w[models_needed], "number of models"],
+    [PREFERENCE_FIELDS + %w[model_slots], "preferences"], [%w[notes], "notes"], [%w[user_id], "faculty member"]
+  ].freeze
   before_action -> { require_role(:admin, :faculty) }, except: [:available_for_model]
   before_action -> { require_role(:admin, :model) }, only: [:available_for_model]
   before_action -> { require_role(:admin) }, only: [:release_remaining]
@@ -145,6 +152,7 @@ class RequestSeriesController < ApplicationController
 
     return render json: { error: failure }, status: :unprocessable_content if failure
 
+    record_history("requested", "Requested #{@series.class_name} (#{HistoryEntry.count_of(times.size, 'date')}).", series_id: @series.id)
     render json: @series, status: :created
   rescue ActiveRecord::RecordInvalid => e
     render json: { error: e.message }, status: :unprocessable_content
@@ -188,8 +196,11 @@ class RequestSeriesController < ApplicationController
       return render json: { error: slot_count_error(needed) }, status: :unprocessable_content
     end
 
+    slots_before = @series.model_slots.map { |s| s.attributes.slice(*PREFERENCE_FIELDS) }
+    edited = []
     ActiveRecord::Base.transaction do
       @series.update!(series_params)
+      edited = @series.saved_changes.keys
 
       changed_keys = series_params.keys.map(&:to_s)
       changed_keys |= ["pref_genitalia"] if changed_keys.include?("model_mode")
@@ -210,6 +221,10 @@ class RequestSeriesController < ApplicationController
       @series.update_status!
     end
 
+    edited << "model_slots" if @series.model_slots.reload.map { |s| s.attributes.slice(*PREFERENCE_FIELDS) } != slots_before
+    words = EDITED_FIELDS.filter_map { |fields, word| word if (fields & edited).any? }.uniq
+    record_history("edited", "Edited #{@series.class_name}: #{words.join(', ')}.", series_id: @series.id) if words.any?
+
     render json: @series
   rescue ActiveRecord::RecordInvalid => e
     render json: { error: e.message }, status: :unprocessable_content
@@ -221,7 +236,10 @@ class RequestSeriesController < ApplicationController
     @series = RequestSeries.find(params[:id])
     booked = Notifier.confirmed_gigs_on(@series.faculty_requests.where("starts_at > ?", Time.current))
     @series.release_remaining_for_rematch!
-    Notifier.released(Notifier.now_cancelled(booked), actor: current_user)
+    released = Notifier.now_cancelled(booked)
+    Notifier.released(released, actor: current_user)
+    record_history("released", "Released #{HistoryEntry.count_of(released.size, 'booking')} from the remaining dates " \
+      "of #{@series.class_name}.", series_id: @series.id)
     render json: @series
   end
 
@@ -235,7 +253,11 @@ class RequestSeriesController < ApplicationController
     upcoming = @series.faculty_requests.where.not(status: :archived).where("starts_at > ?", Time.current).to_a
     booked = Notifier.confirmed_gigs_on(upcoming)
     @series.cancel_entire_series!
-    Notifier.dates_cancelled(upcoming, Notifier.now_cancelled(booked), actor: current_user)
+    released = Notifier.now_cancelled(booked)
+    Notifier.dates_cancelled(upcoming, released, actor: current_user)
+    summary = "Cancelled #{@series.class_name} (#{HistoryEntry.count_of(upcoming.size, 'date')} still to come)."
+    summary += " #{HistoryEntry.count_of(released.size, 'booked model')} released." if released.any?
+    record_history("cancelled", summary, series_id: @series.id)
     head :no_content
   end
 

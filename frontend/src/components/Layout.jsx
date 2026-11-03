@@ -24,6 +24,7 @@ const PAGE_TITLES = [
   [/^\/directory/, 'Directory'],
   [/^\/models\//, 'Model Details'],
   [/^\/reports/, 'Reports'],
+  [/^\/history/, 'History'],
   [/^\/superuser/, 'SuperUser Panel'],
   [/^\/profile/, 'My Profile'],
 ];
@@ -121,6 +122,7 @@ function Layout({ currentUser, onLogout, refreshUser }) {
                   <Nav.Link as={Link} to="/calendar" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Calendar</Nav.Link>
                   <Nav.Link as={Link} to="/directory" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Directory</Nav.Link>
                   <Nav.Link as={Link} to="/reports" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>Reports</Nav.Link>
+                  <Nav.Link as={Link} to="/history" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>History</Nav.Link>
                   {currentUser.superuser && (
                     <Nav.Link as={Link} to="/superuser" className={`${styles.navLink}`} onClick={() => setNavExpanded(false)}>SuperUser Panel</Nav.Link>
                   )}

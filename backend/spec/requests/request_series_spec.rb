@@ -102,11 +102,11 @@ RSpec.describe "Request series permissions", type: :request do
       expect(gig.billable).to be false
     end
 
-    it "deletes dates nobody was booked on" do
+    it "keeps dates nobody was booked on, marked cancelled" do
       empty_date = create(:faculty_request, user: faculty, request_series: series,
         starts_at: 14.days.from_now.change(hour: 10), ends_at: 14.days.from_now.change(hour: 12))
       delete "/request_series/#{series.id}", headers: auth_headers(faculty)
-      expect(FacultyRequest.exists?(empty_date.id)).to be false
+      expect(empty_date.reload).to be_archived
     end
 
     it "won't let another faculty member cancel it" do

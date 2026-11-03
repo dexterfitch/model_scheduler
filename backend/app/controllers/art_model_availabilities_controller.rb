@@ -93,6 +93,15 @@ class ArtModelAvailabilitiesController < ApplicationController
       else
         Notifier.dropped_out(cancelled, actor: current_user)
       end
+      cancelled.each do |gig|
+        request = gig.faculty_request
+        summary = if current_user.role_admin?
+          "Released #{HistoryEntry.name_of(gig.art_model_availability.user)} from #{request.class_name} on #{HistoryEntry.at(request.starts_at)}."
+        else
+          "Cancelled their gig: #{request.class_name} on #{HistoryEntry.at(request.starts_at)}."
+        end
+        record_history(current_user.role_admin? ? "released" : "dropped_out", summary, series_id: request.request_series_id)
+      end
       render json: availability
     else
       render json: { error: "No active gig found for this availability slot" }, status: :unprocessable_content

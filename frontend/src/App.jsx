@@ -26,6 +26,7 @@ import SuperUserPanel from './components/SuperUserPanel';
 import FacultyDashboard from './components/FacultyDashboard';
 import ModelDashboard from './components/ModelDashboard';
 import Reports from './components/Reports';
+import History from './components/History';
 
 /**
  * Where Google sign-in lands. Saves the token (sent after a #, so it never reaches server logs),
@@ -161,6 +162,7 @@ function App() {
                 <Route path="models/:id" element={<ModelDetail />} />
                 <Route path="gigs/new/:requestId" element={<GigCreator />} />
                 <Route path="reports" element={<Reports />} />
+                <Route path="history" element={<History />} />
                 
                 {currentUser.superuser && (
                   <Route path="superuser" element={

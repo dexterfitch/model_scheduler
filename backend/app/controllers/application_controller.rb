@@ -46,6 +46,11 @@ class ApplicationController < ActionController::API
     Rails.logger.error("Error Log not saved: #{e.class}: #{e.message}")
   end
 
+  # Adds an entry to History for the signed-in person, with the note they sent, if any.
+  def record_history(action, summary, series_id: nil, note: params[:note])
+    HistoryEntry.record!(actor: current_user, action: action, summary: summary, series_id: series_id, note: note)
+  end
+
   # The since parameter as the start of that day, or nil when it's missing or unreadable.
   def since_param
     Date.iso8601(params[:since].to_s).in_time_zone if params[:since].present?

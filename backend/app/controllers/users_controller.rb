@@ -25,6 +25,7 @@ class UsersController < ApplicationController
     user = User.new(user_params)
     user.role = 'model'
     if user.save
+      record_history("created_account", "Created the sock account #{HistoryEntry.name_of(user)}.")
       render json: user, status: :created
     else
       render json: { errors: user.errors.full_messages }, status: :unprocessable_content
@@ -65,11 +66,15 @@ class UsersController < ApplicationController
       return render json: { error: "Only a SuperUser can make someone an admin or change an admin's role." }, status: :forbidden
     end
 
+    old_role = user.role
     user.role = target_role
 
     apply_model_defaults(user, skin_tone: params[:skin_tone]) if user.role_model?
     
     if user.save
+      if old_role != user.role
+        record_history("changed_role", "Changed #{HistoryEntry.name_of(user)}'s role from #{old_role || 'none'} to #{user.role}.")
+      end
       render json: user
     else
       Rails.logger.error("Promote Failed: #{user.errors.full_messages}")
@@ -90,6 +95,7 @@ class UsersController < ApplicationController
     end
     
     user.update(superuser: true)
+    record_history("made_superuser", "Made #{HistoryEntry.name_of(user)} a SuperUser.")
     render json: user
   end
 
@@ -102,6 +108,7 @@ class UsersController < ApplicationController
     end
 
     user.retire!
+    record_history("retired", "Retired #{HistoryEntry.name_of(user)}.")
     render json: user
   rescue User::NotYet => e
     render json: { error: e.message }, status: :unprocessable_content
@@ -115,6 +122,7 @@ class UsersController < ApplicationController
     end
 
     user.update_columns(retired_at: nil, updated_at: Time.current)
+    record_history("reinstated", "Brought #{HistoryEntry.name_of(user)} back.")
     render json: user
   end
 
@@ -131,6 +139,7 @@ class UsersController < ApplicationController
     end
 
     user.remove_data!
+    record_history("removed_data", "Removed a person's data (account ##{user.id}).")
     render json: user
   rescue User::NotYet => e
     render json: { error: e.message }, status: :unprocessable_content

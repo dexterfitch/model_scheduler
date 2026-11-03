@@ -96,9 +96,9 @@ RSpec.describe "Faculty request permissions", type: :request do
       expect(gig.billable).to be false
     end
 
-    it "deletes an unbooked date outright" do
+    it "keeps an unbooked date, marked cancelled, so there's a record of it" do
       delete "/faculty_requests/#{my_request.id}", headers: auth_headers(faculty)
-      expect(FacultyRequest.exists?(my_request.id)).to be false
+      expect(my_request.reload).to be_archived
     end
 
     it "won't let another faculty member cancel your date" do

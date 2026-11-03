@@ -33,6 +33,8 @@ class TestDataController < ApplicationController
         request.request_series&.update_status!
       end
     end
+    record_history("cleared_test_data", "Cleared their test data: #{HistoryEntry.count_of(cleared[:classes], 'class')}, " \
+      "#{HistoryEntry.count_of(cleared[:availability], 'block')} of free time.")
     render json: cleared
   end
 

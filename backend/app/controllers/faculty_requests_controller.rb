@@ -25,6 +25,8 @@ class FacultyRequestsController < ApplicationController
 
     if @request.save
       @request.request_series&.update_status!
+      record_history("added_date", "Added a date to #{@request.class_name}: #{HistoryEntry.at(@request.starts_at)}.",
+        series_id: @request.request_series_id)
       render json: @request, status: :created
     else
       render json: { errors: @request.errors.full_messages }, status: :unprocessable_content
@@ -57,6 +59,9 @@ class FacultyRequestsController < ApplicationController
       @request.request_series&.update_status!
       if @request.saved_change_to_starts_at? || @request.saved_change_to_ends_at?
         Notifier.date_moved(@request, actor: current_user)
+        from = @request.saved_change_to_starts_at? ? @request.saved_change_to_starts_at.first : @request.starts_at
+        record_history("moved", "Moved #{@request.class_name} from #{HistoryEntry.at(from)} to " \
+          "#{HistoryEntry.at(@request.starts_at)}.", series_id: @request.request_series_id)
       end
       render json: @request
     else
@@ -82,7 +87,11 @@ class FacultyRequestsController < ApplicationController
     booked = Notifier.confirmed_gigs_on(@request)
     is_late_cancel = @request.cancel_with_billing!
     series&.update_status!
-    Notifier.dates_cancelled(was_open ? [@request] : [], Notifier.now_cancelled(booked), actor: current_user)
+    released = Notifier.now_cancelled(booked)
+    Notifier.dates_cancelled(was_open ? [@request] : [], released, actor: current_user)
+    summary = "Cancelled #{@request.class_name} on #{HistoryEntry.at(@request.starts_at)}."
+    summary += " #{HistoryEntry.count_of(released.size, 'booked model')} released#{', still paid' if is_late_cancel}." if released.any?
+    record_history("cancelled", summary, series_id: @request.request_series_id) if was_open
 
     if had_booked_models
       render json: { message: "Request cancelled. Gig billable: #{is_late_cancel}" }, status: :ok

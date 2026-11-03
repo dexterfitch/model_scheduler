@@ -58,7 +58,7 @@ describe('Layout (navigation)', () => {
 
   it('gives admins the full admin menu, without the SuperUser Panel', () => {
     renderLayout(admin);
-    for (const name of ['Requests', 'Gigs', 'Calendar', 'Directory', 'Reports']) {
+    for (const name of ['Requests', 'Gigs', 'Calendar', 'Directory', 'Reports', 'History']) {
       expect(screen.getByRole('link', { name })).toBeInTheDocument();
     }
     expect(screen.queryByRole('link', { name: 'SuperUser Panel' })).toBeNull();

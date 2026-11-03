@@ -8,6 +8,7 @@ raise "Refusing to run db/seeds.rb in production: it deletes nearly every record
 puts "🌱 Seeding Database..."
 
 Notification.delete_all
+HistoryEntry.delete_all
 GigCorrection.delete_all
 Gig.delete_all
 FacultyRequest.delete_all

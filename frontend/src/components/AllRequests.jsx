@@ -3,7 +3,8 @@
  * request), grouped as pending, matched and cancelled, filterable by status and dates
  * and searchable by class, faculty or department.
  * Shows who could take each pending date, offers ready emails to models, and lets
- * admins edit, cancel, release and rebook, or correct the record of past dates.
+ * admins edit, cancel, release and rebook (with an optional reason, kept in History),
+ * or correct the record of past dates.
  */
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -19,6 +20,8 @@ import { payStatusLabel, wasCorrected } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
 import { dateCoverage, notifyLists, notifyEmailLink } from "../utils/coverage";
 import { useRevealMessage } from '../utils/revealMessage';
+
+const REASON_LABEL = 'Reason (optional, kept in History)';
 
 /** The Requests page. */
 function AllRequests() {
@@ -102,7 +105,7 @@ function AllRequests() {
 
   const [editingSeries, setEditingSeries] = useState(null);
   const [seriesForm, setSeriesForm] = useState({
-    class_name: '', department: '', building: '', room_number: '', notes: '', models_needed: 1, dates: []
+    class_name: '', department: '', building: '', room_number: '', notes: '', models_needed: 1, reason: '', dates: []
   });
   const [editError, setEditError] = useState('');
   const editErrorRef = useRevealMessage(editError);
@@ -114,11 +117,12 @@ function AllRequests() {
       message: `Every booked model on this class's remaining dates is released, and those dates go back to pending so you can book someone new. ${sameDayNote}`,
       confirmLabel: 'Release and Rematch',
       cancelLabel: 'Keep Bookings',
+      noteLabel: REASON_LABEL,
       danger: true
     });
     if (!confirmed) return;
     try {
-      await api.post(`/request_series/${seriesId}/release_remaining`);
+      await api.post(`/request_series/${seriesId}/release_remaining`, { note: confirmed.note ?? '' });
       reloadSeries();
     } catch (err) {
       notify({ title: "Couldn't release the models", message: extractErrorMessages(err, 'Please try again.') });
@@ -134,11 +138,12 @@ function AllRequests() {
         : `All of its dates are cancelled and any booked models released. ${sameDayNote}`,
       confirmLabel: 'Cancel Class',
       cancelLabel: 'Keep Class',
+      noteLabel: REASON_LABEL,
       danger: true
     });
     if (!confirmed) return;
     try {
-      await api.delete(`/request_series/${seriesId}`);
+      await api.delete(`/request_series/${seriesId}`, { data: { note: confirmed.note ?? '' } });
       reloadSeries();
     } catch (err) {
       notify({ title: "Couldn't cancel this class", message: extractErrorMessages(err, 'Please try again.') });
@@ -153,11 +158,12 @@ function AllRequests() {
       message: `Their spot opens up so you can book someone else, and their availability stays as it is. ${sameDayNote}`,
       confirmLabel: 'Release Model',
       cancelLabel: 'Keep Booking',
+      noteLabel: REASON_LABEL,
       danger: true
     });
     if (!confirmed) return;
     try {
-      await api.delete(`/gigs/${gig.id}`);
+      await api.delete(`/gigs/${gig.id}`, { data: { note: confirmed.note ?? '' } });
       reloadSeries();
     } catch (err) {
       notify({ title: "Couldn't release the model", message: extractErrorMessages(err, 'Please try again.') });
@@ -179,6 +185,7 @@ function AllRequests() {
       room_number: s.room_number || '',
       notes: s.notes || '',
       models_needed: s.models_needed || 1,
+      reason: '',
       dates: activeRequests.map(r => {
         const startDate = new Date(r.starts_at);
         const endDate = new Date(r.ends_at);
@@ -208,7 +215,8 @@ function AllRequests() {
           room_number: seriesForm.room_number,
           notes: seriesForm.notes,
           models_needed: seriesForm.models_needed
-        }
+        },
+        note: seriesForm.reason
       });
 
       for (const d of seriesForm.dates) {
@@ -235,11 +243,13 @@ function AllRequests() {
               notes: seriesForm.notes,
               starts_at,
               ends_at
-            }
+            },
+            note: seriesForm.reason
           });
         } else {
           await api.patch(`/faculty_requests/${d.id}`, {
-            faculty_request: { starts_at, ends_at }
+            faculty_request: { starts_at, ends_at },
+            note: seriesForm.reason
           });
         }
       }
@@ -288,12 +298,13 @@ function AllRequests() {
         : "The date is removed from the class. This can't be undone.",
       confirmLabel: 'Remove Date',
       cancelLabel: 'Keep Date',
+      noteLabel: REASON_LABEL,
       danger: true
     });
     if (!confirmed) return;
 
     try {
-      await api.delete(`/faculty_requests/${d.id}`);
+      await api.delete(`/faculty_requests/${d.id}`, { data: { note: confirmed.note ?? '' } });
       setSeriesForm(prev => ({
         ...prev,
         dates: prev.dates.filter(date => date.id !== d.id)
@@ -956,6 +967,18 @@ function AllRequests() {
           <Button variant="outline-primary" size="sm" className="mt-2" onClick={addSeriesDate}>
             <i className="bi bi-plus-lg me-1"></i>Add Date
           </Button>
+
+          <Form.Group className="mt-4" controlId="edit-reason">
+            <Form.Label>Reason for these changes (optional)</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={2}
+              maxLength={500}
+              value={seriesForm.reason}
+              onChange={e => setSeriesForm(prev => ({ ...prev, reason: e.target.value }))}
+            />
+            <Form.Text>Kept in History with the changes you save.</Form.Text>
+          </Form.Group>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setEditingSeries(null)}>Cancel</Button>

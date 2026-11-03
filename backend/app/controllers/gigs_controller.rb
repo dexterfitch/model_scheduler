@@ -54,6 +54,8 @@ class GigsController < ApplicationController
       faculty_request.update(needs_attention: false) if faculty_request.matched?
       faculty_request.request_series&.update_status!
       Notifier.booked(gig, actor: current_user)
+      record_history("booked", "Booked #{HistoryEntry.name_of(gig.art_model_availability.user)} for " \
+        "#{faculty_request.class_name} on #{HistoryEntry.at(faculty_request.starts_at)}.", series_id: faculty_request.request_series_id)
       render json: gig, status: :created
     else
       render json: { errors: gig.errors.full_messages }, status: :unprocessable_content
@@ -77,6 +79,9 @@ class GigsController < ApplicationController
 
     gig.faculty_request&.request_series&.update_status!
     Notifier.released([gig.reload], actor: current_user)
+    request = gig.faculty_request
+    record_history("released", "Released #{HistoryEntry.name_of(gig.art_model_availability&.user)} from #{request.class_name} " \
+      "on #{HistoryEntry.at(request.starts_at)}#{' (still paid)' if is_late_cancel}.", series_id: request.request_series_id)
 
     render json: { message: "Gig cancelled. Billable: #{is_late_cancel}" }, status: :ok
   end
@@ -85,6 +90,9 @@ class GigsController < ApplicationController
   def correct
     gig = Gig.find(params[:id])
     PastGigCorrection.new(gig: gig, admin: current_user, params: correction_params).apply!
+    request = gig.faculty_request
+    record_history("corrected", "Corrected #{request.class_name} on #{HistoryEntry.at(request.starts_at)}: " \
+      "#{gig.gig_corrections.last&.summary}", series_id: request.request_series_id, note: correction_params[:note])
     render json: admin_json(gig.reload)
   rescue PastGigCorrection::Error => e
     render json: { errors: [e.message] }, status: :unprocessable_content

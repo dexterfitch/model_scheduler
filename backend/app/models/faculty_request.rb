@@ -100,26 +100,20 @@ class FacultyRequest < ApplicationRecord
     end
   end
 
-  # Cancels the date: booked models are released (paid if it's the same day) and
-  # the date is archived, or deleted if it never had a booking. Status changes only,
-  # so dates saved under older rules can still be cancelled. Returns whether the
-  # cancellation was same-day.
+  # Cancels the date: booked models are released (paid if it's the same day) and the
+  # date is archived, kept so admins can still see what was cancelled. Status changes
+  # only, so dates saved under older rules can still be cancelled. Returns whether
+  # the cancellation was same-day.
   def cancel_with_billing!
     is_late_cancel = starts_at.to_date == Date.current
 
     transaction do
       booked = confirmed_gigs.includes(:art_model_availability).to_a
 
-      if booked.any?
-        update_columns(status: FacultyRequest.statuses[:archived], updated_at: Time.current)
-        booked.each do |gig|
-          gig.update_columns(status: Gig.statuses[:cancelled], billable: is_late_cancel, updated_at: Time.current)
-          gig.art_model_availability.update_columns(status: ArtModelAvailability.statuses[:active], updated_at: Time.current)
-        end
-      elsif gigs.exists?
-        update_columns(status: FacultyRequest.statuses[:archived], updated_at: Time.current)
-      else
-        destroy!
+      update_columns(status: FacultyRequest.statuses[:archived], updated_at: Time.current)
+      booked.each do |gig|
+        gig.update_columns(status: Gig.statuses[:cancelled], billable: is_late_cancel, updated_at: Time.current)
+        gig.art_model_availability.update_columns(status: ArtModelAvailability.statuses[:active], updated_at: Time.current)
       end
     end
 
