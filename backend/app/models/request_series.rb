@@ -15,6 +15,7 @@ class RequestSeries < ApplicationRecord
   ].freeze
 
   before_validation :normalize_preferences
+  before_validation :normalize_blank_text
 
   validates :class_name, presence: true
   validates :department, presence: true
@@ -120,6 +121,12 @@ class RequestSeries < ApplicationRecord
   end
 
   private
+
+  # Empty notes and room are saved as nothing, so blank text sent back by a form isn't a change.
+  def normalize_blank_text
+    self.notes = notes.presence
+    self.room_number = room_number.presence
+  end
 
   # Blank preferences mean Any; genitalia only applies to nude classes.
   def normalize_preferences

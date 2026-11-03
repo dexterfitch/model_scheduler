@@ -55,12 +55,33 @@ RSpec.describe "History", type: :request do
     it "records which details changed, with the note" do
       patch "/request_series/#{series.id}", params: { request_series: { room_number: "305", notes: "Bring easels" }, note: "Moved rooms" },
         headers: auth_headers(admin), as: :json
-      expect(history.first).to include("summary" => "Edited Anatomy Lab: room, notes.", "note" => "Moved rooms")
+      expect(history.first).to include("summary" => "Edited Anatomy Lab: room changed from 201 to 305; notes changed.", "note" => "Moved rooms")
     end
 
-    it "records nothing when nothing changed" do
-      patch "/request_series/#{series.id}", params: { request_series: { room_number: "201" } }, headers: auth_headers(admin), as: :json
+    it "says what short details were before and after" do
+      patch "/request_series/#{series.id}", params: { request_series: { class_name: "Anatomy II", building: "Fox", models_needed: 2 } },
+        headers: auth_headers(admin), as: :json
+      expect(history.first["summary"]).to eq(
+        "Edited Anatomy II: class name changed from Anatomy Lab to Anatomy II; building changed from Main to Fox; " \
+        "number of models changed from 1 to 2."
+      )
+    end
+
+    it "says (none) for a room that was blank" do
+      series.update_columns(room_number: nil)
+      patch "/request_series/#{series.id}", params: { request_series: { room_number: "305" } }, headers: auth_headers(admin), as: :json
+      expect(history.first["summary"]).to eq("Edited Anatomy Lab: room changed from (none) to 305.")
+    end
+
+    it "records nothing when nothing changed, even if empty notes are sent back as blank text" do
+      patch "/request_series/#{series.id}", params: { request_series: { room_number: "201", notes: "" } }, headers: auth_headers(admin), as: :json
       expect(history).to be_empty
+    end
+
+    it "doesn't count blank notes saved under older rules as a change" do
+      series.update_columns(notes: "")
+      patch "/request_series/#{series.id}", params: { request_series: { room_number: "305", notes: "" } }, headers: auth_headers(admin), as: :json
+      expect(history.first["summary"]).to eq("Edited Anatomy Lab: room changed from 201 to 305.")
     end
 
     it "records a date moved, from and to" do

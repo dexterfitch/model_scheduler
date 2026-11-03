@@ -4,11 +4,14 @@
 class RequestSeriesController < ApplicationController
   MAX_DATES_PER_SERIES = 50
   PREFERENCE_FIELDS = %w[pref_skin_tone pref_gender pref_body_type pref_genitalia].freeze
-  # How each kind of change to a class is named in History, in the order listed.
+  # How each kind of change to a class is described in History, in this order:
+  # short details with their before and after values, longer ones just as changed.
   EDITED_FIELDS = [
-    [%w[class_name], "class name"], [%w[department], "department"], [%w[building], "building"],
-    [%w[room_number], "room"], [%w[model_mode], "nudity"], [%w[models_needed], "number of models"],
-    [PREFERENCE_FIELDS + %w[model_slots], "preferences"], [%w[notes], "notes"], [%w[user_id], "faculty member"]
+    [%w[class_name], "class name", :values], [%w[department], "department", :values],
+    [%w[building], "building", :values], [%w[room_number], "room", :values],
+    [%w[model_mode], "nudity", :values], [%w[models_needed], "number of models", :values],
+    [PREFERENCE_FIELDS + %w[model_slots], "preferences", :changed], [%w[notes], "notes", :changed],
+    [%w[user_id], "faculty member", :people]
   ].freeze
   before_action -> { require_role(:admin, :faculty) }, except: [:available_for_model]
   before_action -> { require_role(:admin, :model) }, only: [:available_for_model]
@@ -197,10 +200,10 @@ class RequestSeriesController < ApplicationController
     end
 
     slots_before = @series.model_slots.map { |s| s.attributes.slice(*PREFERENCE_FIELDS) }
-    edited = []
+    edited = {}
     ActiveRecord::Base.transaction do
       @series.update!(series_params)
-      edited = @series.saved_changes.keys
+      edited = @series.saved_changes.reject { |key, (before, after)| key == "updated_at" || before.presence == after.presence }
 
       changed_keys = series_params.keys.map(&:to_s)
       changed_keys |= ["pref_genitalia"] if changed_keys.include?("model_mode")
@@ -221,9 +224,9 @@ class RequestSeriesController < ApplicationController
       @series.update_status!
     end
 
-    edited << "model_slots" if @series.model_slots.reload.map { |s| s.attributes.slice(*PREFERENCE_FIELDS) } != slots_before
-    words = EDITED_FIELDS.filter_map { |fields, word| word if (fields & edited).any? }.uniq
-    record_history("edited", "Edited #{@series.class_name}: #{words.join(', ')}.", series_id: @series.id) if words.any?
+    edited["model_slots"] = true if @series.model_slots.reload.map { |s| s.attributes.slice(*PREFERENCE_FIELDS) } != slots_before
+    described = describe_edits(edited)
+    record_history("edited", "Edited #{@series.class_name}: #{described.join('; ')}.", series_id: @series.id) if described.any?
 
     render json: @series
   rescue ActiveRecord::RecordInvalid => e
@@ -262,6 +265,22 @@ class RequestSeriesController < ApplicationController
   end
 
   private
+
+  # The changes to a class in words, for History, like "room changed from 201 to 305".
+  def describe_edits(edited)
+    EDITED_FIELDS.filter_map do |fields, label, kind|
+      key = fields.find { |field| edited.key?(field) }
+      next unless key
+
+      before, after = edited[key]
+      case kind
+      when :changed then "#{label} changed"
+      when :people
+        "#{label} changed from #{HistoryEntry.name_of(User.find_by(id: before))} to #{HistoryEntry.name_of(User.find_by(id: after))}"
+      else "#{label} changed from #{before.presence || '(none)'} to #{after.presence || '(none)'}"
+      end
+    end
+  end
 
   # Names of models booked on the class who only pose clothed.
   def clothed_only_models_booked_on(series)
