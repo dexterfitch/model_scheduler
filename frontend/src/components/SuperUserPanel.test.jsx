@@ -260,3 +260,29 @@ describe('the Error Log', () => {
     expect(await screen.findByText('Error Log')).toBeInTheDocument();
   });
 });
+
+describe('the user list', () => {
+  it('keeps admins, then models, then faculty, each in alphabetical order by first name', async () => {
+    const people = [
+      { id: 10, role: 'faculty', first_name: 'Zoe',   last_name: 'Park',  email: 'zpark@mica.edu' },
+      { id: 11, role: 'model',   first_name: '🧦 Test', last_name: 'Tester', email: 'socktester@mica.edu' },
+      { id: 12, role: 'admin',   first_name: 'Pat',   last_name: 'Reyes', email: 'preyes@mica.edu' },
+      { id: 13, role: 'model',   first_name: 'devon', last_name: 'Price', email: 'dprice@mica.edu' },
+      { id: 14, role: 'faculty', first_name: 'Alice', last_name: 'Chen',  email: 'achen@mica.edu' },
+      { id: 15, role: 'model',   first_name: 'Riley', last_name: 'Okafor', email: 'rokafor@mica.edu' },
+      { id: 16, role: 'admin',   first_name: 'Aaron', last_name: 'Bell',  email: 'abell@mica.edu' },
+    ];
+    api.get.mockResolvedValue({ data: [...people, me] });
+    renderPanel();
+    await screen.findAllByText('socktester@mica.edu');
+    const table = screen.getAllByRole('table').find(t => within(t).queryByText('Current Role'));
+    const emails = within(table).getAllByRole('row').slice(1)
+      .map(row => within(row).getAllByRole('cell')[1].textContent);
+    expect(emails).toEqual([
+      'dfitch@mica.edu',                      // the SuperUser first
+      'abell@mica.edu', 'preyes@mica.edu',   // admins
+      'dprice@mica.edu', 'rokafor@mica.edu', 'socktester@mica.edu', // models; the sock files under T
+      'achen@mica.edu', 'zpark@mica.edu',    // faculty
+    ]);
+  });
+});

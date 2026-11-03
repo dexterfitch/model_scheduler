@@ -13,7 +13,7 @@ import { formatDateTime, formatTime, roundToNearest5, findActiveGigForAvailabili
 import { GENDER_IDENTITIES, SKIN_TONE_ANSWERS } from "../utils/constants";
 import ModelBodyFields from "./ModelBodyFields";
 import SkinTonePicker from "./SkinTonePicker";
-import { extractErrorMessages } from "../utils/formatters";
+import { extractErrorMessages, byFirstName } from "../utils/formatters";
 import { useDialog } from "./DialogProvider";
 import ErrorLog from "./ErrorLog";
 import { useRevealMessage } from '../utils/revealMessage';
@@ -300,13 +300,12 @@ const SuperUserPanel = ({ currentUser, refreshUser }) => {
 
   const roleOrder = { admin: 0, model: 1, faculty: 2 };
 
+  /** SuperUsers, then admins, models and faculty, each group A to Z by first name. */
   const sortedUsers = [...users].sort((a, b) => {
     const aRank = a.superuser ? -1 : (roleOrder[a.role] ?? 99);
     const bRank = b.superuser ? -1 : (roleOrder[b.role] ?? 99);
     if (aRank !== bRank) return aRank - bRank;
-    const aName = `${a.first_name} ${a.last_name}`.toLowerCase();
-    const bName = `${b.first_name} ${b.last_name}`.toLowerCase();
-    return aName.localeCompare(bName);
+    return byFirstName(a, b);
   });
 
   if (!currentUser?.superuser) return null;

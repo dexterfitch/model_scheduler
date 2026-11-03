@@ -4,6 +4,12 @@
 
 import { CALENDAR_COLORS } from './constants';
 
+/** A person's name for sorting: first name then last, ignoring case and any leading emoji. */
+export const sortName = (u) => `${u.first_name || ''} ${u.last_name || ''}`.replace(/^[^\p{L}\p{N}]+/u, '').toLocaleLowerCase();
+
+/** Compares two people by first name for sort(), so a sock's emoji doesn't put it first. */
+export const byFirstName = (a, b) => sortName(a).localeCompare(sortName(b));
+
 /** Text color that's readable on a calendar event's background. */
 export const calendarTextColor = (background) =>
   background === CALENDAR_COLORS.blue ? '#ffffff' : '#000000';
