@@ -12,6 +12,7 @@ import { useDialog } from "./DialogProvider";
 import { formatSkinTone, extractErrorMessages } from "../utils/formatters";
 import { formatTimeForInput, findActiveGigForAvailability, availabilityEvents, availabilitySavedMessage } from "../utils/time";
 import GigDates from "./GigDates";
+import { useRetireModel } from "./useRetireModel";
 import StatusToast from "./StatusToast";
 import { useRevealMessage } from '../utils/revealMessage';
 
@@ -19,7 +20,8 @@ import { useRevealMessage } from '../utils/revealMessage';
 function ModelDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { confirm, notify } = useDialog();
+  const { confirm } = useDialog();
+  const retireOrBringBack = useRetireModel();
   const [user, setUser] = useState(null);
   const [availabilities, setAvailabilities] = useState([]);
   const [error, setError] = useState('');
@@ -67,25 +69,11 @@ function ModelDetail() {
    * Says why if it can't be done yet.
    */
   const handleRetire = async () => {
-    const name = `${user.first_name} ${user.last_name}`;
-    if (!user.retired_at) {
-      const confirmed = await confirm({
-        title: `Retire ${name}?`,
-        message: `${user.first_name} won't be offered for classes, counted as free, or emailed by Notify Models, and can't add free time. Their upcoming free time is removed; past gigs stay. You can bring them back later.`,
-        confirmLabel: 'Retire Model',
-        cancelLabel: 'Go Back',
-        danger: true
-      });
-      if (!confirmed) return;
-    }
-    try {
-      const res = await api.post(`/users/${user.id}/${user.retired_at ? 'reinstate' : 'retire'}`);
-      setUser(res.data);
-      setPageSuccess(res.data.retired_at ? `${name} is retired.` : `${name} is back in the pool.`);
-      api.get(`/art_model_availabilities?user_id=${id}`).then(r => setAvailabilities(r.data)).catch(() => {});
-    } catch (err) {
-      notify({ title: user.retired_at ? "Couldn't bring them back" : "Couldn't retire this model", message: extractErrorMessages(err, 'Please try again.') });
-    }
+    const result = await retireOrBringBack(user);
+    if (!result) return;
+    setUser(result.user);
+    setPageSuccess(result.message);
+    api.get(`/art_model_availabilities?user_id=${id}`).then(r => setAvailabilities(r.data)).catch(() => {});
   };
 
   /** Opens Add Availability on the clicked day. */

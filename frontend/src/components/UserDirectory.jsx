@@ -1,18 +1,44 @@
 /**
- * The Directory: models and faculty, with links to each model's page. Retired models
- * come after the others, marked Retired; people whose data was removed aren't listed.
+ * The Directory: models and faculty, with links to each model's page, and Retire or
+ * Bring Back for each model. Retired models come after the others, marked Retired;
+ * people whose data was removed aren't listed.
  */
 
 import React, { useState, useEffect } from "react";
-import { Container, Table, Badge, Tab, Tabs } from "react-bootstrap";
+import { Container, Table, Badge, Tab, Tabs, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 import { formatSkinTone } from "../utils/formatters";
+import { useRetireModel } from "./useRetireModel";
+import StatusToast from "./StatusToast";
 
 /** The Directory page, on Models and Faculty tabs. */
 function UserDirectory() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [success, setSuccess] = useState('');
+  const retireOrBringBack = useRetireModel();
+
+  /** Retires a model or brings them back, then updates their place in the list. */
+  const handleRetire = async (person) => {
+    const result = await retireOrBringBack(person);
+    if (!result) return;
+    setUsers(prev => prev.map(u => (u.id === person.id ? result.user : u)));
+    setSuccess(result.message);
+  };
+
+  /** The Retire or Bring Back button for a model. */
+  const retireButton = (u, extraClass = '') => (
+    <Button
+      variant={u.retired_at ? 'outline-success' : 'outline-secondary'}
+      size="sm"
+      className={extraClass}
+      aria-label={`${u.retired_at ? 'Bring Back' : 'Retire'} ${u.first_name} ${u.last_name}`}
+      onClick={() => handleRetire(u)}
+    >
+      {u.retired_at ? 'Bring Back' : 'Retire'}
+    </Button>
+  );
 
   useEffect(() => {
     api.get("/users").then(res => {
@@ -28,6 +54,7 @@ function UserDirectory() {
 
   return (
     <Container className="py-4">
+      <StatusToast message={success} onClose={() => setSuccess('')} />
       <h2 className="mb-4">User Directory</h2>
 
       {loading && <p className="text-muted" role="status">Loading…</p>}
@@ -72,9 +99,12 @@ function UserDirectory() {
                         : <Badge bg="success">Clothed Only</Badge>}
                     </td>
                     <td className="align-middle">
-                      <Link to={`/models/${u.id}`} className="btn btn-sm btn-outline-primary">
-                        View Availability
-                      </Link>
+                      <div className="d-flex flex-column gap-1">
+                        <Link to={`/models/${u.id}`} className="btn btn-sm btn-outline-primary">
+                          View Availability
+                        </Link>
+                        {retireButton(u)}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -118,9 +148,12 @@ function UserDirectory() {
                       {u.body_type && <Badge bg="dark" text="light" className="me-1">{u.body_type} Build</Badge>}
                       {u.willing_to_model_nude && u.genitalia && <Badge bg="dark" text="light">{u.genitalia} Genitalia</Badge>}
                     </div>
-                    <Link to={`/models/${u.id}`} className="btn btn-sm btn-outline-primary w-100">
-                      View Availability
-                    </Link>
+                    <div className="d-flex gap-2">
+                      <Link to={`/models/${u.id}`} className="btn btn-sm btn-outline-primary flex-grow-1">
+                        View Availability
+                      </Link>
+                      {retireButton(u)}
+                    </div>
                   </div>
                 </div>
               ))
