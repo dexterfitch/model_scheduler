@@ -14,7 +14,7 @@ import api from "../services/api";
 import styles from "./AllRequests.module.css";
 import { useDialog } from "./DialogProvider";
 import { formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateShort, firstStartsAt, formatTimeForInput, newClassTimes, endAfterStart, oneYearAgo } from "../utils/time";
+import { roundToNearest5, formatTime, formatTimeShort, formatDateShort, formatDateWithWeekday, firstStartsAt, formatTimeForInput, newClassTimes, endAfterStart, oneYearAgo } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 import { payStatusLabel, wasCorrected } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
@@ -430,8 +430,27 @@ function AllRequests() {
     );
   };
 
-  /** One date of a class: status, time, booked models or record, tags and links. */
+    /** A date's day, like Tue, Nov 10, with the year added when it isn't this year. */
+  const dayLabel = (iso) => {
+    const d = new Date(iso);
+    return d.getFullYear() === new Date().getFullYear() ? formatDateWithWeekday(iso) : `${formatDateWithWeekday(iso)}, ${d.getFullYear()}`;
+  };
+
+  /** The colour of a date's left rule: green booked, orange pending, red needing attention, grey past or cancelled. */
+  const dateTone = (req) => {
+    if (req.status === 'archived' || hasEnded(req)) return 'border-secondary';
+    if (req.needs_attention) return 'border-danger';
+    return req.status === 'matched' ? 'border-success' : 'border-warning';
+  };
+
+  /**
+   * One date of a class as its own block, marked by a coloured rule down its left
+   * side: the day and time, then its tags (status, models booked, who could take it,
+   * Find Model), then each booked model with Release, or the record of a date that
+   * started.
+   */
   const renderDateRow = (req, showBadge, isSingle, s) => {
+    const open = req.status === 'pending' && !hasStarted(req);
     const tags = [
       showBadge && req.status === 'matched' && <Badge key="status" bg="success" className={styles.badge}>Matched</Badge>,
       showBadge && req.status === 'pending' && <Badge key="status" bg="warning" text="dark" className={styles.badge}>Pending</Badge>,
@@ -447,53 +466,42 @@ function AllRequests() {
           Needs Attention: {req.dropped_out_model_name || 'a model'} dropped out
         </Badge>
       ),
+      open && <React.Fragment key="coverage">{renderCoverage(req, s)}</React.Fragment>,
+      open && showBadge && (
+        <button key="find" type="button" className="btn btn-link btn-sm p-0 align-baseline" onClick={() => navigate(`/gigs/new/${req.id}`)}>
+          Find Model
+        </button>
+      ),
     ].filter(Boolean);
 
     return (
-      <div key={req.id} className="small text-muted mb-2">
-        {tags.length > 0 && <div className="d-flex flex-wrap gap-1 mb-1">{tags}</div>}
-        <div>
-          <i className="bi bi-calendar3 me-1" aria-hidden="true"></i>
-          <span className="text-nowrap">{formatDateShort(req.starts_at)}</span>
-          {' '}&bull;{' '}
-          <span className="text-nowrap">{formatTime(req.starts_at)} &ndash; {formatTime(req.ends_at)}</span>
+      <div key={req.id} data-date-block className={`small text-muted mb-3 ps-2 border-start border-3 ${dateTone(req)}`}>
+        <div className="text-body">
+          <span className="fw-semibold text-nowrap">{dayLabel(req.starts_at)}</span>
+          {' · '}
+          <span className="text-nowrap">{formatTimeShort(req.starts_at)} &ndash; {formatTimeShort(req.ends_at)}</span>
         </div>
+        {tags.length > 0 && <div className="mt-1 d-flex flex-wrap align-items-center gap-1 column-gap-2">{tags}</div>}
         {req.status !== 'archived' && hasStarted(req) && renderPastGigs(req, s)}
-        {req.status !== 'archived' && !hasStarted(req) && (req.confirmed_gigs || []).length > 0 && (
-          req.confirmed_gigs.map(gig => (
-            <div key={gig.id} className="ms-3 mt-1 d-flex flex-wrap align-items-baseline column-gap-2">
-              <span className="text-nowrap">
-                <i className="bi bi-person me-1" aria-hidden="true"></i>
-                {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-              </span>
-              {(!isSingle || (req.models_needed || 1) > 1) && !hasEnded(req) && (
-                <button
-                  type="button"
-                  className="btn btn-link btn-sm p-0 align-baseline"
-                  title="Release this model from only this date and find someone else"
-                  aria-label={`Release ${gig.art_model_availability?.user?.first_name} ${gig.art_model_availability?.user?.last_name} from this date and find someone else`}
-                  onClick={() => handleFindNewModel(gig)}
-                >
-                  Release
-                </button>
-              )}
-            </div>
-          ))
-        )}
-        {req.status === 'pending' && !hasStarted(req) && (
-          <div className="ms-3 mt-1 d-flex flex-wrap align-items-baseline column-gap-2 row-gap-1">
-            {renderCoverage(req, s)}
-            {showBadge && (
+        {req.status !== 'archived' && !hasStarted(req) && (req.confirmed_gigs || []).map(gig => (
+          <div key={gig.id} className="mt-1 d-flex flex-wrap align-items-baseline column-gap-2">
+            <span className="text-nowrap">
+              <i className="bi bi-person me-1" aria-hidden="true"></i>
+              {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
+            </span>
+            {(!isSingle || (req.models_needed || 1) > 1) && !hasEnded(req) && (
               <button
                 type="button"
                 className="btn btn-link btn-sm p-0 align-baseline"
-                onClick={() => navigate(`/gigs/new/${req.id}`)}
+                title="Release this model from only this date and find someone else"
+                aria-label={`Release ${gig.art_model_availability?.user?.first_name} ${gig.art_model_availability?.user?.last_name} from this date and find someone else`}
+                onClick={() => handleFindNewModel(gig)}
               >
-                Find Model
+                Release
               </button>
             )}
           </div>
-        )}
+        ))}
       </div>
     );
   };
@@ -652,17 +660,16 @@ function AllRequests() {
       <Table hover responsive className="shadow-sm bg-white align-middle mb-0">
         <thead className="bg-light">
           <tr>
-            <th>Date(s)</th>
-            <th>Class / Dept</th>
-            <th>Faculty</th>
-            <th>Reqs</th>
-            {showActionColumn && <th>Action</th>}
+            <th style={{ width: showActionColumn ? '34%' : '44%' }}>Date(s)</th>
+            <th style={{ width: showActionColumn ? '24%' : '34%' }}>Class</th>
+            <th style={{ width: showActionColumn ? '17%' : '22%' }}>Reqs</th>
+            {showActionColumn && <th style={{ width: '25%' }}>Action</th>}
           </tr>
         </thead>
         <tbody>
           {seriesList.length === 0 ? (
             <tr>
-              <td colSpan={showActionColumn ? 5 : 4} className="text-center py-3 text-muted">None.</td>
+              <td colSpan={showActionColumn ? 4 : 3} className="text-center py-3 text-muted">None.</td>
             </tr>
           ) : (
             seriesList.map(s => {
@@ -676,10 +683,13 @@ function AllRequests() {
                     {displayRequests.map(req => renderDateRow(req, matchedCount > 0 && pendingCount > 0, isSingle, s))}
                   </td>
                   <td>
+                    <div className="small text-muted">
+                      <i className="bi bi-person-workspace me-1" aria-hidden="true"></i>
+                      {faculty?.first_name} {faculty?.last_name}
+                    </div>
                     <div className="fw-bold">{s.class_name}</div>
                     {renderSeriesInfo(s, showAction, allRequests)}
                   </td>
-                  <td>{faculty?.first_name} {faculty?.last_name}</td>
                   <td>
                     {s.model_mode === 'nude'
                       ? <span className="text-danger fw-bold">Nude</span>

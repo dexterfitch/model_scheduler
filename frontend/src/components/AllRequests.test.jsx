@@ -9,7 +9,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import AllRequests from './AllRequests';
 import api from '../services/api';
 import { daysFromNow } from '../test/dates';
-import { formatDateWithWeekday, formatDateShort, formatTime } from '../utils/time';
+import { formatDateWithWeekday, formatTime, formatTimeShort } from '../utils/time';
 import { renderWithDialogs } from '../test/render';
 
 vi.mock('../services/api', () => ({
@@ -222,18 +222,38 @@ describe('AllRequests (admin requests page)', () => {
     for (const link of links) expect(link.tagName).toBe('BUTTON');
   });
 
-  it("puts each date's status above its date and time, which wrap between the date and the time, not mid-time", async () => {
+  it('names the faculty member above the class, with no Faculty column, and gives the dates the widest column', async () => {
+    renderPage();
+    const [table] = await screen.findAllByRole('table');
+    const headers = within(table).getAllByRole('columnheader');
+    expect(headers.map(h => h.textContent)).toEqual(['Date(s)', 'Class', 'Reqs', 'Action']);
+    const widths = headers.map(h => parseFloat(h.style.width));
+    expect(widths[0]).toBe(Math.max(...widths));
+
+    const classCell = within(table).getAllByRole('row')[1].querySelectorAll('td')[1];
+    const lines = [...classCell.children].map(el => el.textContent);
+    expect(lines[0]).toMatch(/Priya Nair/);
+    expect(lines[1]).toBe('Figure Drawing I');
+  });
+
+  it('shows each date as its own block: day and time first, then its tags, then who is booked', async () => {
     const booked = { ...series.faculty_requests[0], id: 11, status: 'matched' };
     const open = { ...series.faculty_requests[0], id: 12, status: 'pending', confirmed_gigs: [],
                    starts_at: daysFromNow(19, 15), ends_at: daysFromNow(19, 17) };
     api.get.mockResolvedValue({ data: [{ ...series, models_needed: 1, faculty_requests: [booked, open] }] });
     renderPage();
     const [matched] = await screen.findAllByText('Matched', { selector: '.badge' });
-    expect(matched.parentElement).not.toHaveTextContent(formatDateShort(booked.starts_at));
+    const block = matched.closest('[data-date-block]');
+    const [dayLine, tagLine, modelLine] = block.children;
 
-    const [time] = screen.getAllByText(`${formatTime(open.starts_at)} – ${formatTime(open.ends_at)}`);
-    expect(time).toHaveClass('text-nowrap');
-    expect(screen.getAllByText(formatDateShort(open.starts_at))[0]).toHaveClass('text-nowrap');
+    expect(dayLine).toHaveTextContent(formatDateWithWeekday(booked.starts_at));
+    expect(within(dayLine).getByText(`${formatTimeShort(booked.starts_at)} – ${formatTimeShort(booked.ends_at)}`)).toHaveClass('text-nowrap');
+    expect(tagLine).toContainElement(matched);
+    expect(modelLine).toHaveTextContent('Alex Booked');
+    expect(block).toHaveClass('border-success');
+
+    const [pending] = screen.getAllByText('Pending', { selector: '.badge' });
+    expect(pending.closest('[data-date-block]')).toHaveClass('border-warning');
   });
 
   it("puts a pending date's tag and Find Model on their own line, like a booked model's Release", async () => {
