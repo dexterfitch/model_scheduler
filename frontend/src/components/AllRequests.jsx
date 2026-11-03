@@ -361,11 +361,11 @@ function AllRequests() {
   const renderCoverage = (req, s) => {
     if (!pool || !s) return null;
     const { free, matching } = dateCoverage(req, s, pool);
-    if (free.length === 0) return <Badge bg="danger" className={`ms-2 ${styles.badge}`}>No models free</Badge>;
+    if (free.length === 0) return <Badge bg="danger" className={`${styles.badge}`}>No models free</Badge>;
     if (matching.length === 0) {
-      return <Badge bg="warning" text="dark" className={`ms-2 ${styles.badge}`}>No matching models free · {free.length} free</Badge>;
+      return <Badge bg="warning" text="dark" className={`${styles.badge}`}>No matching models free · {free.length} free</Badge>;
     }
-    return <Badge bg="light" text="dark" className={`ms-2 border ${styles.badge}`}>{matching.length} matching free</Badge>;
+    return <Badge bg="light" text="dark" className={`border ${styles.badge}`}>{matching.length} matching free</Badge>;
   };
 
   /** The class's dates that still need a model and haven't started. */
@@ -479,19 +479,19 @@ function AllRequests() {
           </div>
         ))
       )}
-      {req.status === 'pending' && !hasStarted(req) && renderCoverage(req, s)}
-      {req.status === 'pending' && showBadge && !hasEnded(req) && (
-        <>
-          {' ('}
-          <button
-            type="button"
-            className="btn btn-link p-0 align-baseline"
-            onClick={() => navigate(`/gigs/new/${req.id}`)}
-          >
-            Find Model
-          </button>
-          {')'}
-        </>
+      {req.status === 'pending' && !hasStarted(req) && (
+        <div className="ms-3 mt-1 d-flex flex-wrap align-items-baseline column-gap-2 row-gap-1">
+          {renderCoverage(req, s)}
+          {showBadge && (
+            <button
+              type="button"
+              className="btn btn-link btn-sm p-0 align-baseline"
+              onClick={() => navigate(`/gigs/new/${req.id}`)}
+            >
+              Find Model
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

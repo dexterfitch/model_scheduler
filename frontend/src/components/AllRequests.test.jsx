@@ -222,6 +222,17 @@ describe('AllRequests (admin requests page)', () => {
     for (const link of links) expect(link.tagName).toBe('BUTTON');
   });
 
+  it("puts a pending date's tag and Find Model on their own line, like a booked model's Release", async () => {
+    const booked = { ...series.faculty_requests[0], id: 11, status: 'matched' };
+    const open = { ...series.faculty_requests[0], id: 12, status: 'pending', confirmed_gigs: [],
+                   starts_at: daysFromNow(19, 15), ends_at: daysFromNow(19, 17) };
+    api.get.mockResolvedValue({ data: [{ ...series, models_needed: 1, faculty_requests: [booked, open] }] });
+    renderPage();
+    const find = (await screen.findAllByRole('button', { name: 'Find Model' })).find(b => b.classList.contains('btn-link'));
+    expect(find.parentElement.tagName).toBe('DIV');
+    expect(find.parentElement.textContent).not.toMatch(/[()]/);
+  });
+
   it("explains why a model couldn't be released", async () => {
     api.delete.mockRejectedValue({ response: { data: { error: "This session has already started, so the model can't be released from it." } } });
     renderPage();
