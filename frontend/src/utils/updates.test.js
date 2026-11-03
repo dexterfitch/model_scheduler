@@ -33,7 +33,7 @@ describe('updateMessage', () => {
   });
 
   it('has words for every kind of update', () => {
-    for (const kind of ['booked', 'class_booked', 'released', 'date_cancelled', 'class_cancelled', 'dropped_out', 'model_cancelled', 'date_moved']) {
+    for (const kind of ['booked', 'class_booked', 'released', 'date_cancelled', 'class_cancelled', 'dropped_out', 'model_cancelled', 'date_moved', 'class_edited', 'class_date_moved', 'class_date_added']) {
       expect(updateMessage(update(kind, { about: 'Jordan Ellis' }))).toContain('Anatomy Lab');
     }
   });
@@ -44,6 +44,15 @@ describe('error updates', () => {
     const error = { id: 9, kind: 'error', title: 'RuntimeError: boom', dates: [] };
     expect(updateMessage(error)).toBe('Something went wrong in the app: RuntimeError: boom. See the Error Log in the SuperUser Panel.');
     expect(updateLink(error)).toBe('/superuser');
+  });
+});
+
+describe("updates about a faculty member's class", () => {
+  it('say what the coordinator changed', () => {
+    expect(updateMessage(update('class_edited', { about: 'room changed from 201 to 305' })))
+      .toBe('The coordinator changed Anatomy Lab: room changed from 201 to 305.');
+    expect(updateMessage(update('class_date_moved'))).toMatch(/^The coordinator moved a date of Anatomy Lab: it's now on /);
+    expect(updateMessage(update('class_date_added'))).toMatch(/^The coordinator added a date to Anatomy Lab: /);
   });
 });
 

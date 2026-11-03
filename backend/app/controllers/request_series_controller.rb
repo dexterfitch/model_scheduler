@@ -164,7 +164,8 @@ class RequestSeriesController < ApplicationController
   # Changes a class's details or preferences. Only dates still to come pick up the
   # changes, so past records stay as they were. Faculty can't change a class once a
   # model is booked; nobody can switch to nude while a clothed-only model is
-  # booked, or ask for fewer models than are already booked.
+  # booked, or ask for fewer models than are already booked. What changed is recorded
+  # in History, and the faculty member is told when someone else changed it.
   def update
     @series = RequestSeries.find(params[:id])
 
@@ -226,7 +227,10 @@ class RequestSeriesController < ApplicationController
 
     edited["model_slots"] = true if @series.model_slots.reload.map { |s| s.attributes.slice(*PREFERENCE_FIELDS) } != slots_before
     described = describe_edits(edited)
-    record_history("edited", "Edited #{HistoryEntry.class_label(@series)}: #{described.join('; ')}.", series_id: @series.id) if described.any?
+    if described.any?
+      record_history("edited", "Edited #{HistoryEntry.class_label(@series)}: #{described.join('; ')}.", series_id: @series.id)
+      Notifier.class_edited(@series, described.join("; "), actor: current_user)
+    end
 
     render json: @series
   rescue ActiveRecord::RecordInvalid => e

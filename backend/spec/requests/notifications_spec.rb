@@ -181,4 +181,36 @@ RSpec.describe "Updates", type: :request do
       expect(Time.zone.parse(moved["dates"].first)).to eq(new_start)
     end
   end
+
+  describe "an admin changing a faculty member's class" do
+    it "tells the faculty member what changed in the class's details" do
+      date
+      patch "/request_series/#{series.id}", params: { request_series: { room_number: "305" } }, headers: auth_headers(admin), as: :json
+      edited = updates_for(faculty).find { |n| n["kind"] == "class_edited" }
+      expect(edited).to include("title" => "Anatomy Lab", "about" => a_string_including("room changed from"))
+      expect(edited["about"]).to end_with("to 305")
+    end
+
+    it "tells the faculty member when one of their dates moves" do
+      new_start = 10.days.from_now.change(hour: 13)
+      patch "/faculty_requests/#{date.id}", params: { faculty_request: { starts_at: new_start, ends_at: new_start + 2.hours } },
+        headers: auth_headers(admin), as: :json
+      moved = updates_for(faculty).find { |n| n["kind"] == "class_date_moved" }
+      expect(Time.zone.parse(moved["dates"].first)).to eq(new_start)
+    end
+
+    it "tells the faculty member when a date is added to their class" do
+      post "/faculty_requests", params: { faculty_request: { request_series_id: series.id, user_id: faculty.id, class_name: "Anatomy Lab",
+        department: "Drawing", building: "Main", model_mode: "clothed", models_needed: 1,
+        starts_at: 9.days.from_now.change(hour: 10), ends_at: 9.days.from_now.change(hour: 12) } },
+        headers: auth_headers(admin), as: :json
+      expect(updates_for(faculty).map { |n| n["kind"] }).to include("class_date_added")
+    end
+
+    it "doesn't tell faculty about changes they made themselves" do
+      date
+      patch "/request_series/#{series.id}", params: { request_series: { room_number: "305" } }, headers: auth_headers(faculty), as: :json
+      expect(updates_for(faculty)).to be_empty
+    end
+  end
 end

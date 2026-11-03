@@ -15,6 +15,7 @@ class FacultyRequestsController < ApplicationController
   end
 
   # Adds a date, to one of the faculty member's own classes if a series is given.
+  # Recorded in History; the faculty member is told when someone else added it.
   def create
     @request = FacultyRequest.new(request_params)
     @request.user_id = current_user.id unless current_user.role_admin?
@@ -27,6 +28,7 @@ class FacultyRequestsController < ApplicationController
       @request.request_series&.update_status!
       record_history("added_date", "Added a date to #{HistoryEntry.class_label(@request)}: #{HistoryEntry.span(@request.starts_at, @request.ends_at)}.",
         series_id: @request.request_series_id)
+      Notifier.date_added(@request, actor: current_user)
       render json: @request, status: :created
     else
       render json: { errors: @request.errors.full_messages }, status: :unprocessable_content
@@ -35,7 +37,7 @@ class FacultyRequestsController < ApplicationController
 
   # Moves a date to a new day or time. Faculty can only move dates that are still
   # pending and unbooked; the new date must be from tomorrow to four months out.
-  # Models booked on the date are told the new time.
+  # Models booked on the date, and the faculty member, are told the new time.
   def update
     @request = FacultyRequest.find(params[:id])
 

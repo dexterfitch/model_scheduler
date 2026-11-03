@@ -26,6 +26,9 @@ const MESSAGES = {
   dropped_out: (u) => `${u.about} dropped out of ${u.title} ${when(u.dates)}.`,
   model_cancelled: (u) => `The model for ${u.title} cancelled ${when(u.dates)}. The coordinator will find someone else.`,
   date_moved: (u) => `${u.title} moved: it's now ${when(u.dates)}.`,
+  class_edited: (u) => `The coordinator changed ${u.title}: ${u.about}.`,
+  class_date_moved: (u) => `The coordinator moved a date of ${u.title}: it's now ${when(u.dates)}.`,
+  class_date_added: (u) => `The coordinator added a date to ${u.title}: ${when(u.dates)}.`,
 };
 
 /** What an update says. */

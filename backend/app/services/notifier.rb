@@ -55,11 +55,25 @@ class Notifier
     end
   end
 
-  # A booked date's time changed: tells the booked models the new time.
+  # A date's time changed: tells the booked models and the faculty member the new time.
   def self.date_moved(request, actor:)
     confirmed_gigs_on(request).each do |gig|
       tell(gig.art_model_availability.user, "date_moved", request, actor: actor)
     end
+    tell(owner_of(request), "class_date_moved", request, actor: actor)
+  end
+
+  # A date was added to a class: tells the faculty member, when someone else added it.
+  def self.date_added(request, actor:)
+    tell(owner_of(request), "class_date_added", request, actor: actor)
+  end
+
+  # A class's details changed: tells the faculty member what changed, when someone
+  # else changed it. The update is listed under the class's next date.
+  def self.class_edited(series, changes, actor:)
+    date = series.faculty_requests.where.not(status: :archived).order(:starts_at).first ||
+      series.faculty_requests.order(:starts_at).last
+    tell(series.user, "class_edited", date, actor: actor, about: changes.truncate(250)) if date
   end
 
   # The faculty member a class date belongs to.
