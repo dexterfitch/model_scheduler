@@ -13,6 +13,12 @@ class NotificationsController < ApplicationController
     }
   end
 
+  # Deletes every one of the person's updates.
+  def destroy_all
+    current_user.notifications.delete_all
+    head :no_content
+  end
+
   # Marks every one of the person's updates read.
   def read
     current_user.notifications.unread.update_all(read_at: Time.current)

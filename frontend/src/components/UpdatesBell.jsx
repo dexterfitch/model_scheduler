@@ -1,7 +1,7 @@
 /**
  * The Updates button in the navigation bar, with how many updates are new, and the
  * list it opens: what changed in the person's gigs or classes. Opening the list
- * marks everything read. Updates are checked every two minutes and whenever the
+ * marks everything read, and Clear All empties it. Updates are checked every two minutes and whenever the
  * person comes back to the tab.
  */
 
@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { Badge, Button, Offcanvas } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import { useDialog } from './DialogProvider';
 import { updateMessage, updateLink } from '../utils/updates';
 import { formatDateShort } from '../utils/time';
 
@@ -20,6 +21,7 @@ function UpdatesBell({ onNavigate }) {
   const [unread, setUnread] = useState(0);
   const [show, setShow] = useState(false);
   const [newIds, setNewIds] = useState(new Set());
+  const { confirm } = useDialog();
 
   useEffect(() => {
     /** Loads the person's updates; quietly keeps the old ones if that doesn't work. */
@@ -52,6 +54,25 @@ function UpdatesBell({ onNavigate }) {
     }
   };
 
+  /** Deletes every update, after confirming. */
+  const clearAll = async () => {
+    const confirmed = await confirm({
+      title: 'Clear all your updates?',
+      message: 'Every update is removed from this list. New changes will still show up here.',
+      confirmLabel: 'Clear All',
+      cancelLabel: 'Keep Them',
+      danger: true
+    });
+    if (!confirmed) return;
+    try {
+      await api.delete('/notifications');
+      setUpdates([]);
+      setUnread(0);
+    } catch {
+      return;
+    }
+  };
+
   /** Closes the list. */
   const close = () => setShow(false);
 
@@ -73,6 +94,11 @@ function UpdatesBell({ onNavigate }) {
           <Offcanvas.Title id="updates-title" as="h2" className="h5">Updates</Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body>
+          {updates.length > 0 && (
+            <div className="d-flex justify-content-end mb-2">
+              <Button variant="outline-secondary" size="sm" onClick={clearAll}>Clear All</Button>
+            </div>
+          )}
           {updates.length === 0 ? (
             <p className="text-muted">Nothing yet. Changes to your gigs and classes will show up here.</p>
           ) : (

@@ -41,6 +41,15 @@ RSpec.describe "Updates", type: :request do
       expect(response.parsed_body["notifications"].map { |n| n["title"] }).to eq(["Painting II", "Anatomy Lab"])
     end
 
+    it "clears all of the reader's updates, and only theirs" do
+      Notification.add!(user: model, kind: "booked", request: date)
+      Notification.add!(user: faculty, kind: "class_booked", request: date)
+      delete "/notifications", headers: auth_headers(model)
+      expect(response).to have_http_status(:no_content)
+      expect(model.notifications).to be_empty
+      expect(faculty.notifications.count).to eq(1)
+    end
+
     it "marks them all read" do
       Notification.add!(user: model, kind: "booked", request: date)
       post "/notifications/read", headers: auth_headers(model)

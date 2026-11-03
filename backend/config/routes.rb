@@ -33,6 +33,7 @@ Rails.application.routes.draw do
 
   get "notifications", to: "notifications#index"
   post "notifications/read", to: "notifications#read"
+  delete "notifications", to: "notifications#destroy_all"
 
   get "test_data", to: "test_data#show"
   delete "test_data", to: "test_data#destroy"
