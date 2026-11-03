@@ -67,7 +67,20 @@ RSpec.describe "History", type: :request do
       new_start = 10.days.from_now.change(hour: 13)
       patch "/faculty_requests/#{date.id}", params: { faculty_request: { starts_at: new_start, ends_at: new_start + 2.hours }, note: "Faculty asked" },
         headers: auth_headers(admin), as: :json
-      expect(history.first["summary"]).to match(/\AMoved Anatomy Lab from .+ to .+1:00 PM\.\z/)
+      expect(history.first["summary"]).to match(/\AMoved Anatomy Lab from .+10:00 AM . 12:00 PM to .+1:00 PM . 3:00 PM\.\z/)
+    end
+
+    it "shows the end time too, so a change to only the end is clear" do
+      patch "/faculty_requests/#{date.id}", params: { faculty_request: { ends_at: date.ends_at + 1.hour } },
+        headers: auth_headers(admin), as: :json
+      summary = history.first["summary"]
+      expect(summary).to include("10:00 AM – 12:00 PM to ")
+      expect(summary).to end_with("10:00 AM – 1:00 PM.")
+    end
+
+    it "shows the time span of a date added, booked or cancelled" do
+      delete "/faculty_requests/#{date.id}", headers: auth_headers(admin), as: :json
+      expect(history.first["summary"]).to end_with("10:00 AM – 12:00 PM.")
     end
 
     it "records a date added" do

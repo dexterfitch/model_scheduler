@@ -24,6 +24,14 @@ class HistoryEntry < ApplicationRecord
     time.in_time_zone(ZONE).strftime("%a %b %-d, %-l:%M %p")
   end
 
+  # A class date's time span, like Tue Nov 3, 10:00 AM – 12:00 PM (Eastern). The end
+  # date is only repeated when it's on a different day.
+  def self.span(starts_at, ends_at)
+    finish = ends_at.in_time_zone(ZONE)
+    same_day = finish.to_date == starts_at.in_time_zone(ZONE).to_date
+    "#{at(starts_at)} – #{same_day ? finish.strftime('%-l:%M %p') : at(ends_at)}"
+  end
+
   # A count with the right word form, like 1 date or 3 dates.
   def self.count_of(count, word)
     "#{count} #{word.pluralize(count)}"
