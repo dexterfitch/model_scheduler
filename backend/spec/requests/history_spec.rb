@@ -40,9 +40,21 @@ RSpec.describe "History", type: :request do
       delete "/request_series/#{series.id}", params: { note: "Faculty on leave" }, headers: auth_headers(admin), as: :json
 
       entry = history.first
-      expect(entry["summary"]).to eq("Cancelled Alice Chen's Anatomy Lab (1 date still to come).")
+      expect(entry["summary"]).to eq("Cancelled Alice Chen's Anatomy Lab: 1 upcoming date (#{HistoryEntry.span(date.starts_at, date.ends_at)}).")
       expect(entry["note"]).to eq("Faculty on leave")
       expect(entry["user"]).to include("first_name" => "Pat", "last_name" => "Reyes")
+    end
+
+    it "lists every upcoming date it cancelled, soonest first, and leaves out dates that already happened" do
+      past = create(:faculty_request, user: faculty, request_series: series, class_name: "Anatomy Lab")
+      past.update_columns(starts_at: 3.days.ago.change(hour: 10), ends_at: 3.days.ago.change(hour: 12))
+      later = create(:faculty_request, user: faculty, request_series: series, class_name: "Anatomy Lab",
+        starts_at: 14.days.from_now.change(hour: 10), ends_at: 14.days.from_now.change(hour: 12))
+      date
+      delete "/request_series/#{series.id}", headers: auth_headers(admin), as: :json
+
+      spans = [date, later].map { |d| HistoryEntry.span(d.starts_at, d.ends_at) }
+      expect(history.first["summary"]).to eq("Cancelled Alice Chen's Anatomy Lab: 2 upcoming dates (#{spans.join('; ')}).")
     end
 
     it "records a date removed on its own, with its note" do

@@ -262,7 +262,9 @@ class RequestSeriesController < ApplicationController
     @series.cancel_entire_series!
     released = Notifier.now_cancelled(booked)
     Notifier.dates_cancelled(upcoming, released, actor: current_user)
-    summary = "Cancelled #{HistoryEntry.class_label(@series)} (#{HistoryEntry.count_of(upcoming.size, 'date')} still to come)."
+    spans = upcoming.sort_by(&:starts_at).map { |d| HistoryEntry.span(d.starts_at, d.ends_at) }
+    summary = "Cancelled #{HistoryEntry.class_label(@series)}: " +
+      (spans.any? ? "#{HistoryEntry.count_of(spans.size, 'upcoming date')} (#{spans.join('; ')})." : "no upcoming dates.")
     summary += " #{HistoryEntry.count_of(released.size, 'booked model')} released." if released.any?
     record_history("cancelled", summary, series_id: @series.id)
     head :no_content
