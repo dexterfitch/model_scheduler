@@ -155,7 +155,7 @@ class RequestSeriesController < ApplicationController
 
     return render json: { error: failure }, status: :unprocessable_content if failure
 
-    record_history("requested", "Requested #{@series.class_name} (#{HistoryEntry.count_of(times.size, 'date')}).", series_id: @series.id)
+    record_history("requested", "Requested #{HistoryEntry.class_label(@series)} (#{HistoryEntry.count_of(times.size, 'date')}).", series_id: @series.id)
     render json: @series, status: :created
   rescue ActiveRecord::RecordInvalid => e
     render json: { error: e.message }, status: :unprocessable_content
@@ -226,7 +226,7 @@ class RequestSeriesController < ApplicationController
 
     edited["model_slots"] = true if @series.model_slots.reload.map { |s| s.attributes.slice(*PREFERENCE_FIELDS) } != slots_before
     described = describe_edits(edited)
-    record_history("edited", "Edited #{@series.class_name}: #{described.join('; ')}.", series_id: @series.id) if described.any?
+    record_history("edited", "Edited #{HistoryEntry.class_label(@series)}: #{described.join('; ')}.", series_id: @series.id) if described.any?
 
     render json: @series
   rescue ActiveRecord::RecordInvalid => e
@@ -242,7 +242,7 @@ class RequestSeriesController < ApplicationController
     released = Notifier.now_cancelled(booked)
     Notifier.released(released, actor: current_user)
     record_history("released", "Released #{HistoryEntry.count_of(released.size, 'booking')} from the remaining dates " \
-      "of #{@series.class_name}.", series_id: @series.id)
+      "of #{HistoryEntry.class_label(@series)}.", series_id: @series.id)
     render json: @series
   end
 
@@ -258,7 +258,7 @@ class RequestSeriesController < ApplicationController
     @series.cancel_entire_series!
     released = Notifier.now_cancelled(booked)
     Notifier.dates_cancelled(upcoming, released, actor: current_user)
-    summary = "Cancelled #{@series.class_name} (#{HistoryEntry.count_of(upcoming.size, 'date')} still to come)."
+    summary = "Cancelled #{HistoryEntry.class_label(@series)} (#{HistoryEntry.count_of(upcoming.size, 'date')} still to come)."
     summary += " #{HistoryEntry.count_of(released.size, 'booked model')} released." if released.any?
     record_history("cancelled", summary, series_id: @series.id)
     head :no_content

@@ -96,9 +96,9 @@ class ArtModelAvailabilitiesController < ApplicationController
       cancelled.each do |gig|
         request = gig.faculty_request
         summary = if current_user.role_admin?
-          "Released #{HistoryEntry.name_of(gig.art_model_availability.user)} from #{request.class_name} on #{HistoryEntry.span(request.starts_at, request.ends_at)}."
+          "Released #{HistoryEntry.name_of(gig.art_model_availability.user)} from #{HistoryEntry.class_label(request)} on #{HistoryEntry.span(request.starts_at, request.ends_at)}."
         else
-          "Cancelled their gig: #{request.class_name} on #{HistoryEntry.span(request.starts_at, request.ends_at)}."
+          "Cancelled their gig: #{HistoryEntry.class_label(request)} on #{HistoryEntry.span(request.starts_at, request.ends_at)}."
         end
         record_history(current_user.role_admin? ? "released" : "dropped_out", summary, series_id: request.request_series_id)
       end

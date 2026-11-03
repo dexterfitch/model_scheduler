@@ -37,6 +37,14 @@ class HistoryEntry < ApplicationRecord
     "#{count} #{word.pluralize(count)}"
   end
 
+  # A class (or one of its dates) with its faculty member, like Alice Chen's Figure
+  # Drawing 101, so two sections of one course can be told apart.
+  def self.class_label(record)
+    owner = record.respond_to?(:request_series) ? (record.request_series&.user || record.user) : record.user
+    name = name_of(owner)
+    name.present? ? "#{name}'s #{record.class_name}" : record.class_name.to_s
+  end
+
   # A person's full name.
   def self.name_of(person)
     "#{person&.first_name} #{person&.last_name}".strip

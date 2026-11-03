@@ -40,14 +40,14 @@ RSpec.describe "History", type: :request do
       delete "/request_series/#{series.id}", params: { note: "Faculty on leave" }, headers: auth_headers(admin), as: :json
 
       entry = history.first
-      expect(entry["summary"]).to eq("Cancelled Anatomy Lab (1 date still to come).")
+      expect(entry["summary"]).to eq("Cancelled Alice Chen's Anatomy Lab (1 date still to come).")
       expect(entry["note"]).to eq("Faculty on leave")
       expect(entry["user"]).to include("first_name" => "Pat", "last_name" => "Reyes")
     end
 
     it "records a date removed on its own, with its note" do
       delete "/faculty_requests/#{date.id}", params: { note: "Room double-booked" }, headers: auth_headers(admin), as: :json
-      expect(history.first).to include("summary" => a_string_starting_with("Cancelled Anatomy Lab on "), "note" => "Room double-booked")
+      expect(history.first).to include("summary" => a_string_starting_with("Cancelled Alice Chen's Anatomy Lab on "), "note" => "Room double-booked")
     end
   end
 
@@ -55,14 +55,14 @@ RSpec.describe "History", type: :request do
     it "records which details changed, with the note" do
       patch "/request_series/#{series.id}", params: { request_series: { room_number: "305", notes: "Bring easels" }, note: "Moved rooms" },
         headers: auth_headers(admin), as: :json
-      expect(history.first).to include("summary" => "Edited Anatomy Lab: room changed from 201 to 305; notes changed.", "note" => "Moved rooms")
+      expect(history.first).to include("summary" => "Edited Alice Chen's Anatomy Lab: room changed from 201 to 305; notes changed.", "note" => "Moved rooms")
     end
 
     it "says what short details were before and after" do
       patch "/request_series/#{series.id}", params: { request_series: { class_name: "Anatomy II", building: "Fox", models_needed: 2 } },
         headers: auth_headers(admin), as: :json
       expect(history.first["summary"]).to eq(
-        "Edited Anatomy II: class name changed from Anatomy Lab to Anatomy II; building changed from Main to Fox; " \
+        "Edited Alice Chen's Anatomy II: class name changed from Anatomy Lab to Anatomy II; building changed from Main to Fox; " \
         "number of models changed from 1 to 2."
       )
     end
@@ -70,7 +70,7 @@ RSpec.describe "History", type: :request do
     it "says (none) for a room that was blank" do
       series.update_columns(room_number: nil)
       patch "/request_series/#{series.id}", params: { request_series: { room_number: "305" } }, headers: auth_headers(admin), as: :json
-      expect(history.first["summary"]).to eq("Edited Anatomy Lab: room changed from (none) to 305.")
+      expect(history.first["summary"]).to eq("Edited Alice Chen's Anatomy Lab: room changed from (none) to 305.")
     end
 
     it "records nothing when nothing changed, even if empty notes are sent back as blank text" do
@@ -81,14 +81,14 @@ RSpec.describe "History", type: :request do
     it "doesn't count blank notes saved under older rules as a change" do
       series.update_columns(notes: "")
       patch "/request_series/#{series.id}", params: { request_series: { room_number: "305", notes: "" } }, headers: auth_headers(admin), as: :json
-      expect(history.first["summary"]).to eq("Edited Anatomy Lab: room changed from 201 to 305.")
+      expect(history.first["summary"]).to eq("Edited Alice Chen's Anatomy Lab: room changed from 201 to 305.")
     end
 
     it "records a date moved, from and to" do
       new_start = 10.days.from_now.change(hour: 13)
       patch "/faculty_requests/#{date.id}", params: { faculty_request: { starts_at: new_start, ends_at: new_start + 2.hours }, note: "Faculty asked" },
         headers: auth_headers(admin), as: :json
-      expect(history.first["summary"]).to match(/\AMoved Anatomy Lab from .+10:00 AM . 12:00 PM to .+1:00 PM . 3:00 PM\.\z/)
+      expect(history.first["summary"]).to match(/\AMoved Alice Chen's Anatomy Lab from .+10:00 AM . 12:00 PM to .+1:00 PM . 3:00 PM\.\z/)
     end
 
     it "shows the end time too, so a change to only the end is clear" do
@@ -104,12 +104,25 @@ RSpec.describe "History", type: :request do
       expect(history.first["summary"]).to end_with("10:00 AM – 12:00 PM.")
     end
 
+    it "names the faculty member, so two sections of one course on the same day can be told apart" do
+      other = create(:user, first_name: "Marcus", last_name: "Bell")
+      section = create(:request_series, user: other, class_name: "Anatomy Lab")
+      [series, section].each do |s|
+        patch "/request_series/#{s.id}", params: { request_series: { room_number: "410" } }, headers: auth_headers(admin), as: :json
+      end
+      expect(history.map { |e| e["summary"] }).to contain_exactly(
+        "Edited Alice Chen's Anatomy Lab: room changed from 201 to 410.",
+        "Edited Marcus Bell's Anatomy Lab: room changed from (none) to 410."
+      )
+    end
+
+
     it "records a date added" do
       post "/faculty_requests", params: { faculty_request: { request_series_id: series.id, user_id: faculty.id, class_name: "Anatomy Lab",
         department: "Drawing", building: "Main", model_mode: "clothed", models_needed: 1,
         starts_at: 9.days.from_now.change(hour: 10), ends_at: 9.days.from_now.change(hour: 12) } },
         headers: auth_headers(admin), as: :json
-      expect(history.first["summary"]).to start_with("Added a date to Anatomy Lab: ")
+      expect(history.first["summary"]).to start_with("Added a date to Alice Chen's Anatomy Lab: ")
     end
   end
 
@@ -118,15 +131,15 @@ RSpec.describe "History", type: :request do
       gig = book!
       delete "/gigs/#{gig.id}", params: { note: "Swapping for Riley" }, headers: auth_headers(admin), as: :json
       summaries = history.map { |e| e["summary"] }
-      expect(summaries).to include(a_string_starting_with("Booked Jordan Ellis for Anatomy Lab on "))
-      expect(history.first).to include("summary" => a_string_starting_with("Released Jordan Ellis from Anatomy Lab on "), "note" => "Swapping for Riley")
+      expect(summaries).to include(a_string_starting_with("Booked Jordan Ellis for Alice Chen's Anatomy Lab on "))
+      expect(history.first).to include("summary" => a_string_starting_with("Released Jordan Ellis from Alice Chen's Anatomy Lab on "), "note" => "Swapping for Riley")
     end
 
     it "records a model cancelling their own gig, under their name" do
       gig = book!
       post "/art_model_availabilities/#{gig.art_model_availability_id}/cancel", params: { gig_id: gig.id }, headers: auth_headers(model), as: :json
       entry = history.first
-      expect(entry["summary"]).to start_with("Cancelled their gig: Anatomy Lab on ")
+      expect(entry["summary"]).to start_with("Cancelled their gig: Alice Chen's Anatomy Lab on ")
       expect(entry["user"]).to include("first_name" => "Jordan")
     end
 

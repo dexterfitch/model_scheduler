@@ -25,7 +25,7 @@ class FacultyRequestsController < ApplicationController
 
     if @request.save
       @request.request_series&.update_status!
-      record_history("added_date", "Added a date to #{@request.class_name}: #{HistoryEntry.span(@request.starts_at, @request.ends_at)}.",
+      record_history("added_date", "Added a date to #{HistoryEntry.class_label(@request)}: #{HistoryEntry.span(@request.starts_at, @request.ends_at)}.",
         series_id: @request.request_series_id)
       render json: @request, status: :created
     else
@@ -61,7 +61,7 @@ class FacultyRequestsController < ApplicationController
         Notifier.date_moved(@request, actor: current_user)
         from_start = @request.saved_change_to_starts_at? ? @request.saved_change_to_starts_at.first : @request.starts_at
         from_end = @request.saved_change_to_ends_at? ? @request.saved_change_to_ends_at.first : @request.ends_at
-        record_history("moved", "Moved #{@request.class_name} from #{HistoryEntry.span(from_start, from_end)} to " \
+        record_history("moved", "Moved #{HistoryEntry.class_label(@request)} from #{HistoryEntry.span(from_start, from_end)} to " \
           "#{HistoryEntry.span(@request.starts_at, @request.ends_at)}.", series_id: @request.request_series_id)
       end
       render json: @request
@@ -90,7 +90,7 @@ class FacultyRequestsController < ApplicationController
     series&.update_status!
     released = Notifier.now_cancelled(booked)
     Notifier.dates_cancelled(was_open ? [@request] : [], released, actor: current_user)
-    summary = "Cancelled #{@request.class_name} on #{HistoryEntry.span(@request.starts_at, @request.ends_at)}."
+    summary = "Cancelled #{HistoryEntry.class_label(@request)} on #{HistoryEntry.span(@request.starts_at, @request.ends_at)}."
     summary += " #{HistoryEntry.count_of(released.size, 'booked model')} released#{', still paid' if is_late_cancel}." if released.any?
     record_history("cancelled", summary, series_id: @request.request_series_id) if was_open
 
