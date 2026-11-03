@@ -459,27 +459,25 @@ function AllRequests() {
       )}
       {req.status !== 'archived' && hasStarted(req) && renderPastGigs(req, s)}
       {req.status !== 'archived' && !hasStarted(req) && (req.confirmed_gigs || []).length > 0 && (
-        <>
-          {' ('}
-          {req.confirmed_gigs.map((gig, i) => (
-            <React.Fragment key={gig.id}>
-              {i > 0 && ', '}
+        req.confirmed_gigs.map(gig => (
+          <div key={gig.id} className="ms-3 mt-1 d-flex flex-wrap align-items-baseline column-gap-2">
+            <span className="text-nowrap">
+              <i className="bi bi-person me-1" aria-hidden="true"></i>
               {gig.art_model_availability?.user?.first_name} {gig.art_model_availability?.user?.last_name}
-              {(!isSingle || (req.models_needed || 1) > 1) && !hasEnded(req) && (
-                <button
-                  type="button"
-                  className="btn btn-link p-0 ms-1 align-baseline text-primary"
-                  title="Release this model from only this date and find someone else"
-                  aria-label={`Release ${gig.art_model_availability?.user?.first_name} ${gig.art_model_availability?.user?.last_name} from this date and find someone else`}
-                  onClick={() => handleFindNewModel(gig)}
-                >
-                  <i className="bi bi-arrow-repeat" aria-hidden="true"></i>
-                </button>
-              )}
-            </React.Fragment>
-          ))}
-          {') '}
-        </>
+            </span>
+            {(!isSingle || (req.models_needed || 1) > 1) && !hasEnded(req) && (
+              <button
+                type="button"
+                className="btn btn-link btn-sm p-0 align-baseline"
+                title="Release this model from only this date and find someone else"
+                aria-label={`Release ${gig.art_model_availability?.user?.first_name} ${gig.art_model_availability?.user?.last_name} from this date and find someone else`}
+                onClick={() => handleFindNewModel(gig)}
+              >
+                Release
+              </button>
+            )}
+          </div>
+        ))
       )}
       {req.status === 'pending' && !hasStarted(req) && renderCoverage(req, s)}
       {req.status === 'pending' && showBadge && !hasEnded(req) && (

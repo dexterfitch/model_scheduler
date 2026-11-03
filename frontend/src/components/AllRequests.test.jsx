@@ -79,6 +79,15 @@ describe('AllRequests (admin requests page)', () => {
     expect(api.delete).toHaveBeenCalledWith('/gigs/100', { data: { note: '' } });
   });
 
+  it('lists each booked model on their own line with a Release button in words, not an icon', async () => {
+    renderPage();
+    const [releaseButton] = await screen.findAllByRole('button', { name: 'Release Alex Booked from this date and find someone else' });
+    expect(releaseButton).toHaveTextContent(/^Release$/);
+    const line = releaseButton.parentElement;
+    expect(line).toHaveTextContent('Alex Booked');
+    expect(line.tagName).toBe('DIV');
+  });
+
   it('releases all booked models for rematching', async () => {
     renderPage();
     const [button] = await screen.findAllByRole('button', { name: 'Release Models and Rematch' });
