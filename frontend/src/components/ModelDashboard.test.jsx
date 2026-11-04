@@ -232,6 +232,29 @@ describe('ModelDashboard', () => {
   });
 });
 
+describe('a model whose profile is missing an answer', () => {
+  const complete = { ...model, gender_identity: 'Woman', skin_tone: 'Medium' };
+
+  it('is asked to finish their profile, with a link to it', async () => {
+    renderWithDialogs(<ModelDashboard user={{ ...complete, skin_tone: null }} />);
+    const alert = await screen.findByText(/Please finish your profile/);
+    expect(alert).toHaveTextContent('Skin Tone');
+    expect(alert).not.toHaveTextContent('Gender');
+    expect(screen.getByRole('link', { name: 'Go to My Profile' })).toHaveAttribute('href', '/profile');
+  });
+
+  it('is asked for an answer saved under an option the app no longer offers', async () => {
+    renderWithDialogs(<ModelDashboard user={{ ...complete, gender_identity: 'Female' }} />);
+    expect(await screen.findByText(/Please finish your profile/)).toHaveTextContent('Gender');
+  });
+
+  it("isn't asked when both answers are there, including Prefer not to say", async () => {
+    renderWithDialogs(<ModelDashboard user={{ ...complete, skin_tone: 'Prefer not to say' }} />);
+    await screen.findByText(/Hello, Jordan/);
+    expect(screen.queryByText(/Please finish your profile/)).not.toBeInTheDocument();
+  });
+});
+
 describe('a retired model', () => {
   it("is told they're retired and can't add free time", async () => {
     renderWithDialogs(<ModelDashboard user={{ ...model, retired_at: '2026-10-01T00:00:00Z' }} />);

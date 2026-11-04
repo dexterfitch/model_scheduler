@@ -2,7 +2,8 @@
  * The model's page: My Gigs (upcoming, completed and cancelled, with cancelling one
  * date or every remaining date of a class, and which of a class's dates each gig is)
  * and Manage Availability (their free time on a calendar, plus Open Calls they can
- * sign up for), plus a calendar subscription link. A retired model is told they
+ * sign up for), plus a calendar subscription link. A model missing a required
+ * profile answer is asked to finish their profile; a retired model is told they
  * can't add free time or sign up.
  */
 
@@ -17,6 +18,13 @@ import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHou
 import StatusToast from "./StatusToast";
 import CalendarLinkButton from "./CalendarLinkButton";
 import { useRevealMessage } from '../utils/revealMessage';
+import { GENDER_IDENTITIES, SKIN_TONE_ANSWERS } from "../utils/constants";
+
+/** The required profile answers a model is missing, or saved under an option the app no longer offers. */
+const missingAnswers = (user) => [
+  !SKIN_TONE_ANSWERS.includes(user.skin_tone) && 'Skin Tone',
+  !GENDER_IDENTITIES.includes(user.gender_identity) && 'Gender',
+].filter(Boolean);
 
 /** The model's page. */
 function ModelDashboard({ user }) {
@@ -326,6 +334,14 @@ function ModelDashboard({ user }) {
         </Card.Body>
         <div className="rainbow-bar"></div>
       </Card>
+
+      {missingAnswers(user).length > 0 && (
+        <Alert variant="warning">
+          Please finish your profile: {missingAnswers(user).join(' and ')} {missingAnswers(user).length === 1 ? 'is' : 'are'} needed
+          so classes can be matched with you. Prefer not to say is fine.{' '}
+          <Alert.Link href="/profile">Go to My Profile</Alert.Link>
+        </Alert>
+      )}
 
       {user.retired_at && (
         <Alert variant="secondary">

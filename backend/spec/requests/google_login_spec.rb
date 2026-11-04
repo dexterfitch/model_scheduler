@@ -55,4 +55,16 @@ RSpec.describe "Signing in with Google", type: :request do
     google_says(email: "imposter@mica.edu", hd: "example.com")
     expect(response.location).to include("/login?error=Please+sign+in+with+your+MICA+Google+account.")
   end
+
+  it "lets in a model whose saved profile is missing an answer today's rules need, so they can fill it in" do
+    model = create(:user, :model, email: "oldmodel@mica.edu")
+    model.update_columns(skin_tone: nil)
+    google_says(email: "oldmodel@mica.edu")
+    expect(response.location).to include("login_success/#{model.id}")
+  end
+
+  it "still checks a new person's details before creating them" do
+    google_says(email: "newfaculty@mica.edu")
+    expect(User.find_by(email: "newfaculty@mica.edu")).to be_valid
+  end
 end

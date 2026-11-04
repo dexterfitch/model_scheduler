@@ -21,7 +21,11 @@ class SessionsController < ApplicationController
 
     user = User.from_omniauth(auth)
 
-    if user.save
+    # A new person is checked in full. Someone already signed up is let in even if their
+    # saved answers don't meet today's rules, so they can fix them on their profile.
+    saved = user.new_record? ? user.save : user.save(validate: false)
+
+    if saved
       payload = { user_id: user.id, ver: user.token_version, exp: 24.hours.from_now.to_i }
       token = JWT.encode(payload, Rails.application.secret_key_base, "HS256")
       
