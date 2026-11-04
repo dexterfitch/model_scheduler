@@ -62,3 +62,15 @@ describe('updateLink', () => {
     expect(updateLink(update('booked'))).toBe('/');
   });
 });
+
+describe('the profile review announcement', () => {
+  const announcement = { id: 2, kind: 'profile_review', title: 'Profile options expanded', dates: [], paid: null, about: null };
+
+  it('says the profile has new options to review', () => {
+    expect(updateMessage(announcement)).toBe('Profile options have expanded. Please take a moment to review your profile.');
+  });
+
+  it('links to My Profile', () => {
+    expect(updateLink(announcement)).toBe('/profile');
+  });
+});

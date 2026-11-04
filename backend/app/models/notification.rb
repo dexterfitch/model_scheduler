@@ -1,11 +1,12 @@
-# One update for one person about a change to their gigs or classes, shown in the
-# app's Updates list. Updates of the same kind about the same class that arrive
+# One update for one person about a change to their gigs or classes (or a one-time
+# announcement), shown in the app's Updates list. Updates of the same kind about the same class that arrive
 # close together, before being read, are gathered into one listing every date.
 class Notification < ApplicationRecord
   KINDS = %w[
     booked class_booked released date_cancelled class_cancelled
     dropped_out model_cancelled date_moved error
     class_edited class_date_moved class_date_added
+    profile_review
   ].freeze
   GATHER_WITHIN = 10.minutes
   KEEP_READ_FOR = 180.days
@@ -33,6 +34,27 @@ class Notification < ApplicationRecord
       create!(user: user, kind: kind.to_s, group_key: key, title: request.class_name,
         dates: [date], paid: paid, about: about)
     end
+  end
+
+  # One time only: tells every current model (not retired, data not removed) that
+  # profile options have expanded and asks them to review their profile. Kept in
+  # History under the SuperUser; once that entry exists, running it again sends
+  # nothing, even to models who have since cleared their updates. Returns how many
+  # models were told.
+  def self.announce_profile_review!
+    return 0 if HistoryEntry.exists?(action: "announced_profile_review")
+
+    models = User.role_model.where(retired_at: nil, removed_at: nil).to_a
+    transaction do
+      models.each do |model|
+        create!(user: model, kind: "profile_review", group_key: "profile_review",
+          title: "Profile options expanded", dates: [])
+      end
+      HistoryEntry.record!(actor: User.where(superuser: true).order(:id).first,
+        action: "announced_profile_review",
+        summary: "Asked #{HistoryEntry.count_of(models.size, 'model')} to review their profile, since profile options have expanded.")
+    end
+    models.size
   end
 
   # Deletes a person's updates that were read more than KEEP_READ_FOR ago.

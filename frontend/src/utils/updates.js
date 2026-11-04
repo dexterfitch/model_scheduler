@@ -29,6 +29,7 @@ const MESSAGES = {
   class_edited: (u) => `The coordinator changed ${u.title}: ${u.about}.`,
   class_date_moved: (u) => `The coordinator moved a date of ${u.title}: it's now ${when(u.dates)}.`,
   class_date_added: (u) => `The coordinator added a date to ${u.title}: ${when(u.dates)}.`,
+  profile_review: () => 'Profile options have expanded. Please take a moment to review your profile.',
 };
 
 /** What an update says. */
@@ -37,10 +38,11 @@ export const updateMessage = (update) => {
   return (MESSAGES[update.kind] || ((u) => `${u.title} changed ${when(u.dates)}.`))(update);
 };
 
-const LINKS = { dropped_out: '/requests', error: '/superuser' };
+const LINKS = { dropped_out: '/requests', error: '/superuser', profile_review: '/profile' };
 
 /**
  * The page where the change can be seen: Requests for a drop-out, the SuperUser
- * Panel for an error, otherwise the person's first page.
+ * Panel for an error, My Profile for the profile review, otherwise the person's
+ * first page.
  */
 export const updateLink = (update) => LINKS[update.kind] || '/';
