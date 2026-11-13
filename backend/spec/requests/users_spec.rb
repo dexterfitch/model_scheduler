@@ -242,6 +242,14 @@ RSpec.describe "User profile permissions", type: :request do
       expect(User.find_by(email: "sock.model@mica.edu")).to be_role_model
     end
 
+    it "lets an admin create a faculty account without a MICA sign-in, kept in History" do
+      post "/users", params: { user: { first_name: "🧦 Visiting", last_name: "Artist", email: "visiting.artist@mica.edu", role: "faculty" } },
+        headers: auth_headers(admin), as: :json
+      expect(response).to have_http_status(:created)
+      expect(User.find_by(email: "visiting.artist@mica.edu")).to be_role_faculty
+      expect(HistoryEntry.last.summary).to eq("Created the sock faculty account 🧦 Visiting Artist.")
+    end
+
     it "doesn't let faculty create accounts" do
       post "/users", params: sock_params, headers: auth_headers(user), as: :json
       expect(response).to have_http_status(:forbidden)

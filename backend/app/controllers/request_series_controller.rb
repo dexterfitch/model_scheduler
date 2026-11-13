@@ -89,8 +89,18 @@ class RequestSeriesController < ApplicationController
   # one bad date rolls back the whole class, with an error naming that date.
   def create
     @series = RequestSeries.new(series_params)
-    @series.user_id = current_user.id unless current_user.role_admin?
     @series.status = :pending
+
+    # Faculty request for themselves. An admin requests for a faculty member they
+    # choose (a sock faculty account works too), who is told about it.
+    if current_user.role_admin?
+      owner = User.find_by(id: series_params[:user_id])
+      unless owner&.role_faculty? && owner.removed_at.nil?
+        return render json: { error: "Choose the faculty member this class is for." }, status: :unprocessable_content
+      end
+    else
+      @series.user_id = current_user.id
+    end
 
     slots = model_slot_params
     if slots.present? && slots.length != @series.models_needed
@@ -155,7 +165,9 @@ class RequestSeriesController < ApplicationController
 
     return render json: { error: failure }, status: :unprocessable_content if failure
 
-    record_history("requested", "Requested #{HistoryEntry.class_label(@series)} (#{HistoryEntry.count_of(times.size, 'date')}).", series_id: @series.id)
+    on_behalf = @series.user != current_user
+    record_history("requested", "Requested #{HistoryEntry.class_label(@series)} (#{HistoryEntry.count_of(times.size, 'date')})#{' on their behalf' if on_behalf}.", series_id: @series.id)
+    Notifier.class_requested(@series, actor: current_user) if on_behalf
     render json: @series, status: :created
   rescue ActiveRecord::RecordInvalid => e
     render json: { error: e.message }, status: :unprocessable_content

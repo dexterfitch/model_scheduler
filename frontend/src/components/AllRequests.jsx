@@ -4,7 +4,8 @@
  * and searchable by class, faculty or department.
  * Shows who could take each pending date, offers ready emails to models, and lets
  * admins edit, cancel, release and rebook (with an optional reason, kept in History),
- * or correct the record of past dates.
+ * or correct the record of past dates. New Request makes a class for a faculty member
+ * (adding one without a MICA sign-in if needed).
  */
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -18,6 +19,8 @@ import { roundToNearest5, formatTime, formatTimeShort, formatDateShort, formatDa
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 import { payStatusLabel, wasCorrected } from "../utils/pay";
 import CorrectRecordModal from "./CorrectRecordModal";
+import NewRequestModal from "./NewRequestModal";
+import StatusToast from "./StatusToast";
 import { dateCoverage, notifyLists, notifyEmailLink } from "../utils/coverage";
 import { useRevealMessage } from '../utils/revealMessage';
 
@@ -56,6 +59,10 @@ function AllRequests() {
   useEffect(() => {
     reloadSeries();
   }, [reloadSeries]);
+
+  const [showNewRequest, setShowNewRequest] = useState(false);
+  const [addedFaculty, setAddedFaculty] = useState([]);
+  const [statusMessage, setStatusMessage] = useState('');
 
   const [pool, setPool] = useState(null);
   useEffect(() => {
@@ -731,18 +738,36 @@ function AllRequests() {
 
   return (
     <Container className="py-4">
+      <StatusToast message={statusMessage} onClose={() => setStatusMessage('')} />
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-        <h2 className="mb-0">Faculty Requests</h2>
-        <InputGroup style={{ maxWidth: '300px', width: '100%' }}>
-          <InputGroup.Text>🔍</InputGroup.Text>
-          <Form.Control
-            placeholder="Search class, faculty, dept..."
-            aria-label="Search class, faculty or department"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </InputGroup>
+        <h2 className="mb-0 text-nowrap">Faculty Requests</h2>
+        <div className="d-flex flex-column flex-sm-row gap-2 w-100 justify-content-md-end">
+          <InputGroup style={{ maxWidth: '300px', width: '100%' }}>
+            <InputGroup.Text>🔍</InputGroup.Text>
+            <Form.Control
+              placeholder="Search class, faculty, dept..."
+              aria-label="Search class, faculty or department"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </InputGroup>
+          <Button variant="primary" className="text-nowrap" onClick={() => setShowNewRequest(true)}>
+            + New Request
+          </Button>
+        </div>
       </div>
+
+      <NewRequestModal
+        show={showNewRequest}
+        onHide={() => setShowNewRequest(false)}
+        faculty={[...(pool?.models || []), ...addedFaculty]}
+        onFacultyAdded={(person) => setAddedFaculty(prev => [...prev, person])}
+        onCreated={(owner) => {
+          setShowNewRequest(false);
+          setStatusMessage(`Request made for ${owner.first_name} ${owner.last_name}.`);
+          reloadSeries();
+        }}
+      />
 
       <div className="py-3 border-bottom border-info mb-4 date-filter-box">
         <div className="d-flex flex-column flex-md-row flex-md-wrap justify-content-md-between align-items-md-start gap-3">

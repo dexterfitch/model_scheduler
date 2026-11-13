@@ -63,6 +63,13 @@ class Notifier
     tell(owner_of(request), "class_date_moved", request, actor: actor)
   end
 
+  # Someone else made a class for a faculty member: tells them, in one update listing its dates.
+  def self.class_requested(series, actor:)
+    series.faculty_requests.order(:starts_at).each do |request|
+      tell(series.user, "class_requested", request, actor: actor)
+    end
+  end
+
   # A date was added to a class: tells the faculty member, when someone else added it.
   def self.date_added(request, actor:)
     tell(owner_of(request), "class_date_added", request, actor: actor)

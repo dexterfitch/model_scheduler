@@ -30,6 +30,11 @@ const pages = [
     open: (page) => page.getByRole('button', { name: /I am a Model/ }).click() },
   { name: 'new request window', as: 'achen@mica.edu',     path: '/',
     open: (page) => openDialog(page, /New Request/) },
+  { name: 'admin new request window',  as: 'preyes@mica.edu',    path: '/requests',
+    open: async (page) => {
+      await openDialog(page, /New Request/);
+      await page.getByRole('button', { name: 'Add Faculty Without a MICA Sign-in' }).click();
+    } },
   { name: 'admin edit class window',    as: 'preyes@mica.edu',    path: '/requests',
     open: (page) => openDialog(page, 'Edit Class') },
   { name: 'edit date window',   as: 'achen@mica.edu',     path: '/',

@@ -1,23 +1,24 @@
 /**
  * My Classes, for faculty: their classes on Upcoming and Past tabs, New Request
- * (whose dates can repeat weekly), a calendar subscription link, and editing or
+ * (see NewRequestModal), a calendar subscription link, and editing or
  * cancelling dates and classes that aren't booked. Past classes are read-only.
  * Faculty never see which model is booked.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert, Tabs, Tab } from "react-bootstrap";
 import styles from "./FacultyDashboard.module.css";
 import api from "../services/api";
 import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatGenderPreference, formatBodyType, formatGenitalia, formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
-import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, firstStartsAt, formatTimeForInput, newClassTimes, endAfterStart, weeklyDatesAfter } from "../utils/time";
+import { roundToNearest5, formatTime, formatDateWithWeekday, validateBusinessHours, firstStartsAt, formatTimeForInput, emptyDateRow, withDateField } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS } from "../utils/constants";
 import ModelPreferenceFields from "./ModelPreferenceFields";
 import {
-  DEFAULT_MODEL_PREFERENCES, DEFAULT_SLOT_STATE, applyPreferenceChange, modelSlotsPayload, slotFormState
+  DEFAULT_MODEL_PREFERENCES, applyPreferenceChange, modelSlotsPayload, slotFormState
 } from "../utils/modelPreferences";
 import StatusToast from "./StatusToast";
+import NewRequestModal from "./NewRequestModal";
 import CalendarLinkButton from "./CalendarLinkButton";
 import { useRevealMessage } from '../utils/revealMessage';
 
@@ -29,13 +30,6 @@ const pickPreferences = (obj) =>
 /** Whether a class has different preferences for each model. */
 const hasModelSlots = (s) => (s.model_slots || []).length > 0;
 
-const MAX_DATES = 50;
-
-/** A new date row, starting 9 to 11 AM. */
-const emptyDate = () => {
-  const { start, end } = newClassTimes();
-  return { date: "", start_time: start, end_time: end };
-};
 
 /** The My Classes page. */
 function FacultyDashboard({ user }) {
@@ -43,8 +37,8 @@ function FacultyDashboard({ user }) {
   const [series, setSeries] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [submitError, setSubmitError] = useState('');
-  const submitErrorRef = useRevealMessage(submitError);
+  const [loadError, setLoadError] = useState('');
+  const loadErrorRef = useRevealMessage(loadError);
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingRequest, setEditingRequest] = useState(null);
@@ -63,19 +57,6 @@ function FacultyDashboard({ user }) {
   const [addDateError, setAddDateError] = useState(''); 
   const addDateErrorRef = useRevealMessage(addDateError);
 
-  const [formData, setFormData] = useState({
-    class_name: "",
-    department: "",
-    building: "",
-    ...DEFAULT_MODEL_PREFERENCES,
-    ...DEFAULT_SLOT_STATE,
-    notes: "",
-    room_number: ""
-  });
-
-  const [dates, setDates] = useState([emptyDate()]);
-  const [repeatUntil, setRepeatUntil] = useState('');
-  const [repeatMessage, setRepeatMessage] = useState('');
   const [view, setView] = useState('upcoming');
 
   /** Loads the faculty member's classes, in date order. */
@@ -88,7 +69,7 @@ function FacultyDashboard({ user }) {
       })
       .catch((err) => {
         console.error("Error fetching series:", err);
-        setSubmitError("Error fetching requests. Please try again.");
+        setLoadError("Error fetching requests. Please try again.");
       });
   }, []);
 
@@ -96,149 +77,9 @@ function FacultyDashboard({ user }) {
     fetchSeries();
   }, [fetchSeries, user.id]);
 
-  /** Saves a typed change in New Request. */
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  /** Saves a preference change in New Request. */
-  const handlePreferenceChange = (name, value) => {
-    setFormData(prev => applyPreferenceChange(prev, name, value));
-  };
-
   /** Saves a preference change in Edit Class. */
   const handleClassPreferenceChange = (name, value) => {
     setClassFormData(prev => applyPreferenceChange(prev, name, value));
-  };
-
-  /** A date row with one field changed; changing the start moves the end with it. */
-  const withTime = (d, field, value) => field === 'start_time'
-    ? { ...d, start_time: value, end_time: endAfterStart(d.start_time, d.end_time, value) }
-    : { ...d, [field]: value };
-
-  /** Changes one date row in New Request. */
-  const handleDateChange = (index, field, value) => {
-    setDates(prev => prev.map((d, i) => i === index ? withTime(d, field, value) : d));
-  };
-
-  /** Rounds a date row's time to 5 minutes when the field is left. */
-  const handleDateBlur = (index, field, value) => {
-    if (field === 'start_time' || field === 'end_time') {
-      const cleaned = roundToNearest5(value);
-      setDates(prev => prev.map((d, i) => i === index ? withTime(d, field, cleaned) : d));
-    }
-  };
-
-  const focusDateIndex = useRef(null);
-  useEffect(() => {
-    if (focusDateIndex.current === null) return;
-    document.getElementById(`new-date-${focusDateIndex.current}-date`)?.focus();
-    focusDateIndex.current = null;
-  }, [dates]);
-
-  /** Adds a date row and moves focus to its Date field. */
-  const addDate = () => {
-    focusDateIndex.current = dates.length;
-    setDates(prev => [...prev, emptyDate()]);
-  };
-
-  /** Removes a date row and moves focus to the date before it. */
-  const removeDate = (index) => {
-    if (dates.length === 1) return;
-    focusDateIndex.current = Math.max(index - 1, 0);
-    setDates(prev => prev.filter((_, i) => i !== index));
-  };
-
-  /**
-   * Adds a date for every week after the latest chosen date, up to Repeat weekly
-   * until, at that date's times. Weeks already listed are skipped, and a class
-   * never gets more than MAX_DATES dates.
-   */
-  const handleRepeatWeekly = () => {
-    const pattern = dates.filter(d => d.date).sort((a, b) => a.date.localeCompare(b.date)).pop();
-    if (!pattern) return setRepeatMessage('Choose the first date, then repeat it.');
-    if (!repeatUntil) return setRepeatMessage('Choose the last date to repeat until.');
-
-    const listed = new Set(dates.map(d => d.date));
-    const weeks = weeklyDatesAfter(pattern.date, repeatUntil).filter(day => !listed.has(day));
-    const added = weeks.slice(0, Math.max(MAX_DATES - dates.length, 0));
-    setDates(prev => [...prev, ...added.map(day => ({ date: day, start_time: pattern.start_time, end_time: pattern.end_time }))]);
-
-    if (added.length === 0) return setRepeatMessage('No new weeks to add.');
-    const capped = added.length < weeks.length ? ` (a class can have at most ${MAX_DATES} dates)` : '';
-    setRepeatMessage(`Added ${added.length} weekly date${added.length === 1 ? '' : 's'}${capped}.`);
-  };
-
-  /** Sends New Request: the class, its dates and its preferences. */
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() + 4);
-
-    for (let i = 0; i < dates.length; i++) {
-      const d = dates[i];
-      const inputDate = new Date(d.date + "T00:00:00");
-
-      if (inputDate <= today) {
-        setSubmitError(`Date ${i + 1}: Requests must be for a future date (tomorrow or later).`);
-        return;
-      }
-      if (inputDate > maxDate) {
-        setSubmitError(`Date ${i + 1}: Cannot be more than 4 months in advance.`);
-        return;
-      }
-
-      const startDateTime = new Date(`${d.date}T${d.start_time}`);
-      const endDateTime = new Date(`${d.date}T${d.end_time}`);
-      const hoursError = validateBusinessHours(d.start_time, d.end_time);
-      if (hoursError) {
-        setSubmitError(`Date ${i + 1}: Classes ${hoursError.charAt(0).toLowerCase()}${hoursError.slice(1)}`);
-        return;
-      }
-      if (endDateTime <= startDateTime) {
-        setSubmitError(`Date ${i + 1}: End time must be after start time.`);
-        return;
-      }
-    }
-
-    const payload = {
-      request_series: {
-        class_name: formData.class_name,
-        department: formData.department,
-        building: formData.building,
-        ...pickPreferences(formData),
-        notes: formData.notes,
-        room_number: formData.room_number
-      },
-      dates: dates.map(d => ({
-        date: d.date,
-        start_time: d.start_time,
-        end_time: d.end_time
-      })),
-      model_slots: modelSlotsPayload(formData)
-    };
-
-    api.post("/request_series", payload)
-      .then(() => {
-        setSubmitSuccess('Request submitted successfully!');
-        setShowModal(false);
-        fetchSeries();
-        setFormData({
-          class_name: "", department: "", building: "",
-          ...DEFAULT_MODEL_PREFERENCES, ...DEFAULT_SLOT_STATE, notes: "", room_number: ""
-        });
-        setDates([emptyDate()]);
-        setRepeatUntil('');
-        setRepeatMessage('');
-      })
-      .catch((err) => {
-        console.error(err);
-        setSubmitError(extractErrorMessages(err, "Error submitting request. Please try again."));
-      });
   };
 
   /** Cancels one date, after confirming. */
@@ -386,19 +227,19 @@ function FacultyDashboard({ user }) {
   /** Opens the Add Date form on a class card. */
   const openAddDateForm = (seriesId) => {
     setAddingDateSeriesId(seriesId);
-    setNewDateForm(emptyDate());
+    setNewDateForm(emptyDateRow());
     setAddDateError('');
   };
 
   /** Changes the Add Date form; the end time follows the start. */
   const handleAddDateChange = (field, value) => {
-    setNewDateForm(prev => withTime(prev, field, value));
+    setNewDateForm(prev => withDateField(prev, field, value));
   };
 
   /** Rounds the Add Date times to 5 minutes when a field is left. */
   const handleAddDateBlur = (field, value) => {
     if (field === 'start_time' || field === 'end_time') {
-      setNewDateForm(prev => withTime(prev, field, roundToNearest5(value)));
+      setNewDateForm(prev => withDateField(prev, field, roundToNearest5(value)));
     }
   };
 
@@ -653,7 +494,6 @@ function FacultyDashboard({ user }) {
             variant="primary" size="lg"
             onClick={() => {
               setShowModal(true);
-              setSubmitError('');
               setSubmitSuccess('');
             }}>
             + New Request
@@ -661,6 +501,8 @@ function FacultyDashboard({ user }) {
         </div>
       </div>
       <div className="rainbow-bar mb-4"></div>
+
+      {loadError && <Alert ref={loadErrorRef} tabIndex={-1} variant="danger">{loadError}</Alert>}
 
       {series.length === 0 && !loading && (
         <Alert variant="info">You haven't requested any models yet. Click "New Request" to start.</Alert>
@@ -681,131 +523,15 @@ function FacultyDashboard({ user }) {
         </Tabs>
       )}
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Request a Model</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {submitError && (
-            <Alert ref={submitErrorRef} tabIndex={-1} variant="danger" dismissible onClose={() => setSubmitError('')}>
-              {submitError}
-            </Alert>
-          )}
-          <Form onSubmit={handleSubmit}>
-            <Row>
-              <Form.Group as={Col} md={6} className="mb-3" controlId="new-class-name">
-                <Form.Label>Class Name</Form.Label>
-                <Form.Control required name="class_name" value={formData.class_name} onChange={handleInputChange} placeholder="e.g. Figure Drawing 101" />
-              </Form.Group>
-              <Form.Group as={Col} md={6} className="mb-3" controlId="new-department">
-                <Form.Label>Department</Form.Label>
-                <Form.Select required name="department" value={formData.department} onChange={handleInputChange}>
-                  <option value="">-- Select --</option>
-                  {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
-                </Form.Select>
-              </Form.Group>
-            </Row>
-
-            <Row>
-              <Form.Group as={Col} md={4} className="mb-3" controlId="new-building">
-                <Form.Label>Building</Form.Label>
-                <Form.Select required name="building" value={formData.building} onChange={handleInputChange}>
-                  <option value="">-- Select --</option>
-                  {BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
-                </Form.Select>
-              </Form.Group>
-              <Form.Group as={Col} md={4} className="mb-3" controlId="new-room">
-                <Form.Label>Room Number</Form.Label>
-                <Form.Control name="room_number" value={formData.room_number} onChange={handleInputChange} placeholder="e.g. 413" />
-              </Form.Group>
-            </Row>
-
-            <hr />
-
-            <h5 className="mb-2">Dates & Times</h5>
-
-            {dates.map((d, index) => (
-              <div key={index} className="p-3 mb-2 bg-light rounded border" role="group" aria-labelledby={`new-date-${index}-heading`}>
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <small id={`new-date-${index}-heading`} className="fw-bold text-muted">Date {index + 1}</small>
-                  {dates.length > 1 && (
-                    <Button variant="outline-danger" size="sm" type="button" onClick={() => removeDate(index)} aria-label={`Remove date ${index + 1}`} title="Remove this date">
-                      <i className="bi bi-trash" aria-hidden="true"></i>
-                    </Button>
-                  )}
-                </div>
-                <Row>
-                  <Form.Group as={Col} md={4} className="mb-2" controlId={`new-date-${index}-date`}>
-                    <Form.Label className="small">Date</Form.Label>
-                    <Form.Control
-                      required
-                      type="date"
-                      value={d.date}
-                      onChange={e => handleDateChange(index, 'date', e.target.value)}
-                    />
-                  </Form.Group>
-                  <Form.Group as={Col} md={4} className="mb-2" controlId={`new-date-${index}-start`}>
-                    <Form.Label className="small">Start Time</Form.Label>
-                    <Form.Control
-                      required
-                      type="time" step={300} min="00:00"
-                      value={d.start_time}
-                      onChange={e => handleDateChange(index, 'start_time', e.target.value)}
-                      onBlur={e => handleDateBlur(index, 'start_time', e.target.value)}
-                    />
-                  </Form.Group>
-                  <Form.Group as={Col} md={4} className="mb-2" controlId={`new-date-${index}-end`}>
-                    <Form.Label className="small">End Time</Form.Label>
-                    <Form.Control
-                      required
-                      type="time" step={300} min="00:00"
-                      value={d.end_time}
-                      onChange={e => handleDateChange(index, 'end_time', e.target.value)}
-                      onBlur={e => handleDateBlur(index, 'end_time', e.target.value)}
-                    />
-                  </Form.Group>
-                </Row>
-              </div>
-            ))}
-
-            <Button variant="outline-primary" size="sm" type="button" onClick={addDate} className="mb-2">
-              <i className="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Another Date
-            </Button>
-
-            <div className="d-flex flex-wrap align-items-end gap-2 mb-1">
-              <Form.Group controlId="new-repeat-until">
-                <Form.Label className="small mb-1">Repeat weekly until</Form.Label>
-                <Form.Control size="sm" type="date" value={repeatUntil} onChange={e => setRepeatUntil(e.target.value)} />
-              </Form.Group>
-              <Button variant="outline-primary" size="sm" type="button" onClick={handleRepeatWeekly}>
-                <i className="bi bi-arrow-repeat me-1" aria-hidden="true"></i> Add Weekly Dates
-              </Button>
-            </div>
-            <div role="status" className="small text-muted mb-2">{repeatMessage}</div>
-
-            <hr />
-            <h5>Model Preferences</h5>
-            <ModelPreferenceFields values={formData} onChange={handlePreferenceChange} />
-
-            <Form.Group className="mb-3" controlId="new-notes">
-              <Form.Label>Notes for Admin</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                name="notes"
-                value={formData.notes}
-                onChange={handleInputChange}
-                placeholder="e.g. Prefer a model with longer hair for this portrait session..."
-              />
-            </Form.Group>
-
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <Button variant="secondary" onClick={() => setShowModal(false)}>Close</Button>
-              <Button variant="primary" type="submit">Submit Request</Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
+      <NewRequestModal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        onCreated={() => {
+          setSubmitSuccess('Request submitted successfully!');
+          setShowModal(false);
+          fetchSeries();
+        }}
+      />
 
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
         <Modal.Header closeButton>

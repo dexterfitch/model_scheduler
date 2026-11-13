@@ -1,5 +1,5 @@
 # People's profiles and roles. Everyone edits their own profile; admins list
-# everyone, create offline model accounts, change roles and retire models. Only a
+# everyone, create offline model and faculty accounts, change roles and retire models. Only a
 # SuperUser can make admins, change an admin's role or profile, grant SuperUser
 # status, or remove a person's data.
 class UsersController < ApplicationController
@@ -19,13 +19,15 @@ class UsersController < ApplicationController
     render json: @target_user
   end
 
-  # Admins only: creates an offline sock model account (for a model without a MICA sign-in). New
-  # accounts are always models.
+  # Admins only: creates an offline sock account for someone without a MICA sign-in: a
+  # model, or a faculty member when role is "faculty" (so admins can make their
+  # requests). Never an admin.
   def create
     user = User.new(user_params)
-    user.role = 'model'
+    user.role = params.dig(:user, :role) == "faculty" ? "faculty" : "model"
     if user.save
-      record_history("created_account", "Created the sock account #{HistoryEntry.name_of(user)}.")
+      kind = user.role_faculty? ? "sock faculty account" : "sock account"
+      record_history("created_account", "Created the #{kind} #{HistoryEntry.name_of(user)}.")
       render json: user, status: :created
     else
       render json: { errors: user.errors.full_messages }, status: :unprocessable_content

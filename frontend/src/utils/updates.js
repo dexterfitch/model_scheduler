@@ -29,6 +29,7 @@ const MESSAGES = {
   class_edited: (u) => `The coordinator changed ${u.title}: ${u.about}.`,
   class_date_moved: (u) => `The coordinator moved a date of ${u.title}: it's now ${when(u.dates)}.`,
   class_date_added: (u) => `The coordinator added a date to ${u.title}: ${when(u.dates)}.`,
+  class_requested: (u) => `The coordinator requested ${u.title} for you, ${when(u.dates)}.`,
   profile_review: () => 'Profile options have expanded. Please take a moment to review your profile.',
 };
 

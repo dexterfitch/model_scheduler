@@ -74,3 +74,14 @@ describe('the profile review announcement', () => {
     expect(updateLink(announcement)).toBe('/profile');
   });
 });
+
+describe('a class made for a faculty member', () => {
+  it('says the coordinator requested it for them, with its dates', () => {
+    expect(updateMessage(update('class_requested', { dates: [nov3, nov10] })))
+      .toBe(`The coordinator requested Anatomy Lab for you, on 2 dates, ${formatDateWithWeekday(nov3)} to ${formatDateWithWeekday(nov10)}.`);
+  });
+
+  it('links to My Classes', () => {
+    expect(updateLink(update('class_requested'))).toBe('/');
+  });
+});

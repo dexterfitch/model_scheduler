@@ -577,3 +577,95 @@ describe('AllRequests (admin requests page)', () => {
     expect(within(dialog).getByLabelText('End time 2')).toHaveValue('16:00');
   });
 });
+
+describe('an admin making a request for a faculty member', () => {
+  const michelle = { id: 7, role: 'faculty', first_name: 'Michelle', last_name: 'La Perriere' };
+  const alice = { id: 8, role: 'faculty', first_name: 'Alice', last_name: 'Chen' };
+  const gone = { id: 9, role: 'faculty', first_name: 'Removed', last_name: 'Person', removed_at: '2026-10-01T00:00:00Z' };
+  const model = { id: 10, role: 'model', first_name: 'Jordan', last_name: 'Ellis' };
+  const nextWeek = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 10); })();
+
+  beforeEach(() => {
+    api.get.mockImplementation((url) => Promise.resolve({ data:
+      url === '/request_series' ? [series] : url === '/users' ? [michelle, model, gone, alice] : []
+    }));
+  });
+
+  /** Opens New Request and returns the window. */
+  async function openNewRequest() {
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: /New Request/ }));
+    return screen.findByRole('dialog');
+  }
+
+  /** Fills in the class details and one date. */
+  async function fillClass(modal) {
+    const field = (label) => within(modal).getByLabelText(label);
+    await userEvent.type(field('Class Name'), 'Drawing (fundamentals)');
+    await userEvent.selectOptions(field('Department'), 'Drawing');
+    await userEvent.selectOptions(field('Building'), 'Main');
+    fireEvent.change(field('Date'), { target: { value: nextWeek } });
+  }
+
+  it('offers current faculty, in alphabetical order, to make the request for', async () => {
+    const modal = await openNewRequest();
+    const options = within(within(modal).getByLabelText('Faculty member')).getAllByRole('option').map(o => o.textContent);
+    expect(options).toEqual(['-- Choose --', 'Alice Chen', 'Michelle La Perriere']);
+  });
+
+  it('makes the class for the chosen faculty member, then says so and reloads', async () => {
+    const modal = await openNewRequest();
+    await userEvent.selectOptions(within(modal).getByLabelText('Faculty member'), 'Michelle La Perriere');
+    await fillClass(modal);
+    await userEvent.click(within(modal).getByRole('button', { name: 'Submit Request' }));
+
+    expect(api.post).toHaveBeenCalledWith('/request_series', expect.objectContaining({
+      request_series: expect.objectContaining({ user_id: 7, class_name: 'Drawing (fundamentals)' }),
+      dates: [expect.objectContaining({ date: nextWeek })]
+    }));
+    expect(await screen.findByText('Request made for Michelle La Perriere.')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(api.get.mock.calls.filter(([url]) => url === '/request_series').length).toBeGreaterThan(1);
+  });
+
+  it('asks which faculty member the class is for before sending', async () => {
+    const modal = await openNewRequest();
+    await fillClass(modal);
+    await userEvent.click(within(modal).getByRole('button', { name: 'Submit Request' }));
+    expect(await within(modal).findByText('Choose the faculty member this class is for.')).toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('adds a faculty member without a MICA sign-in, and chooses them', async () => {
+    api.post.mockImplementation((url, body) => Promise.resolve({ data:
+      url === '/users' ? { id: 20, role: 'faculty', first_name: body.user.first_name, last_name: body.user.last_name } : {}
+    }));
+    const modal = await openNewRequest();
+    await userEvent.click(within(modal).getByRole('button', { name: 'Add Faculty Without a MICA Sign-in' }));
+    const sock = within(modal).getByRole('group', { name: 'New faculty member' });
+    await userEvent.type(within(sock).getByLabelText('First Name'), 'Visiting');
+    await userEvent.type(within(sock).getByLabelText('Last Name'), 'Artist');
+    await userEvent.type(within(sock).getByLabelText('Email (@mica.edu)'), 'visiting.artist@mica.edu');
+    await userEvent.click(within(sock).getByRole('button', { name: 'Add Faculty Member' }));
+
+    expect(api.post).toHaveBeenCalledWith('/users', { user: {
+      first_name: '🧦 Visiting', last_name: 'Artist', email: 'visiting.artist@mica.edu', role: 'faculty'
+    } });
+    const select = within(modal).getByLabelText('Faculty member');
+    await vi.waitFor(() => expect(select).toHaveValue('20'));
+    expect(within(select).getByRole('option', { name: '🧦 Visiting Artist' })).toBeInTheDocument();
+    expect(within(modal).queryByRole('group', { name: 'New faculty member' })).not.toBeInTheDocument();
+  });
+
+  it("explains why a faculty account couldn't be added", async () => {
+    api.post.mockRejectedValue({ response: { data: { errors: ['Email must be a MICA email address'] } } });
+    const modal = await openNewRequest();
+    await userEvent.click(within(modal).getByRole('button', { name: 'Add Faculty Without a MICA Sign-in' }));
+    const sock = within(modal).getByRole('group', { name: 'New faculty member' });
+    await userEvent.type(within(sock).getByLabelText('First Name'), 'Visiting');
+    await userEvent.type(within(sock).getByLabelText('Last Name'), 'Artist');
+    await userEvent.type(within(sock).getByLabelText('Email (@mica.edu)'), 'va@gmail.com');
+    await userEvent.click(within(sock).getByRole('button', { name: 'Add Faculty Member' }));
+    expect(await within(sock).findByText('Email must be a MICA email address')).toBeInTheDocument();
+  });
+});

@@ -113,6 +113,17 @@ export const endAfterStart = (oldStart, oldEnd, newStart) => {
   return oldEnd;
 };
 
+/** A new date row for a form, starting 9 to 11 AM. */
+export const emptyDateRow = () => {
+  const { start, end } = newClassTimes();
+  return { date: "", start_time: start, end_time: end };
+};
+
+/** A date row with one field changed; changing the start moves the end with it. */
+export const withDateField = (row, field, value) => field === 'start_time'
+  ? { ...row, start_time: value, end_time: endAfterStart(row.start_time, row.end_time, value) }
+  : { ...row, [field]: value };
+
 /** A saved time as a time field shows it, rounded to the nearest 5 minutes (never past 23:55). */
 export const formatTimeForInput = (date) => {
   const minutes = Math.min(Math.round((date.getHours() * 60 + date.getMinutes()) / 5) * 5, 23 * 60 + 55);
