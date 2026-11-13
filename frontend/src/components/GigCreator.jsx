@@ -1,12 +1,13 @@
 /**
  * Find Model: ranks the models who are free for a class (or one date) and lets an
- * admin book them. Classes with per-model preferences rank each model against the
- * spot they'd fill best.
+ * admin book them. For a class with several open dates, the admin can book all of
+ * them at once or pick one date, to book different models on different dates.
+ * Classes with per-model preferences rank each model against the spot they'd fill best.
  */
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Container, Card, Button, ListGroup, Badge, Spinner, Alert } from "react-bootstrap";
+import { Container, Card, Button, ListGroup, Badge, Spinner, Alert, ToggleButtonGroup, ToggleButton } from "react-bootstrap";
 import api from "../services/api";
 import { useDialog } from "./DialogProvider";
 import { formatSkinTone, formatModelCount, calculateMatchScore, formatPreferenceSummary } from "../utils/formatters";
@@ -47,8 +48,10 @@ const bestOpenSlot = (user, slots, modelMode, isOpen) => {
 /** The Find Model page, for a whole class or one date. */
 function GigCreator() {
   const { requestId } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isSeries = searchParams.get('type') === 'series';
+  /** The one date of the class chosen to book, or null for all open dates. */
+  const chosenDateId = parseInt(searchParams.get('date'), 10) || null;
   const navigate = useNavigate();
   const { confirm } = useDialog();
 
@@ -74,11 +77,21 @@ function GigCreator() {
       setSeries(targetSeries);
 
       if (targetSeries) {
-        const pendingRequests = (targetSeries.faculty_requests?.filter(r => r.status === 'pending') || []).sort(byStart);
+        const allPending = (targetSeries.faculty_requests?.filter(r => r.status === 'pending') || []).sort(byStart);
+        // Just the chosen date, if one was picked and it's still open; otherwise every open date.
+        const pendingRequests = allPending.some(r => r.id === chosenDateId)
+          ? allPending.filter(r => r.id === chosenDateId)
+          : allPending;
         const isNudeReq = targetSeries.model_mode === "nude";
 
         const confirmedGigs = gigsRes.data.filter(g => g.status === 'confirmed');
-        const pendingRequestIds = new Set(pendingRequests.map(r => r.id));
+        const pendingRequestIds = new Set(allPending.map(r => r.id));
+        const classDateIds = new Set((targetSeries.faculty_requests || []).map(r => r.id));
+        /** The start times of this class's dates the model is already booked on, soonest first. */
+        const classDatesBookedFor = (userId) => confirmedGigs
+          .filter(g => classDateIds.has(g.faculty_request.id) && g.art_model_availability.user.id === userId)
+          .map(g => g.faculty_request.starts_at)
+          .sort((a, b) => new Date(a) - new Date(b));
         const booked = groupConfirmedGigs(confirmedGigs, [...pendingRequestIds]);
         setBookedByRequest(booked);
 
@@ -114,9 +127,10 @@ function GigCreator() {
           const fit = bestOpenSlot(user, targetSeries.model_slots, targetSeries.model_mode, slot =>
             requestsToBook.some(req => !booked[req.id].some(g => g.model_slot_position === slot.position))
           );
-          if (fit) return { user, avails, requestsToBook, ...fit };
+          const bookedOn = classDatesBookedFor(user.id);
+          if (fit) return { user, avails, requestsToBook, bookedOn, ...fit };
 
-          return { user, avails, requestsToBook, score: calculateMatchScore(user, targetSeries) };
+          return { user, avails, requestsToBook, bookedOn, score: calculateMatchScore(user, targetSeries) };
         }).filter(Boolean);
 
         candidates.sort((a, b) => b.score - a.score);
@@ -128,7 +142,7 @@ function GigCreator() {
       setError("Failed to load request data. Please try again.");
       setLoading(false);
     });
-  }, [requestId]);
+  }, [requestId, chosenDateId]);
 
   /** Finds the models free for one date, scored and ranked. */
   const loadSingleRequestData = useCallback(() => {
@@ -269,6 +283,11 @@ function GigCreator() {
   const pendingRequests = isSeries
     ? (series.faculty_requests?.filter(r => r.status === 'pending') || []).sort(byStart)
     : (request.status === 'pending' ? [request] : []);
+  const chosenDate = isSeries ? pendingRequests.find(r => r.id === chosenDateId) : null;
+  /** A date in the Book for choice, like Thu, Nov 19, 12:30 PM. */
+  const dateChoiceLabel = (req) => `${formatDateWithWeekday(req.starts_at)}, ${formatTime(req.starts_at)}`;
+  /** Shows the models for all open dates ('all') or for one date. */
+  const chooseDates = (value) => setSearchParams(value === 'all' ? { type: 'series' } : { type: 'series', date: value });
   const modelsNeeded = displayData.models_needed || 1;
   const isMultiModel = modelsNeeded > 1;
   const isNude = displayData.model_mode === 'nude';
@@ -340,7 +359,7 @@ function GigCreator() {
               ? <Badge bg="danger">Nude Required</Badge>
               : <Badge bg="success">Clothed</Badge>}
             {!(displayData.model_slots?.length > 0) && (
-              <Badge bg="info" text="dark">
+              <Badge bg="info" text="dark" className="text-wrap text-start">
                 Pref: {formatPreferenceSummary(displayData, displayData.model_mode)}
               </Badge>
             )}
@@ -368,11 +387,41 @@ function GigCreator() {
         </Alert>
       ) : (
         <>
+          {isSeries && pendingRequests.length > 1 && (
+            <div className="mb-3">
+              <div id="book-for-label" className="fw-bold mb-2">Book for</div>
+              <ToggleButtonGroup
+                type="radio"
+                name="book-for"
+                aria-labelledby="book-for-label"
+                className="flex-wrap gap-2"
+                value={chosenDate ? chosenDate.id : 'all'}
+                onChange={chooseDates}
+              >
+                <ToggleButton id="book-for-all" value="all" variant="outline-primary" className="rounded flex-grow-0" style={{ minHeight: 44 }}>
+                  All {pendingRequests.length} dates
+                </ToggleButton>
+                {pendingRequests.map(req => (
+                  <ToggleButton key={req.id} id={`book-for-${req.id}`} value={req.id} variant="outline-primary" className="rounded flex-grow-0" style={{ minHeight: 44 }}>
+                    {dateChoiceLabel(req)}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </div>
+          )}
+
           {isSeries && (
             <Alert variant="info" className="mb-3">
               <i className="bi bi-info-circle-fill me-2"></i>
-              Only models available for <strong>all {pendingRequests.length} open dates</strong> are shown below.
-              {isMultiModel && " Models already booked on some dates only need to cover the rest."}
+              {chosenDate ? (
+                <>Only models available on <strong>{dateChoiceLabel(chosenDate)}</strong> are shown below.</>
+              ) : (
+                <>
+                  Only models available for <strong>all {pendingRequests.length} open dates</strong> are shown below.
+                  {isMultiModel && " Models already booked on some dates only need to cover the rest."}
+                  {pendingRequests.length > 1 && " To book different models on different dates, choose a date above."}
+                </>
+              )}
             </Alert>
           )}
 
@@ -380,7 +429,9 @@ function GigCreator() {
           <ListGroup>
             {matches.length === 0 ? (
               <Alert variant="warning">
-                No other models are available for all open dates and meet the nudity requirement.
+                {chosenDate
+                  ? "No other models are available on that date and meet the nudity requirement."
+                  : "No other models are available for all open dates and meet the nudity requirement."}
               </Alert>
             ) : (
               matches.map(model => {
@@ -403,6 +454,11 @@ function GigCreator() {
                         {model.user.body_type && ` / ${model.user.body_type}`}
                         {isNude && model.user.genitalia && ` / ${model.user.genitalia}`}
                       </div>
+                      {model.bookedOn?.length > 0 && (
+                        <div className="small fw-bold">
+                          Already booked for this class on {model.bookedOn.map(formatDateWithWeekday).join(', ')}
+                        </div>
+                      )}
                       {!isSeries && (
                         <div className="text-success small">
                           Available: {formatDateTime(model.starts_at)} - {formatDateTime(model.ends_at)}

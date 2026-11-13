@@ -2,7 +2,7 @@
  * Tests for Find Model: ranking, booking and group and per-model classes.
  */
 
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import GigCreator from './GigCreator';
@@ -125,9 +125,83 @@ describe('GigCreator (matching screen)', () => {
       </MemoryRouter>
     );
 
-    const soonerRow = await screen.findByText(new RegExp(`${formatDateWithWeekday(sooner)}\\b`));
-    const laterRow = screen.getByText(new RegExp(`${formatDateWithWeekday(later)}\\b`));
+    const [soonerRow] = await screen.findAllByText(new RegExp(`${formatDateWithWeekday(sooner)}\\b`));
+    const [laterRow] = screen.getAllByText(new RegExp(`${formatDateWithWeekday(later)}\\b`));
     expect(soonerRow.compareDocumentPosition(laterRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  describe('booking one date of a class at a time', () => {
+    const sooner = daysFromNow(6, 15);
+    const later = daysFromNow(20, 15);
+    const dana = { id: 13, first_name: 'Dana', last_name: 'Both', willing_to_model_nude: false, skin_tone: 'Light', gender_identity: 'Woman' };
+    const eli  = { id: 14, first_name: 'Eli',  last_name: 'Later', willing_to_model_nude: false, skin_tone: 'Dark',  gender_identity: 'Man' };
+    /** A pending two-hour date. */
+    const date = (id, starts_at) => ({ id, status: 'pending', models_needed: 1, starts_at, ends_at: new Date(new Date(starts_at).getTime() + 2 * 36e5).toISOString() });
+    /** Free time around a date. */
+    const freeOn = (id, user, starts_at) => ({ id, user, status: 'active',
+      starts_at: new Date(new Date(starts_at).getTime() - 36e5).toISOString(),
+      ends_at: new Date(new Date(starts_at).getTime() + 4 * 36e5).toISOString() });
+
+    /** Shows Find Model for a class with the given dates and gigs; Dana is free on both dates, Eli only on the later one. */
+    function renderClass(dates, gigs = []) {
+      const series = {
+        id: 1, class_name: 'Drawing (fundamentals)', status: 'pending', model_mode: 'clothed', models_needed: 1,
+        pref_skin_tone: 'Any', pref_gender: 'Any', pref_body_type: 'Any', pref_genitalia: 'Any',
+        user: { first_name: 'Michelle', last_name: 'La Perriere' }, faculty_requests: dates
+      };
+      const free = [freeOn(51, dana, sooner), freeOn(52, dana, later), freeOn(53, eli, later)];
+      api.get.mockImplementation((url) => Promise.resolve({ data:
+        url === '/request_series' ? [series] : url === '/art_model_availabilities' ? free : url === '/gigs' ? gigs : []
+      }));
+      api.post.mockResolvedValue({ data: {} });
+      renderWithDialogs(
+        <MemoryRouter initialEntries={['/gigs/new/1?type=series']}>
+          <Routes><Route path="/gigs/new/:requestId" element={<GigCreator />} /></Routes>
+        </MemoryRouter>
+      );
+    }
+
+    it('starts on all dates, listing only models free for every one', async () => {
+      renderClass([date(21, sooner), date(22, later)]);
+      expect(await screen.findByRole('radio', { name: 'All 2 dates' })).toBeChecked();
+      expect(screen.getByText('Dana Both')).toBeInTheDocument();
+      expect(screen.queryByText('Eli Later')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Book for 2 Dates' })).toBeInTheDocument();
+    });
+
+    it('lists the models free on one chosen date, and books them for just that date', async () => {
+      renderClass([date(21, sooner), date(22, later)]);
+      await userEvent.click(await screen.findByRole('radio', { name: new RegExp(`^${formatDateWithWeekday(later)}`) }));
+
+      expect(await screen.findByText('Eli Later')).toBeInTheDocument();
+      expect(screen.getByText('Dana Both')).toBeInTheDocument();
+      expect(screen.getByText(/Only models available on/)).toHaveTextContent(formatDateWithWeekday(later));
+
+      const eliRow = screen.getByText('Eli Later').closest('.list-group-item');
+      await userEvent.click(within(eliRow).getByRole('button', { name: 'Book Model' }));
+      expect(await screen.findByRole('dialog')).toHaveTextContent(`on ${formatDateWithWeekday(later)}`);
+      await userEvent.click(screen.getByRole('button', { name: 'Confirm Booking' }));
+
+      expect(api.post).toHaveBeenCalledTimes(1);
+      expect(api.post).toHaveBeenCalledWith('/gigs', { gig: { faculty_request_id: 22, art_model_availability_id: 53 } });
+    });
+
+    it('marks a model already booked on another date of the class, so a different one can be chosen', async () => {
+      const soonerDate = { ...date(21, sooner), status: 'matched' };
+      renderClass([soonerDate, date(22, later)], [
+        { id: 300, status: 'confirmed', faculty_request: soonerDate, art_model_availability: { id: 51, user: dana } },
+      ]);
+      const danaRow = (await screen.findByText('Dana Both')).closest('.list-group-item');
+      expect(danaRow).toHaveTextContent(`Already booked for this class on ${formatDateWithWeekday(sooner)}`);
+      const eliRow = screen.getByText('Eli Later').closest('.list-group-item');
+      expect(eliRow).not.toHaveTextContent('Already booked');
+    });
+
+    it("doesn't offer a choice when only one date is open", async () => {
+      renderClass([date(21, sooner), { ...date(22, later), status: 'matched' }]);
+      await screen.findByText('Dana Both');
+      expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    });
   });
 
   describe('classes with preferences for each model', () => {
