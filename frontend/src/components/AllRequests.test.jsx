@@ -643,6 +643,7 @@ describe('an admin making a request for a faculty member', () => {
     const modal = await openNewRequest();
     await userEvent.click(within(modal).getByRole('button', { name: 'Add Faculty Without a MICA Sign-in' }));
     const sock = within(modal).getByRole('group', { name: 'New faculty member' });
+    expect(sock).toHaveTextContent('Use their real MICA email. If they sign in later, this becomes their account.');
     await userEvent.type(within(sock).getByLabelText('First Name'), 'Visiting');
     await userEvent.type(within(sock).getByLabelText('Last Name'), 'Artist');
     await userEvent.type(within(sock).getByLabelText('Email (@mica.edu)'), 'visiting.artist@mica.edu');
@@ -655,6 +656,42 @@ describe('an admin making a request for a faculty member', () => {
     await vi.waitFor(() => expect(select).toHaveValue('20'));
     expect(within(select).getByRole('option', { name: '🧦 Visiting Artist' })).toBeInTheDocument();
     expect(within(modal).queryByRole('group', { name: 'New faculty member' })).not.toBeInTheDocument();
+  });
+
+  describe('moving a class to another faculty member in Edit Class', () => {
+    beforeEach(() => {
+      api.patch.mockResolvedValue({ data: {} });
+      api.get.mockImplementation((url) => Promise.resolve({ data:
+        url === '/request_series' ? [{ ...series, user: alice }] : url === '/users' ? [michelle, model, gone, alice] : []
+      }));
+    });
+
+    /** Opens Edit Class on the class and returns the window. */
+    async function openEditClass() {
+      renderPage();
+      const [editButton] = await screen.findAllByRole('button', { name: 'Edit Class' });
+      await userEvent.click(editButton);
+      return screen.findByRole('dialog');
+    }
+
+    it("starts on the class's faculty member, and sends the new one when changed", async () => {
+      const dialog = await openEditClass();
+      const select = within(dialog).getByLabelText('Faculty member');
+      expect(select).toHaveValue('8');
+      await userEvent.selectOptions(select, 'Michelle La Perriere');
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));
+      await vi.waitFor(() => expect(api.patch).toHaveBeenCalledWith('/request_series/1', expect.objectContaining({
+        request_series: expect.objectContaining({ user_id: 7 })
+      })));
+    });
+
+    it("doesn't send the faculty member when it wasn't changed", async () => {
+      const dialog = await openEditClass();
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));
+      await vi.waitFor(() => expect(api.patch).toHaveBeenCalledWith('/request_series/1', expect.anything()));
+      const [, body] = api.patch.mock.calls.find(([url]) => url === '/request_series/1');
+      expect(body.request_series).not.toHaveProperty('user_id');
+    });
   });
 
   it("explains why a faculty account couldn't be added", async () => {

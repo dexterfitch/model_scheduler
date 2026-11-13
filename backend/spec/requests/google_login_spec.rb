@@ -67,4 +67,13 @@ RSpec.describe "Signing in with Google", type: :request do
     google_says(email: "newfaculty@mica.edu")
     expect(User.find_by(email: "newfaculty@mica.edu")).to be_valid
   end
+
+  it "drops the sock mark when the person behind a sock account signs in, and keeps their classes" do
+    sock = create(:user, first_name: "🧦 Michelle", last_name: "La Perriere", email: "mlaperriere@mica.edu")
+    series = create(:request_series, user: sock)
+    google_says(email: "mlaperriere@mica.edu")
+    expect(response.location).to include("login_success/#{sock.id}")
+    expect(sock.reload.first_name).to eq("Michelle")
+    expect(series.reload.user).to eq(sock)
+  end
 end

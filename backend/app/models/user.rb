@@ -31,6 +31,10 @@ class User < ApplicationRecord
   validates :email, format: { with: /\A[^@]+@mica\.edu\z/i, message: "must be a MICA email address" }
   validates :role, presence: true, on: :update, if: -> { role_was.present? }
 
+  # The mark at the start of a sock account's first name (an account an admin made for
+  # someone without a MICA sign-in).
+  SOCK_MARK = /\A🧦\s*/
+
   with_options if: :role_model? do
     validates :gender_identity, presence: true
     validates :gender_identity, inclusion: { in: GENDER_IDENTITIES }
@@ -41,9 +45,11 @@ class User < ApplicationRecord
   end
 
   # The user for a Google sign-in, matched by email, created if new, with name and photo filled in.
+  # A sock account made for this person becomes theirs: its 🧦 mark comes off their name.
   def self.from_omniauth(auth)
     email = auth.info.email.to_s.downcase
     user = where("LOWER(email) = ?", email).first_or_initialize(email: email)
+    user.first_name = user.first_name.to_s.sub(SOCK_MARK, "") if user.first_name.to_s.start_with?("🧦")
     user.first_name = auth.info.first_name if user.first_name.blank?
     user.last_name = auth.info.last_name if user.last_name.blank?
     user.image_url = auth.info.image

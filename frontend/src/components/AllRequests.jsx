@@ -14,7 +14,7 @@ import { Container, Table, Badge, Form, InputGroup, Button, Row, Col, Modal, Ale
 import api from "../services/api";
 import styles from "./AllRequests.module.css";
 import { useDialog } from "./DialogProvider";
-import { formatModelCount, extractErrorMessages, formatPreferenceSummary } from "../utils/formatters";
+import { formatModelCount, extractErrorMessages, formatPreferenceSummary, byFirstName } from "../utils/formatters";
 import { roundToNearest5, formatTime, formatTimeShort, formatDateShort, formatDateWithWeekday, firstStartsAt, formatTimeForInput, newClassTimes, endAfterStart, oneYearAgo } from "../utils/time";
 import { DEPARTMENTS, BUILDINGS, MAX_MODELS_PER_REQUEST } from "../utils/constants";
 import { payStatusLabel, wasCorrected } from "../utils/pay";
@@ -106,13 +106,18 @@ function AllRequests() {
       .sort((a, b) => when === 'past' ? firstStartsAt(b) - firstStartsAt(a) : firstStartsAt(a) - firstStartsAt(b));
   };
 
+  /** Everyone the page knows about, including faculty added from New Request. */
+  const people = [...(pool?.models || []), ...addedFaculty];
+  /** Current faculty, A to Z, for choosing whose class it is. */
+  const facultyChoices = people.filter(u => u.role === 'faculty' && !u.removed_at).sort(byFirstName);
+
   const pending = filterSeries('pending');
   const matched = filterSeries('matched');
   const archived = filterSeries('archived').reverse();
 
   const [editingSeries, setEditingSeries] = useState(null);
   const [seriesForm, setSeriesForm] = useState({
-    class_name: '', department: '', building: '', room_number: '', notes: '', models_needed: 1, reason: '', dates: []
+    class_name: '', department: '', building: '', room_number: '', notes: '', models_needed: 1, user_id: '', reason: '', dates: []
   });
   const [editError, setEditError] = useState('');
   const editErrorRef = useRevealMessage(editError);
@@ -192,6 +197,7 @@ function AllRequests() {
       room_number: s.room_number || '',
       notes: s.notes || '',
       models_needed: s.models_needed || 1,
+      user_id: s.user?.id ?? '',
       reason: '',
       dates: activeRequests.map(r => {
         const startDate = new Date(r.starts_at);
@@ -213,6 +219,7 @@ function AllRequests() {
   /** Saves Edit Class: the class details, changed dates and new dates. */
   const handleSaveSeriesEdit = async () => {
     setEditError('');
+    const movingOwner = seriesForm.user_id !== '' && Number(seriesForm.user_id) !== editingSeries.user?.id;
     try {
       await api.patch(`/request_series/${editingSeries.id}`, {
         request_series: {
@@ -221,7 +228,8 @@ function AllRequests() {
           building: seriesForm.building,
           room_number: seriesForm.room_number,
           notes: seriesForm.notes,
-          models_needed: seriesForm.models_needed
+          models_needed: seriesForm.models_needed,
+          ...(movingOwner ? { user_id: Number(seriesForm.user_id) } : {})
         },
         note: seriesForm.reason
       });
@@ -236,7 +244,7 @@ function AllRequests() {
           await api.post(`/faculty_requests`, {
             faculty_request: {
               request_series_id: editingSeries.id,
-              user_id: editingSeries.user.id,
+              user_id: movingOwner ? Number(seriesForm.user_id) : editingSeries.user.id,
               class_name: seriesForm.class_name,
               department: seriesForm.department,
               building: seriesForm.building,
@@ -760,7 +768,7 @@ function AllRequests() {
       <NewRequestModal
         show={showNewRequest}
         onHide={() => setShowNewRequest(false)}
-        faculty={[...(pool?.models || []), ...addedFaculty]}
+        faculty={people}
         onFacultyAdded={(person) => setAddedFaculty(prev => [...prev, person])}
         onCreated={(owner) => {
           setShowNewRequest(false);
@@ -865,6 +873,20 @@ function AllRequests() {
               {editError}
             </Alert>
           )}
+
+          <Form.Group className="mb-3" controlId="edit-owner">
+            <Form.Label>Faculty member</Form.Label>
+            <Form.Select
+              value={seriesForm.user_id}
+              onChange={e => setSeriesForm(prev => ({ ...prev, user_id: e.target.value }))}
+            >
+              {editingSeries?.user && !facultyChoices.some(u => u.id === editingSeries.user.id) && (
+                <option value={editingSeries.user.id}>{editingSeries.user.first_name} {editingSeries.user.last_name}</option>
+              )}
+              {facultyChoices.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
+            </Form.Select>
+            <Form.Text>Moving a class gives it, and all its dates, to the faculty member you choose.</Form.Text>
+          </Form.Group>
 
           <Row>
             <Col md={7}>

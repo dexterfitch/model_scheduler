@@ -192,6 +192,16 @@ class RequestSeriesController < ApplicationController
       return render json: { error: "This request has confirmed models, so only an admin can change it." }, status: :forbidden
     end
 
+    # An admin can move the class to another current faculty member.
+    new_owner_id = series_params[:user_id]
+    moving = new_owner_id.present? && new_owner_id.to_i != @series.user_id
+    if moving
+      owner = User.find_by(id: new_owner_id)
+      unless owner&.role_faculty? && owner.removed_at.nil?
+        return render json: { error: "Choose the faculty member this class is for." }, status: :unprocessable_content
+      end
+    end
+
     if series_params[:model_mode] == "nude"
       clothed_only = clothed_only_models_booked_on(@series)
       if clothed_only.any?
@@ -217,6 +227,9 @@ class RequestSeriesController < ApplicationController
     ActiveRecord::Base.transaction do
       @series.update!(series_params)
       edited = @series.saved_changes.reject { |key, (before, after)| key == "updated_at" || before.presence == after.presence }
+
+      # Every date moves with the class, so its new faculty member can manage them.
+      @series.faculty_requests.update_all(user_id: @series.user_id) if moving
 
       changed_keys = series_params.keys.map(&:to_s)
       changed_keys |= ["pref_genitalia"] if changed_keys.include?("model_mode")

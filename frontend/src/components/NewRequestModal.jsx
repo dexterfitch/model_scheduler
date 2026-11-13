@@ -245,7 +245,8 @@ function NewRequestModal({ show, onHide, onCreated, faculty = null, onFacultyAdd
                 <div role="group" aria-labelledby="new-sock-heading" className="p-3 mt-2 bg-light rounded border">
                   <div id="new-sock-heading" className="fw-bold mb-1">New faculty member</div>
                   <p className="small text-muted mb-2">
-                    For someone who can't sign in with a MICA Google account. Their name is marked 🧦, and admins manage their classes.
+                    For someone who isn't using the app. Their name is marked 🧦, and admins manage their classes.
+                    {' '}<strong>Use their real MICA email.</strong> If they sign in later, this becomes their account.
                   </p>
                   {sockError && <Alert ref={sockErrorRef} tabIndex={-1} variant="danger" className="py-2">{sockError}</Alert>}
                   <Row>

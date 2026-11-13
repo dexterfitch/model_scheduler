@@ -19,6 +19,40 @@ RSpec.describe "Request series permissions", type: :request do
       params: { request_series: changes }, headers: auth_headers(as), as: :json
   end
 
+  describe "moving a class to another faculty member" do
+    let(:michelle) { create(:user, first_name: "Michelle", last_name: "La Perriere") }
+
+    it "moves the class and every date, and says so in History" do
+      patch_series(as: admin, changes: { user_id: michelle.id })
+      expect(response).to have_http_status(:ok)
+      expect(series.reload.user).to eq(michelle)
+      expect(series.faculty_requests.pluck(:user_id).uniq).to eq([michelle.id])
+      expect(HistoryEntry.last.summary).to include("faculty member changed from Test User to Michelle La Perriere")
+    end
+
+    it "lets the new faculty member manage its dates, and not the old one" do
+      open_date = create(:faculty_request, user: faculty, request_series: series, starts_at: 9.days.from_now.change(hour: 10))
+      patch_series(as: admin, changes: { user_id: michelle.id })
+      delete "/faculty_requests/#{open_date.id}", headers: auth_headers(faculty), as: :json
+      expect(response).to have_http_status(:forbidden)
+      delete "/faculty_requests/#{open_date.id}", headers: auth_headers(michelle), as: :json
+      expect(response).to be_successful
+    end
+
+    it "won't move a class to someone who isn't current faculty" do
+      patch_series(as: admin, changes: { user_id: create(:user, :model).id })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["error"]).to eq("Choose the faculty member this class is for.")
+      expect(series.reload.user).to eq(faculty)
+    end
+
+    it "leaves the faculty member alone when the same one is sent back" do
+      patch_series(as: admin, changes: { user_id: faculty.id, notes: "changed" })
+      expect(response).to have_http_status(:ok)
+      expect(HistoryEntry.last.summary).not_to include("faculty member")
+    end
+  end
+
   it "blocks faculty from editing a series with a booked model" do
     patch_series(as: faculty, changes: { notes: "changed" })
     expect(response).to have_http_status(:forbidden)
